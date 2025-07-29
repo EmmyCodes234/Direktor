@@ -11,6 +11,7 @@ import { Checkbox } from '../components/ui/Checkbox';
 
 const allPairingSystems = [
     { id: 'swiss', name: 'Swiss', type: 'individual' },
+    { id: 'lito', name: 'Lito Pairings (Enhanced Swiss)', type: 'individual' },
     { id: 'round_robin', name: 'Round Robin', type: 'individual' },
     { id: 'king_of_the_hill', name: 'King of the Hill (KOTH)', type: 'individual' },
     { id: 'random', name: 'Random', type: 'individual' },
@@ -21,7 +22,7 @@ const PairingManagementPage = () => {
     const { tournamentId } = useParams();
     const [tournament, setTournament] = useState(null);
     const [settings, setSettings] = useState({
-        pairing_system: 'swiss',
+        pairing_system: 'lito',
         gibson_rule_enabled: false,
         advanced_pairing_enabled: false,
         advanced_pairing_modes: {}
@@ -45,13 +46,13 @@ const PairingManagementPage = () => {
             if (data.advanced_pairing_modes) {
                 for (let i = 1; i <= data.rounds; i++) {
                     if (!advanced_modes[i]) {
-                        advanced_modes[i] = { system: 'swiss', base_round: i - 1, allow_rematches: true };
+                        advanced_modes[i] = { system: 'lito', base_round: i - 1, allow_rematches: true };
                     }
                 }
             }
 
             setSettings({
-                pairing_system: data.pairing_system || 'swiss',
+                pairing_system: data.pairing_system || 'lito',
                 gibson_rule_enabled: data.gibson_rule_enabled || false,
                 advanced_pairing_enabled: !!data.advanced_pairing_modes,
                 advanced_pairing_modes: advanced_modes
@@ -98,7 +99,7 @@ const PairingManagementPage = () => {
             advanced_pairing_modes: {
                 ...prev.advanced_pairing_modes,
                 [round]: {
-                    ...(prev.advanced_pairing_modes[round] || { system: 'swiss', base_round: round - 1, allow_rematches: true }),
+                    ...(prev.advanced_pairing_modes[round] || { system: 'lito', base_round: round - 1, allow_rematches: true }),
                     [field]: value
                 }
             }
@@ -154,7 +155,7 @@ const PairingManagementPage = () => {
                                                 {Array.from({ length: tournament?.rounds || 0 }, (_, i) => i + 1).map(roundNum => (
                                                     <div key={roundNum} className="grid grid-cols-4 gap-4 items-center p-3 bg-muted/20 rounded-lg">
                                                         <span className="font-semibold text-foreground">Round {roundNum}</span>
-                                                        <select value={settings.advanced_pairing_modes[roundNum]?.system || 'swiss'} onChange={(e) => handleAdvancedModeSettingChange(roundNum, 'system', e.target.value)} className="bg-input border border-border rounded-md px-3 py-1.5 text-sm">
+                                                        <select value={settings.advanced_pairing_modes[roundNum]?.system || 'lito'} onChange={(e) => handleAdvancedModeSettingChange(roundNum, 'system', e.target.value)} className="bg-input border border-border rounded-md px-3 py-1.5 text-sm">
                                                             {availablePairingSystems.map(system => (<option key={system.id} value={system.id}>{system.name}</option>))}
                                                         </select>
                                                         <select value={settings.advanced_pairing_modes[roundNum]?.base_round ?? roundNum - 1} onChange={(e) => handleAdvancedModeSettingChange(roundNum, 'base_round', parseInt(e.target.value))} className="bg-input border border-border rounded-md px-3 py-1.5 text-sm">

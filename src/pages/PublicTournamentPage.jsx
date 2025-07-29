@@ -15,6 +15,7 @@ import TournamentTicker from '../components/TournamentTicker';
 import AnnouncementsDisplay from 'components/AnnouncementsDisplay';
 import StandingsTable from 'pages/tournament-command-center-dashboard/components/StandingsTable';
 import PrizeDisplay from 'components/PrizeDisplay';
+import AdvancedStatsDisplay from 'components/AdvancedStatsDisplay';
 
 const StatCard = ({ icon, label, value, subtext, color = 'text-primary' }) => (
     <div className="glass-card p-4">
@@ -289,6 +290,11 @@ const PublicTournamentPage = () => {
                             <section id="prizes" ref={prizesRef}>
                                 <PrizeDisplay prizes={prizes} players={players} tournament={tournament} />
                             </section>
+                            
+                            <section id="stats" ref={statsRef}>
+                                <h2 className="font-heading text-2xl font-semibold mb-4 flex items-center"><Icon name="BarChart2" className="mr-3 text-primary"/>Advanced Statistics</h2>
+                                <AdvancedStatsDisplay results={results} players={players} />
+                            </section>
 
                             <section id="pairings" ref={pairingsRef}>
                                 <h2 className="font-heading text-2xl font-semibold mb-4 flex items-center"><Icon name="Swords" className="mr-3 text-primary"/>Pairings by Round</h2>
@@ -327,14 +333,6 @@ const PublicTournamentPage = () => {
                                             </div>
                                         </div>
                                     ))}
-                                </div>
-                            </section>
-
-                            <section id="stats" ref={statsRef}>
-                                <h2 className="font-heading text-2xl font-semibold mb-4 flex items-center"><Icon name="BarChart2" className="mr-3 text-primary"/>Tournament Statistics</h2>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <StatCard icon="Star" label="High Game Score" value={tournamentStats.highGame || 'N/A'} />
-                                    <StatCard icon="Maximize2" label="Largest Blowout" value={tournamentStats.largestBlowout?.spread > -1 ? `+${tournamentStats.largestBlowout.spread}` : 'N/A'} subtext={tournamentStats.largestBlowout?.spread > -1 ? `${tournamentStats.largestBlowout.player1_name} vs ${tournamentStats.largestBlowout.player2_name}` : ''}/>
                                 </div>
                             </section>
 
