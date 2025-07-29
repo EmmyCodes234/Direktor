@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors */
+    --color-background: #111111; /* near-black */
+    --color-foreground: #FFFFFF; /* white */
+    --color-border: rgba(255, 255, 255, 0.1); /* white-10 */
+    --color-input: rgba(23, 23, 23, 0.6); /* gray-900-60 */
+    --color-ring: #007BFF; /* blue-500 */
+    
+    /* Card Colors */
+    --color-card: rgba(23, 23, 23, 0.6); /* gray-900-60 */
+    --color-card-foreground: #FFFFFF; /* white */
+    --color-popover: rgba(23, 23, 23, 0.9); /* gray-900-90 */
+    --color-popover-foreground: #FFFFFF; /* white */
+    
+    /* Muted Colors */
+    --color-muted: rgba(23, 23, 23, 0.4); /* gray-900-40 */
+    --color-muted-foreground: #B0B0B0; /* gray-400 */
+    
+    /* Primary Colors */
+    --color-primary: #007BFF; /* blue-500 */
+    --color-primary-foreground: #FFFFFF; /* white */
+    
+    /* Secondary Colors */
+    --color-secondary: #0056CC; /* blue-700 */
+    --color-secondary-foreground: #FFFFFF; /* white */
+    
+    /* Accent Colors */
+    --color-accent: #00A8FF; /* blue-400 */
+    --color-accent-foreground: #FFFFFF; /* white */
+    
+    /* Destructive Colors */
+    --color-destructive: #EF4444; /* red-500 */
+    --color-destructive-foreground: #FFFFFF; /* white */
+    
+    /* Success Colors */
+    --color-success: #10B981; /* emerald-500 */
+    --color-success-foreground: #FFFFFF; /* white */
+    
+    /* Warning Colors */
+    --color-warning: #F59E0B; /* amber-500 */
+    --color-warning-foreground: #111111; /* black */
+    
+    /* Error Colors */
+    --color-error: #EF4444; /* red-500 */
+    --color-error-foreground: #FFFFFF; /* white */
+    
+    /* Surface Color */
+    --color-surface: rgba(23, 23, 23, 0.6); /* gray-900-60 */
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Figtree', sans-serif;
+  }
+  
+  body, p, span, div {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .glass-morphism {
+    @apply backdrop-blur-lg bg-surface border border-border;
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-lg bg-card border border-border rounded-lg shadow-lg;
+  }
+  
+  .glow-focus {
+    @apply focus:ring-2 focus:ring-primary focus:ring-opacity-50 focus:outline-none;
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .border-gradient {
+    border-image: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)) 1;
+  }
+  
+  .shadow-glow {
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+  }
+  
+  .transition-smooth {
+    @apply transition-all duration-200 ease-out;
+  }
+  
+  .hover-scale {
+    @apply hover:scale-105 transition-transform duration-200 ease-out;
+  }
+
+  /* Mobile-First Touch Targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Accordion Animations */
+  .animate-accordion-down {
+    animation: accordion-down 0.2s ease-out;
+  }
+  
+  .animate-accordion-up {
+    animation: accordion-up 0.2s ease-out;
+  }
+}
+
+@layer components {
+  .font-heading {
+    font-family: 'Figtree', sans-serif;
+  }
+  
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@layer utilities {
+  .glow-border {
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.5), 0 0 30px rgba(0, 123, 255, 0.3);
+    border-color: rgba(0, 123, 255, 0.7);
+  }
+}
+
+@keyframes pulse-bright {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.3);
+  }
+  50% {
+    opacity: 0.9;
+    box-shadow: 0 0 30px 10px rgba(0, 123, 255, 0.5);
+  }
+}
+
+.animate-pulse-bright {
+  animation: pulse-bright 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Add this at the end of your tailwind.css file */
+@layer utilities {
+  @keyframes flash {
+    0% { background-color: rgba(0, 123, 255, 0.3); }
+    100% { background-color: transparent; }
+  }
+
+  .flash-update {
+    animation: flash 1.5s ease-out;
+  }
+}
