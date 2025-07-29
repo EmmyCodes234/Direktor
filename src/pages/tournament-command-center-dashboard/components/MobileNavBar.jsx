@@ -1,17 +1,18 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import { cn } from '../../../utils/cn';
 
-const MobileNavBar = ({ tournamentId }) => {
+const MobileNavBar = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { tournamentSlug } = useParams();
 
     const navItems = [
-        { label: 'Dashboard', path: `/tournament/${tournamentId}/dashboard`, icon: 'LayoutDashboard' },
-        { label: 'Players', path: `/tournament/${tournamentId}/players`, icon: 'Users' },
-        { label: 'Pairings', path: `/tournament/${tournamentId}/pairings`, icon: 'Swords' },
-        { label: 'Settings', path: `/tournament/${tournamentId}/settings`, icon: 'Settings' },
+        { label: 'Dashboard', path: `/tournament/${tournamentSlug}/dashboard`, icon: 'LayoutDashboard' },
+        { label: 'Players', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
+        { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
+        { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
     ];
 
     return (

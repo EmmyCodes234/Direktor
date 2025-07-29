@@ -7,7 +7,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
 const RegistrationPage = () => {
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const navigate = useNavigate();
     const [tournament, setTournament] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,14 +16,14 @@ const RegistrationPage = () => {
 
     useEffect(() => {
         const fetchTournament = async () => {
-            if (!tournamentId) {
+            if (!tournamentSlug) {
                 setLoading(false);
                 return;
             }
             const { data, error } = await supabase
                 .from('tournaments')
-                .select('name, date, venue, players')
-                .eq('id', tournamentId)
+                .select('id, name, date, venue, players')
+                .eq('slug', tournamentSlug)
                 .single();
             
             if (error || !data) {
@@ -34,7 +34,7 @@ const RegistrationPage = () => {
             setLoading(false);
         };
         fetchTournament();
-    }, [tournamentId]);
+    }, [tournamentSlug]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -62,7 +62,7 @@ const RegistrationPage = () => {
         const { error } = await supabase
             .from('tournaments')
             .update({ players: updatedPlayers })
-            .eq('id', tournamentId);
+            .eq('id', tournament.id);
 
         if (error) {
             toast.error("Registration failed. Please try again.");
@@ -104,7 +104,7 @@ const RegistrationPage = () => {
                     </form>
                 </div>
                  <div className="text-center mt-6">
-                    <Button variant="link" onClick={() => navigate(`/tournaments/${tournamentId}/live`)}>
+                    <Button variant="link" onClick={() => navigate(`/tournaments/${tournamentSlug}/live`)}>
                         View Tournament Portal
                     </Button>
                 </div>

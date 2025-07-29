@@ -5,7 +5,7 @@ import TournamentDetailsForm from './components/TournamentDetailsForm';
 import RoundsConfiguration from './components/RoundsConfiguration';
 import PlayerRosterManager from './components/PlayerRosterManager';
 import TeamManager from './components/TeamManager';
-import DivisionManager from './components/DivisionManager'; // Import the new component
+import DivisionManager from './components/DivisionManager';
 import SetupProgress from './components/SetupProgress';
 import PlayerReconciliationModal from './components/PlayerReconciliationModal';
 import Icon from '../../components/AppIcon';
@@ -17,6 +17,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const useQuery = () => {
     return new URLSearchParams(useLocation().search);
 }
+
+const createSlug = (name) => {
+    return name
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
 
 const TournamentSetupConfiguration = () => {
   const navigate = useNavigate();
@@ -162,9 +170,37 @@ const TournamentSetupConfiguration = () => {
     toast.success("Roster finalized successfully!");
   };
 
+  const generateUniqueSlug = async (name) => {
+    const baseSlug = createSlug(name);
+    let slug = baseSlug;
+    let isUnique = false;
+    let counter = 1;
+
+    while (!isUnique) {
+        const { data, error } = await supabase
+            .from('tournaments')
+            .select('slug')
+            .eq('slug', slug)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+            throw error;
+        }
+
+        if (data) {
+            slug = `${baseSlug}-${counter}`;
+            counter++;
+        } else {
+            isUnique = true;
+        }
+    }
+    return slug;
+  };
+
   const handleCreateTournament = async () => {
     setIsLoading(true);
     try {
+        const uniqueSlug = await generateUniqueSlug(formData.name);
         const tournamentData = {
             name: formData.name,
             venue: formData.venue,
@@ -174,12 +210,13 @@ const TournamentSetupConfiguration = () => {
             playerCount: formData.playerCount,
             type: formData.type,
             divisions: formData.divisions,
+            slug: uniqueSlug,
         };
         
         const { data: newTournament, error: tournamentError } = await supabase
             .from('tournaments')
             .insert(tournamentData)
-            .select('id')
+            .select('id, slug')
             .single();
 
         if (tournamentError) throw tournamentError;
@@ -237,7 +274,7 @@ const TournamentSetupConfiguration = () => {
         }
         
         toast.success('Tournament created successfully!');
-        setTimeout(() => navigate(`/tournament/${newTournament.id}/dashboard`), 1000);
+        setTimeout(() => navigate(`/tournament/${newTournament.slug}/dashboard`), 1000);
     } catch (error) {
         toast.error(`Failed to create tournament: ${error.message}`);
     } finally {

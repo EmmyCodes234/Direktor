@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { cn } from '../../../utils/cn';
@@ -7,14 +7,14 @@ import { cn } from '../../../utils/cn';
 const DashboardSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { tournamentId } = useParams();
+  const { tournamentSlug } = useParams();
 
   const navItems = [
-    { label: 'Dashboard', path: `/tournament/${tournamentId}/dashboard`, icon: 'LayoutDashboard' },
-    { label: 'Player Roster', path: `/tournament/${tournamentId}/players`, icon: 'Users' },
-    { label: 'Pairings', path: `/tournament/${tournamentId}/pairings`, icon: 'Swords' },
-    { label: 'Settings', path: `/tournament/${tournamentId}/settings`, icon: 'Settings' },
-    { label: 'Reports', path: `/tournament/${tournamentId}/reports`, icon: 'FileText' },
+    { label: 'Dashboard', path: `/tournament/${tournamentSlug}/dashboard`, icon: 'LayoutDashboard' },
+    { label: 'Player Roster', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
+    { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
+    { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
+    { label: 'Reports', path: `/tournament/${tournamentSlug}/reports`, icon: 'FileText' },
   ];
 
   return (

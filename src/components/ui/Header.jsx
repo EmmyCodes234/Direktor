@@ -9,19 +9,18 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams();
-  const [activeTournamentId, setActiveTournamentId] = useState(null);
+  const { tournamentSlug } = useParams();
+  const [activeTournamentSlug, setActiveTournamentSlug] = useState(null);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
   useEffect(() => {
-    const idFromUrl = params.tournamentId;
-    setActiveTournamentId(idFromUrl);
-  }, [location, params.tournamentId]);
+    setActiveTournamentSlug(tournamentSlug);
+  }, [location, tournamentSlug]);
 
   const navigationTabs = [
     { label: 'Lobby', path: '/', icon: 'Home' },
-    { label: 'Dashboard', path: `/tournament/${activeTournamentId}/dashboard`, icon: 'Monitor' },
+    { label: 'Dashboard', path: `/tournament/${activeTournamentSlug}/dashboard`, icon: 'Monitor' },
   ];
 
   const handleTabClick = (path) => {
@@ -50,9 +49,9 @@ const Header = () => {
         {isDesktop && (
           <nav className="flex items-center space-x-1">
             {navigationTabs.map((tab) => {
-              if (!activeTournamentId && tab.label !== 'Lobby') return null;
+              if (!activeTournamentSlug && tab.label !== 'Lobby') return null;
 
-              const isDashboardActive = tab.label === 'Dashboard' && !!params.tournamentId;
+              const isDashboardActive = tab.label === 'Dashboard' && !!tournamentSlug;
               const isLobbyActive = tab.label === 'Lobby' && location.pathname === '/';
               
               return (
@@ -105,7 +104,7 @@ const Header = () => {
                       {!isDesktop && (
                         <>
                           {navigationTabs.map((tab) => {
-                            if (!activeTournamentId && tab.label !== 'Lobby') return null;
+                            if (!activeTournamentSlug && tab.label !== 'Lobby') return null;
                             return (
                               <button
                                 key={tab.label}

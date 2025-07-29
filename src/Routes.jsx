@@ -40,15 +40,15 @@ const Routes = () => {
         <Route path="/tournament-setup-configuration" element={<TournamentSetupConfiguration />} />
         
         {/* Public Tournament Routes */}
-        <Route path="/tournaments/:tournamentId/register" element={<RegistrationPage />} />
-        <Route path="/tournaments/:tournamentId/live" element={<PublicTournamentPage />} />
+        <Route path="/tournaments/:tournamentSlug/register" element={<RegistrationPage />} />
+        <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPage />} />
         
         {/* Admin/Dashboard Routes */}
-        <Route path="/tournament/:tournamentId/dashboard" element={<TournamentCommandCenterDashboard />} />
-        <Route path="/tournament/:tournamentId/players" element={<PlayerManagementRosterControl />} />
-        <Route path="/tournament/:tournamentId/settings" element={<TournamentSettingsAdministration />} />
-        <Route path="/tournament/:tournamentId/reports" element={<ReportsPage />} />
-        <Route path="/tournament/:tournamentId/pairings" element={<PairingManagementPage />} />
+        <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />
+        <Route path="/tournament/:tournamentSlug/players" element={<PlayerManagementRosterControl />} />
+        <Route path="/tournament/:tournamentSlug/settings" element={<TournamentSettingsAdministration />} />
+        <Route path="/tournament/:tournamentSlug/reports" element={<ReportsPage />} />
+        <Route path="/tournament/:tournamentSlug/pairings" element={<PairingManagementPage />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<NotFound />} />

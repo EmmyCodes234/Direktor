@@ -61,12 +61,12 @@ const TournamentLobby = () => {
     if (tournament.status === 'draft') {
         navigate(`/tournament-setup-configuration?draftId=${tournament.id}`);
     } else {
-        navigate(`/tournament/${tournament.id}/dashboard`);
+        navigate(`/tournament/${tournament.slug}/dashboard`);
     }
   };
 
-  const handleShareTournament = (tournamentId) => {
-    const url = `https://direktorapp.netlify.app/tournaments/${tournamentId}/live`;
+  const handleShareTournament = (tournamentSlug) => {
+    const url = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
     navigator.clipboard.writeText(url).then(() => {
         toast.success("Public link copied to clipboard!");
     });
@@ -185,7 +185,7 @@ const TournamentLobby = () => {
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleShareTournament(tourney.id)}><Icon name="Link" size={16} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleShareTournament(tourney.slug)}><Icon name="Link" size={16} /></Button>
                       <Button variant="ghost" size="icon" onClick={() => openDeleteConfirm(tourney)}><Icon name="Trash2" size={16} /></Button>
                       <Button variant="outline" onClick={() => handleSelectTournament(tourney)}>Manage</Button>
                     </div>

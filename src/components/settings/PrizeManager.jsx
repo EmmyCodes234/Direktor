@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { toast } from 'sonner';
 import Icon from '../AppIcon';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
-const PrizeManager = ({ currency = '$' }) => {
-    const { tournamentId } = useParams();
+const PrizeManager = ({ currency = '$', tournamentId }) => {
     const [prizes, setPrizes] = useState([]);
     const [newPrize, setNewPrize] = useState({ rank: 1, value: '', description: '' });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!tournamentId) {
+            setLoading(false);
+            return;
+        }
+
         const fetchPrizes = async () => {
             setLoading(true);
             const { data, error } = await supabase

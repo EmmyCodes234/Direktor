@@ -31,7 +31,7 @@ const debounce = (func, delay) => {
 // Memoized Main Content to prevent unnecessary re-renders
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings }) => {
     const navigate = useNavigate();
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const {
         handleRoundPaired,
         handleEnterScore,
@@ -54,7 +54,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
               <motion.div key={tournamentState} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
                   {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} />}
                   {tournamentState === 'ROUND_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="CheckCircle" size={48} className="mx-auto text-success mb-4" /> <h2 className="text-xl font-bold">Round {tournamentInfo.currentRound} Complete!</h2> <Button size="lg" className="shadow-glow mt-4" onClick={handleCompleteRound} loading={isSubmitting}> {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`} </Button> </div> )}
-                  {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentId}/reports`)}>View Final Reports</Button> </div> )}
+                  {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}>View Final Reports</Button> </div> )}
               </motion.div>
             </AnimatePresence>
             {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') &&
@@ -65,6 +65,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
 
 
 const TournamentCommandCenterDashboard = () => {
+  const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
   const [recentResults, setRecentResults] = useState([]);
   const [tournamentInfo, setTournamentInfo] = useState(null);
@@ -77,21 +78,21 @@ const TournamentCommandCenterDashboard = () => {
   const [teams, setTeams] = useState([]);
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const navigate = useNavigate();
-  const { tournamentId } = useParams();
   const isDesktop = useMediaQuery('(min-width: 768px)');
 
   const fetchTournamentData = useCallback(async () => {
-    if (!tournamentId) {
+    if (!tournamentSlug) {
       setIsLoading(false);
       return;
     }
-    if (!tournamentInfo) setIsLoading(true);
+    
+    setIsLoading(true);
 
     try {
       const { data: tournamentData, error: tErr } = await supabase
         .from('tournaments')
         .select(`*, tournament_players(*, players(*))`)
-        .eq('id', tournamentId)
+        .eq('slug', tournamentSlug)
         .single();
 
       if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
@@ -100,14 +101,14 @@ const TournamentCommandCenterDashboard = () => {
         ...tp.players,
         ...tp
       }));
-
+      
       setPlayers(combinedPlayers);
       setTournamentInfo(tournamentData);
 
       const [{ data: resultsData }, { data: pendingData }, { data: teamsData }] = await Promise.all([
-        supabase.from('results').select('*').eq('tournament_id', tournamentId).order('created_at', { ascending: false }),
-        supabase.from('pending_results').select('*').eq('tournament_id', tournamentId).eq('status', 'pending').order('created_at', { ascending: true }),
-        supabase.from('teams').select('*').eq('tournament_id', tournamentId)
+        supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
+        supabase.from('pending_results').select('*').eq('tournament_id', tournamentData.id).eq('status', 'pending').order('created_at', { ascending: true }),
+        supabase.from('teams').select('*').eq('tournament_id', tournamentData.id)
       ]);
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
@@ -120,21 +121,25 @@ const TournamentCommandCenterDashboard = () => {
     } finally {
         setIsLoading(false);
     }
-  }, [tournamentId, tournamentInfo]);
+  }, [tournamentSlug]);
 
   const debouncedFetch = useMemo(() => debounce(fetchTournamentData, 300), [fetchTournamentData]);
 
   useEffect(() => {
     fetchTournamentData();
     const channel = supabase
-      .channel(`dashboard-updates-for-tournament-${tournamentId}`)
+      .channel(`dashboard-updates-for-tournament-${tournamentInfo?.id}`)
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
           debouncedFetch();
         }
       )
       .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [tournamentId, debouncedFetch, fetchTournamentData]);
+    return () => {
+        if (channel) {
+            supabase.removeChannel(channel);
+        }
+    }
+  }, [tournamentSlug, debouncedFetch, fetchTournamentData, tournamentInfo?.id]);
 
   const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
 
@@ -196,12 +201,12 @@ const TournamentCommandCenterDashboard = () => {
     const pairedRounds = Object.keys(schedule).map(Number);
     if (pairedRounds.length === 0) return null;
     return Math.max(...pairedRounds);
-    }, [tournamentInfo]);
+  }, [tournamentInfo]);
 
-    const hasResultsForLastPairedRound = useMemo(() => {
-        if (!lastPairedRound) return false;
-        return recentResults.some(r => r.round === lastPairedRound);
-    }, [recentResults, lastPairedRound]);
+  const hasResultsForLastPairedRound = useMemo(() => {
+    if (!lastPairedRound) return false;
+    return recentResults.some(r => r.round === lastPairedRound);
+  }, [recentResults, lastPairedRound]);
 
   const handleRoundPaired = (updatedTournamentInfo) => setTournamentInfo(updatedTournamentInfo);
 
@@ -221,7 +226,7 @@ const TournamentCommandCenterDashboard = () => {
 
       toast.info(`Unpairing Round ${roundToUnpair}...`);
 
-      const { error: deleteError } = await supabase.from('results').delete().eq('tournament_id', tournamentId).eq('round', roundToUnpair);
+      const { error: deleteError } = await supabase.from('results').delete().eq('tournament_id', tournamentInfo.id).eq('round', roundToUnpair);
       if (deleteError) {
           toast.error(`Failed to delete existing results for Round ${roundToUnpair}: ${deleteError.message}`);
           setShowUnpairModal(false);
@@ -231,7 +236,7 @@ const TournamentCommandCenterDashboard = () => {
       const newSchedule = { ...schedule };
       delete newSchedule[roundToUnpair];
 
-      const { data, error: updateError } = await supabase.from('tournaments').update({ pairing_schedule: newSchedule }).eq('id', tournamentId).select().single();
+      const { data, error: updateError } = await supabase.from('tournaments').update({ pairing_schedule: newSchedule }).eq('id', tournamentInfo.id).select().single();
 
       if (updateError) {
           toast.error(`Failed to unpair round: ${updateError.message}`);
@@ -263,7 +268,7 @@ const TournamentCommandCenterDashboard = () => {
         }
 
         const resultData = {
-            tournament_id: tournamentId,
+            tournament_id: tournamentInfo.id,
             round: tournamentInfo.currentRound || 1,
             player1_id: player1.player_id,
             player2_id: player2.player_id,
@@ -279,7 +284,7 @@ const TournamentCommandCenterDashboard = () => {
             await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
         }
 
-        const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentId);
+        const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
         const statsMap = new Map(players.map(p => [p.player_id, { wins: 0, losses: 0, ties: 0, spread: 0 }]));
 
         allResults.forEach(res => {
@@ -294,7 +299,7 @@ const TournamentCommandCenterDashboard = () => {
         });
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
-            supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentId, player_id: player_id })
+            supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
         );
         await Promise.all(updates);
         toast.success("Standings updated!");
@@ -314,7 +319,7 @@ const TournamentCommandCenterDashboard = () => {
     setTournamentInfo(prev => ({ ...prev, status: isFinalRound ? 'completed' : prev.status, currentRound: isFinalRound ? currentRound : currentRound + 1 }));
     const updatePayload = isFinalRound ? { status: 'completed' } : { currentRound: currentRound + 1 };
     try {
-      const { error } = await supabase.from('tournaments').update(updatePayload).eq('id', tournamentId);
+      const { error } = await supabase.from('tournaments').update(updatePayload).eq('id', tournamentInfo.id);
       if (error) {
         toast.error(`Failed to proceed: ${error.message}`);
         setTournamentInfo(originalTournamentInfo);
@@ -333,7 +338,7 @@ const TournamentCommandCenterDashboard = () => {
     setActiveMatchup(matchup);
     setShowScoreModal({ isOpen: true, existingResult: existingResult });
   };
-
+  
   const handleEditResultFromModal = (resultToEdit) => {
     const player1 = players.find(p => p.name === resultToEdit.player1_name);
     const player2 = players.find(p => p.name === resultToEdit.player2_name);
@@ -400,11 +405,11 @@ const TournamentCommandCenterDashboard = () => {
           confirmText="Yes, Unpair Last Round"
       />
       <ScoreEntryModal isOpen={showScoreModal.isOpen} onClose={() => setShowScoreModal({ isOpen: false, existingResult: null })} matchup={activeMatchup} onResultSubmit={handleResultSubmit} existingResult={showScoreModal.existingResult} />
-      <PlayerStatsModal
-          player={selectedPlayerModal}
-          results={recentResults}
-          onClose={() => setSelectedPlayerModal(null)}
-          onSelectPlayer={(name) => setSelectedPlayerModal(players.find(p => p.name === name))}
+      <PlayerStatsModal 
+          player={selectedPlayerModal} 
+          results={recentResults} 
+          onClose={() => setSelectedPlayerModal(null)} 
+          onSelectPlayer={(name) => setSelectedPlayerModal(players.find(p => p.name === name))} 
           onEditResult={handleEditResultFromModal}
           teamName={selectedPlayerModal?.team_id ? teamMap.get(selectedPlayerModal.team_id) : null}
       />
@@ -412,15 +417,15 @@ const TournamentCommandCenterDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
             {isDesktop ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div className="md:col-span-1"><DashboardSidebar tournamentId={tournamentId} /></div>
+                    <div className="md:col-span-1"><DashboardSidebar tournamentSlug={tournamentSlug} /></div>
                     <div className="md:col-span-3"><MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings }} /></div>
                 </div>
-            ) : (
+            ) : ( 
                 <MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings }} />
             )}
         </div>
       </main>
-      {!isDesktop && <MobileNavBar tournamentId={tournamentId} />}
+      {!isDesktop && <MobileNavBar tournamentSlug={tournamentSlug} />}
     </div>
   );
 };

@@ -5,20 +5,32 @@ import Icon from './AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AnnouncementsDisplay = () => {
-  const { tournamentId } = useParams();
+  const { tournamentSlug } = useParams();
   const [announcements, setAnnouncements] = useState([]);
+  const [tournamentId, setTournamentId] = useState(null);
 
   useEffect(() => {
-    if (!tournamentId) return;
+    if (!tournamentSlug) return;
 
-    // --- FIX: Convert tournamentId to a number upfront ---
-    const numericTournamentId = parseInt(tournamentId, 10);
+    const fetchTournamentAndAnnouncements = async () => {
+      const { data: tournamentData, error: tError } = await supabase
+        .from('tournaments')
+        .select('id')
+        .eq('slug', tournamentSlug)
+        .single();
 
-    const fetchAnnouncements = async () => {
+      if (tError) {
+        console.error('[AnnouncementsDisplay] Fetch Error:', tError);
+        return;
+      }
+
+      const id = tournamentData.id;
+      setTournamentId(id);
+
       const { data, error } = await supabase
         .from('announcements')
         .select('*')
-        .eq('tournament_id', numericTournamentId) // Use the numeric ID
+        .eq('tournament_id', id)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -29,14 +41,13 @@ const AnnouncementsDisplay = () => {
       }
     };
 
-    fetchAnnouncements();
+    fetchTournamentAndAnnouncements();
 
     const channel = supabase
-      .channel(`public-announcements-${tournamentId}`)
-      // --- FIX: Use the numeric ID in the real-time filter ---
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `tournament_id=eq.${numericTournamentId}` },
+      .channel(`public-announcements-${tournamentSlug}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `tournament_id=eq.${tournamentId}` },
         (payload) => {
-          fetchAnnouncements();
+          fetchTournamentAndAnnouncements();
         }
       )
       .subscribe();
@@ -44,7 +55,7 @@ const AnnouncementsDisplay = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tournamentId]);
+  }, [tournamentSlug, tournamentId]);
 
   if (!announcements || announcements.length === 0) {
     return null;

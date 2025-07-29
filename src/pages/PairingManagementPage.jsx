@@ -19,7 +19,7 @@ const allPairingSystems = [
 ];
 
 const PairingManagementPage = () => {
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const [tournament, setTournament] = useState(null);
     const [settings, setSettings] = useState({
         pairing_system: 'lito',
@@ -33,8 +33,8 @@ const PairingManagementPage = () => {
         setLoading(true);
         const { data, error } = await supabase
             .from('tournaments')
-            .select('pairing_system, rounds, advanced_pairing_modes, gibson_rule_enabled, type') // fetch tournament type
-            .eq('id', tournamentId)
+            .select('id, pairing_system, rounds, advanced_pairing_modes, gibson_rule_enabled, type')
+            .eq('slug', tournamentSlug)
             .single();
 
         if (error) {
@@ -59,9 +59,8 @@ const PairingManagementPage = () => {
             });
         }
         setLoading(false);
-    }, [tournamentId]);
-    
-    // Filter pairing systems based on tournament type
+    }, [tournamentSlug]);
+
     const availablePairingSystems = useMemo(() => {
         if (!tournament) return [];
         if (tournament.type === 'team') {
@@ -84,7 +83,7 @@ const PairingManagementPage = () => {
         const { error } = await supabase
             .from('tournaments')
             .update(updatePayload)
-            .eq('id', tournamentId);
+            .eq('id', tournament.id);
 
         if (error) {
             toast.error("Failed to save settings.");
@@ -113,7 +112,7 @@ const PairingManagementPage = () => {
             <main className="pt-20 pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <DashboardSidebar tournamentId={tournamentId} />
+                        <DashboardSidebar tournamentSlug={tournamentSlug} />
                         <div className="md:col-span-3">
                             <div className="flex justify-between items-center mb-8">
                                 <div>

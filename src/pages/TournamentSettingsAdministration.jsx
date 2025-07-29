@@ -14,8 +14,8 @@ import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
 
-const ShareSection = ({ tournamentId }) => {
-    const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentId}/live`;
+const ShareSection = ({ tournamentSlug }) => {
+    const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(publicUrl).then(() => {
@@ -39,7 +39,7 @@ const ShareSection = ({ tournamentId }) => {
 };
 
 const TournamentSettingsAdministration = () => {
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const navigate = useNavigate();
     const [settings, setSettings] = useState(null);
     const [bannerFile, setBannerFile] = useState(null);
@@ -53,7 +53,7 @@ const TournamentSettingsAdministration = () => {
             const { data, error } = await supabase
                 .from('tournaments')
                 .select('*')
-                .eq('id', tournamentId)
+                .eq('slug', tournamentSlug)
                 .single();
             if (error) {
                 toast.error("Failed to load tournament settings.");
@@ -63,7 +63,7 @@ const TournamentSettingsAdministration = () => {
             setLoading(false);
         };
         fetchTournament();
-    }, [tournamentId]);
+    }, [tournamentSlug]);
 
     const handleSettingsChange = (field, value) => {
         setSettings(prev => ({ ...prev, [field]: value }));
@@ -79,7 +79,7 @@ const TournamentSettingsAdministration = () => {
         let updateData = { ...settings };
 
         if (bannerFile) {
-            const filePath = `public/${tournamentId}/banner-${bannerFile.name}`;
+            const filePath = `public/${settings.id}/banner-${bannerFile.name}`;
             const { error: uploadError } = await supabase.storage
                 .from('tournament-banners')
                 .upload(filePath, bannerFile, {
@@ -104,7 +104,7 @@ const TournamentSettingsAdministration = () => {
         const { error } = await supabase
             .from('tournaments')
             .update(finalUpdateData)
-            .eq('id', tournamentId);
+            .eq('id', settings.id);
         
         if (error) {
             toast.error(`Failed to save settings: ${error.message}`);
@@ -117,7 +117,7 @@ const TournamentSettingsAdministration = () => {
     };
     
     const handleDeleteTournament = async () => {
-        const { error } = await supabase.from('tournaments').delete().eq('id', tournamentId);
+        const { error } = await supabase.from('tournaments').delete().eq('id', settings.id);
         if (error) {
             toast.error(`Failed to delete tournament: ${error.message}`);
         } else {
@@ -142,7 +142,7 @@ const TournamentSettingsAdministration = () => {
             <main className="pt-20 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <DashboardSidebar tournamentId={tournamentId} />
+                        <DashboardSidebar tournamentSlug={tournamentSlug} />
                         <div className="md:col-span-3 space-y-8">
                             <div className="flex justify-between items-center">
                                 <div>
@@ -159,9 +159,9 @@ const TournamentSettingsAdministration = () => {
                                 <p className="text-muted-foreground">Loading settings...</p>
                             ) : (
                                 <>
-                                    <ShareSection tournamentId={tournamentId} />
+                                    <ShareSection tournamentSlug={settings.slug} />
                                     <TournamentConfigSection settings={settings} onSettingsChange={handleSettingsChange} onBannerFileChange={handleBannerFileChange} />
-                                    <PrizeManager currency={settings.currency} />
+                                    <PrizeManager currency={settings.currency} tournamentId={settings.id} />
                                     <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <SystemPreferencesSection />

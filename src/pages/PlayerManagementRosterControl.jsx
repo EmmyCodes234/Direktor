@@ -12,7 +12,7 @@ import PlayerEditModal from '../components/players/PlayerEditModal';
 import AddPlayer from '../components/players/AddPlayer';
 
 const PlayerManagementRosterControl = () => {
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const [players, setPlayers] = useState([]);
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,21 +21,7 @@ const PlayerManagementRosterControl = () => {
     const [playerToEdit, setPlayerToEdit] = useState(null);
     const [tournamentInfo, setTournamentInfo] = useState(null);
 
-    const fetchTournamentInfo = useCallback(async () => {
-        if (!tournamentId) return;
-        const { data, error } = await supabase
-            .from('tournaments')
-            .select('pairing_schedule')
-            .eq('id', tournamentId)
-            .single();
-        if (error) {
-            toast.error("Failed to load tournament data.");
-        } else {
-            setTournamentInfo(data);
-        }
-    }, [tournamentId]);
-
-    const fetchPlayers = useCallback(async () => {
+    const fetchPlayers = useCallback(async (tournamentId) => {
         if (!tournamentId) return;
         setLoading(true);
         
@@ -62,12 +48,28 @@ const PlayerManagementRosterControl = () => {
             setPlayers(combinedPlayers);
         }
         setLoading(false);
-    }, [tournamentId]);
-
+    }, []);
+    
     useEffect(() => {
-      fetchTournamentInfo();
-      fetchPlayers();
-    }, [fetchTournamentInfo, fetchPlayers]);
+        const fetchTournamentAndPlayers = async () => {
+            if (!tournamentSlug) return;
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('tournaments')
+                .select('id, pairing_schedule, slug')
+                .eq('slug', tournamentSlug)
+                .single();
+
+            if (error) {
+                toast.error("Failed to load tournament data.");
+                setLoading(false);
+            } else {
+                setTournamentInfo(data);
+                await fetchPlayers(data.id);
+            }
+        };
+        fetchTournamentAndPlayers();
+    }, [tournamentSlug, fetchPlayers]);
     
     const sortedPlayers = useMemo(() => {
         return [...players].sort((a, b) => {
@@ -96,13 +98,13 @@ const PlayerManagementRosterControl = () => {
         const { error } = await supabase
             .from('tournament_players')
             .delete()
-            .match({ tournament_id: tournamentId, player_id: playerToRemove.id });
+            .match({ tournament_id: tournamentInfo.id, player_id: playerToRemove.id });
 
         if (error) {
             toast.error(`Failed to remove player: ${error.message}`);
         } else {
             toast.success(`Player "${playerToRemove.name}" has been removed from the tournament.`);
-            fetchPlayers();
+            fetchPlayers(tournamentInfo.id);
         }
         setPlayerToRemove(null);
     };
@@ -113,13 +115,13 @@ const PlayerManagementRosterControl = () => {
         const { error } = await supabase
             .from('tournament_players')
             .update({ status: 'withdrawn' })
-            .match({ tournament_id: tournamentId, player_id: playerToWithdraw.id });
+            .match({ tournament_id: tournamentInfo.id, player_id: playerToWithdraw.id });
 
         if (error) {
             toast.error(`Failed to withdraw player: ${error.message}`);
         } else {
             toast.success(`Player "${playerToWithdraw.name}" has been withdrawn from the tournament.`);
-            fetchPlayers();
+            fetchPlayers(tournamentInfo.id);
         }
         setPlayerToWithdraw(null);
     };
@@ -159,13 +161,12 @@ const PlayerManagementRosterControl = () => {
         } else {
             toast.success("Player details updated successfully.");
             setPlayerToEdit(null);
-            fetchPlayers();
+            fetchPlayers(tournamentInfo.id);
         }
     };
 
     const handleAddPlayer = async (playerName) => {
-        // Simple check for existing player, for a full implementation a reconciliation step is better
-        const { data: existingPlayer, error: existingPlayerError } = await supabase
+        const { data: existingPlayer } = await supabase
             .from('players')
             .select('id')
             .eq('name', playerName)
@@ -190,7 +191,7 @@ const PlayerManagementRosterControl = () => {
         const { error: joinError } = await supabase
             .from('tournament_players')
             .insert({
-                tournament_id: tournamentId,
+                tournament_id: tournamentInfo.id,
                 player_id: playerId,
                 seed: players.length + 1,
                 rank: players.length + 1
@@ -200,7 +201,7 @@ const PlayerManagementRosterControl = () => {
             toast.error(`Failed to add player to tournament: ${joinError.message}`);
         } else {
             toast.success(`Player "${playerName}" has been added to the tournament.`);
-            fetchPlayers();
+            fetchPlayers(tournamentInfo.id);
         }
     };
 
@@ -235,7 +236,7 @@ const PlayerManagementRosterControl = () => {
             <main className="pt-20 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <DashboardSidebar tournamentId={tournamentId} />
+                        <DashboardSidebar tournamentSlug={tournamentSlug} />
                         <div className="md:col-span-3">
                             <div className="mb-8">
                                 <h1 className="text-3xl font-heading font-bold text-gradient mb-2">Player Roster</h1>

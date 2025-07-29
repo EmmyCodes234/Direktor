@@ -41,7 +41,7 @@ const formatPlayerName = (name, players) => {
 };
 
 const PublicTournamentPage = () => {
-    const { tournamentId } = useParams();
+    const { tournamentSlug } = useParams();
     const [tournament, setTournament] = useState(null);
     const [players, setPlayers] = useState([]);
     const [results, setResults] = useState([]);
@@ -68,30 +68,58 @@ const PublicTournamentPage = () => {
 
     useEffect(() => {
         const fetchPublicData = async () => {
-            if (!tournamentId) { setLoading(false); return; }
+            if (!tournamentSlug) { setLoading(false); return; }
             setLoading(true);
             
             try {
                 const { data: tournamentData, error: tErr } = await supabase
                     .from('tournaments')
-                    .select(`*, tournament_players(*, players(*))`)
-                    .eq('id', tournamentId)
+                    .select(`*`)
+                    .eq('slug', tournamentSlug)
                     .single();
 
                 if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
-
-                const combinedPlayers = tournamentData.tournament_players.map(tp => ({
-                    ...tp.players,
-                    ...tp
-                }));
                 
-                setPlayers(recalculateRanks(combinedPlayers));
                 setTournament(tournamentData);
 
+                const { data: tournamentPlayersData, error: tpError } = await supabase
+                    .from('tournament_players')
+                    .select(`*`)
+                    .eq('tournament_id', tournamentData.id);
+
+                if (tpError) throw tpError;
+
+                const playerIds = tournamentPlayersData.map(tp => tp.player_id);
+                
+                if (playerIds.length === 0) {
+                    setPlayers([]);
+                    setResults([]);
+                    setTeams([]);
+                    setPrizes([]);
+                    setLoading(false);
+                    return;
+                }
+
+                const { data: playersData, error: pError } = await supabase
+                    .from('players')
+                    .select('*')
+                    .in('id', playerIds);
+
+                if (pError) throw pError;
+
+                const playersMap = new Map(playersData.map(p => [p.id, p]));
+
+                const combinedPlayers = tournamentPlayersData.map(tp => ({
+                    ...playersMap.get(tp.player_id),
+                    ...tp
+                }));
+
+                setPlayers(recalculateRanks(combinedPlayers));
+
                 const [{ data: resultsData }, {data: teamsData}, {data: prizesData}] = await Promise.all([
-                    supabase.from('results').select('*').eq('tournament_id', tournamentId).order('created_at', { ascending: false }),
-                    supabase.from('teams').select('id, name').eq('tournament_id', tournamentId),
-                    supabase.from('prizes').select('*').eq('tournament_id', tournamentId).order('rank', { ascending: true })
+                    supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
+                    supabase.from('teams').select('id, name').eq('tournament_id', tournamentData.id),
+                    supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true })
                 ]);
 
                 setResults(resultsData || []);
@@ -106,7 +134,7 @@ const PublicTournamentPage = () => {
         };
         fetchPublicData();
         
-    }, [tournamentId, recalculateRanks]);
+    }, [tournamentSlug, recalculateRanks]);
 
     const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
     

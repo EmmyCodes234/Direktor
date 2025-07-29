@@ -166,7 +166,7 @@ const Select = React.forwardRef(({
                 >
                     <option value="">Select...</option>
                     {options.map(option => (
-                        <option key={option.value} value={option.value}>
+                        <option key={option.label} value={option.value}>
                             {option.label}
                         </option>
                     ))}
@@ -197,7 +197,7 @@ const Select = React.forwardRef(({
                             ) : (
                                 filteredOptions.map((option) => (
                                     <div
-                                        key={option.value}
+                                        key={option.label}
                                         className={cn(
                                             "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
                                             isSelected(option.value) && "bg-primary text-primary-foreground",
