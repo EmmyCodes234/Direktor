@@ -12,6 +12,7 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
     player2_name: '',
     score1: '',
     score2: '',
+    round: tournament?.currentRound || 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,7 +26,7 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.player1_name || !formData.player2_name || !formData.score1 || !formData.score2) {
+    if (!formData.player1_name || !formData.player2_name || !formData.score1 || !formData.score2 || !formData.round) {
       toast.error("All fields are required.");
       return;
     }
@@ -37,12 +38,12 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
 
     const submission = {
       tournament_id: tournament.id,
-      round: tournament.currentRound || 1,
+      round: parseInt(formData.round, 10),
       player1_name: formData.player1_name,
       player2_name: formData.player2_name,
       score1: parseInt(formData.score1, 10),
       score2: parseInt(formData.score2, 10),
-      submitted_by_name: formData.player1_name, // Assume player 1 is the submitter
+      submitted_by_name: formData.player1_name,
     };
 
     const { error } = await supabase.from('pending_results').insert([submission]);
@@ -66,6 +67,15 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
         </div>
         <form onSubmit={handleSubmit}>
             <div className="p-6 space-y-4">
+                <Input
+                    label="Round Number"
+                    name="round"
+                    type="number"
+                    value={formData.round}
+                    onChange={(e) => handleChange('round', e.target.value)}
+                    placeholder="Enter the round number"
+                    required
+                />
                 <Select
                     label="Your Name"
                     options={playerOptions}

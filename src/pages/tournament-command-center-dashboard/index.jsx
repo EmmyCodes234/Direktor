@@ -272,7 +272,7 @@ const TournamentCommandCenterDashboard = () => {
 
         const resultData = {
             tournament_id: tournamentInfo.id,
-            round: tournamentInfo.currentRound || 1,
+            round: result.round || tournamentInfo.currentRound || 1,
             player1_id: player1.player_id,
             player2_id: player2.player_id,
             player1_name: player1.name,
@@ -405,15 +405,23 @@ const TournamentCommandCenterDashboard = () => {
             player2: pendingResult.player2_name,
             score1: pendingResult.score1,
             score2: pendingResult.score2,
+            round: pendingResult.round,
         });
       await supabase.from('pending_results').delete().eq('id', pendingResult.id);
+      toast.success("Result has been approved and standings are updated.");
     } catch (error) {
       toast.error(`Failed to approve result: ${error.message}`);
     }
   };
 
   const handleRejectResult = async (id) => {
-    await supabase.from('pending_results').delete().eq('id', id);
+    const { error } = await supabase.from('pending_results').delete().eq('id', id);
+    if (error) {
+        toast.error(`Failed to reject result: ${error.message}`);
+    } else {
+        toast.success("Result has been rejected.");
+        // The real-time subscription will handle removing it from the UI
+    }
   };
 
   const getTournamentState = () => {
