@@ -151,17 +151,28 @@ const TournamentSetupConfiguration = () => {
         rating: p.rating,
       }));
 
-      const { data: createdPlayers, error } = await supabase
-        .from('players')
-        .insert(newPlayerRecords)
-        .select('id');
+      // Check for existing players before creating new ones
+      const namesToCreate = newPlayerRecords.map(p => p.name);
+      const { data: existingPlayers } = await supabase.from('players').select('id, name').in('name', namesToCreate);
+      
+      const existingNames = new Set(existingPlayers.map(p => p.name));
+      const trulyNewPlayers = newPlayerRecords.filter(p => !existingNames.has(p.name));
+      
+      existingPlayers.forEach(p => finalPlayerIds.push(p.id));
 
-      if (error) {
-        toast.error(`Failed to create new players: ${error.message}`);
-        setIsLoading(false);
-        return;
+      if (trulyNewPlayers.length > 0) {
+          const { data: createdPlayers, error } = await supabase
+            .from('players')
+            .insert(trulyNewPlayers)
+            .select('id');
+
+          if (error) {
+            toast.error(`Failed to create new players: ${error.message}`);
+            setIsLoading(false);
+            return;
+          }
+          finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
       }
-      finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
     }
 
     setFormData(prev => ({ ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length }));
