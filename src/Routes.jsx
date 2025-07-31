@@ -20,6 +20,7 @@ import PlayerManagementRosterControl from "./pages/PlayerManagementRosterControl
 import TournamentSettingsAdministration from "./pages/TournamentSettingsAdministration";
 import ReportsPage from "./pages/ReportsPage";
 import PairingManagementPage from "./pages/PairingManagementPage";
+import WallChartPage from "./pages/WallChartPage";
 
 const Routes = () => {
   return (
@@ -49,6 +50,7 @@ const Routes = () => {
         <Route path="/tournament/:tournamentSlug/settings" element={<TournamentSettingsAdministration />} />
         <Route path="/tournament/:tournamentSlug/reports" element={<ReportsPage />} />
         <Route path="/tournament/:tournamentSlug/pairings" element={<PairingManagementPage />} />
+        <Route path="/tournament/:tournamentSlug/wall-chart" element={<WallChartPage />} />
 
         {/* Fallback Route */}
         <Route path="*" element={<NotFound />} />

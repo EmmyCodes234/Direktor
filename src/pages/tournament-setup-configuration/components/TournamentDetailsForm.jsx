@@ -49,22 +49,44 @@ const TournamentDetailsForm = ({ formData, onChange, errors }) => {
           className="glow-focus"
         />
 
-        <Input
-          label="Tournament Date"
-          type="date"
-          value={formData.date}
-          onChange={(e) => handleInputChange('date', e.target.value)}
-          error={errors.date}
-          required
-          className="glow-focus"
-        />
+        {formData.type === 'best_of_league' ? (
+            <div className="grid grid-cols-2 gap-4">
+                <Input
+                    label="Start Date"
+                    type="date"
+                    value={formData.start_date || ''}
+                    onChange={(e) => handleInputChange('start_date', e.target.value)}
+                    required
+                    className="glow-focus"
+                />
+                <Input
+                    label="End Date"
+                    type="date"
+                    value={formData.end_date || ''}
+                    onChange={(e) => handleInputChange('end_date', e.target.value)}
+                    required
+                    className="glow-focus"
+                />
+            </div>
+        ) : (
+            <Input
+              label="Tournament Date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => handleInputChange('date', e.target.value)}
+              error={errors.date}
+              required
+              className="glow-focus"
+            />
+        )}
+
 
         {/* --- New Tournament Type Field --- */}
         <div className="lg:col-span-2">
             <label className="text-sm font-medium leading-none text-foreground">
                 Tournament Type
             </label>
-            <div className="mt-2 grid grid-cols-2 gap-2 rounded-lg bg-input p-1">
+            <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg bg-input p-1">
                 <button
                     type="button"
                     onClick={() => handleInputChange('type', 'individual')}
@@ -84,6 +106,16 @@ const TournamentDetailsForm = ({ formData, onChange, errors }) => {
                     )}
                 >
                     Team Event
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleInputChange('type', 'best_of_league')}
+                    className={cn(
+                        "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        formData.type === 'best_of_league' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted/50'
+                    )}
+                >
+                    "Best of" League
                 </button>
             </div>
         </div>

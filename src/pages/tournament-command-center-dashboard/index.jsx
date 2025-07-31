@@ -191,10 +191,13 @@ const TournamentCommandCenterDashboard = () => {
 
   const rankedPlayers = useMemo(() => {
     return players.sort((a, b) => {
+        if (tournamentInfo?.type === 'best_of_league') {
+            if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+        }
         if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
         return (b.spread || 0) - (a.spread || 0);
     }).map((player, index) => ({ ...player, rank: index + 1 }));
-  }, [players]);
+  }, [players, tournamentInfo]);
 
   const lastPairedRound = useMemo(() => {
     const schedule = tournamentInfo?.pairing_schedule || {};
@@ -276,6 +279,7 @@ const TournamentCommandCenterDashboard = () => {
             player2_name: player2.name,
             score1: score1,
             score2: score2,
+            match_id: result.match_id
         };
 
         if (!isEditing) {
@@ -284,8 +288,38 @@ const TournamentCommandCenterDashboard = () => {
             await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
         }
 
+        if (tournamentInfo.type === 'best_of_league') {
+            const { data: match } = await supabase.from('matches').select('*').eq('id', result.match_id).single();
+            const player1_wins = match.player1_wins + (score1 > score2 ? 1 : 0);
+            const player2_wins = match.player2_wins + (score2 > score1 ? 1 : 0);
+
+            const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
+            let status = 'in_progress';
+            let winner_id = null;
+
+            if (player1_wins >= winsNeeded) {
+                status = 'complete';
+                winner_id = player1.player_id;
+                toast.success(`${player1.name} has won the match!`);
+            } else if (player2_wins >= winsNeeded) {
+                status = 'complete';
+                winner_id = player2.player_id;
+                toast.success(`${player2.name} has won the match!`);
+            }
+
+            await supabase.from('matches').update({ player1_wins, player2_wins, status, winner_id }).eq('id', result.match_id);
+        }
+
         const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-        const statsMap = new Map(players.map(p => [p.player_id, { wins: 0, losses: 0, ties: 0, spread: 0 }]));
+        const statsMap = new Map(players.map(p => [p.player_id, { wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }]));
+        
+        if (tournamentInfo.type === 'best_of_league') {
+            const { data: allMatches } = await supabase.from('matches').select('*').eq('tournament_id', tournamentInfo.id).eq('status', 'complete');
+            allMatches.forEach(m => {
+                const winnerStats = statsMap.get(m.winner_id);
+                if (winnerStats) winnerStats.match_wins++;
+            });
+        }
 
         allResults.forEach(res => {
             const p1Stats = statsMap.get(res.player1_id);
@@ -335,7 +369,17 @@ const TournamentCommandCenterDashboard = () => {
   };
 
   const handleEnterScore = (matchup, existingResult = null) => {
-    setActiveMatchup(matchup);
+    if (tournamentInfo.type === 'best_of_league') {
+        const player1 = players.find(p => p.player_id === matchup.player1_id);
+        const player2 = players.find(p => p.player_id === matchup.player2_id);
+        setActiveMatchup({
+            ...matchup,
+            player1_name: player1.name,
+            player2_name: player2.name,
+        });
+    } else {
+        setActiveMatchup(matchup);
+    }
     setShowScoreModal({ isOpen: true, existingResult: existingResult });
   };
   
@@ -377,10 +421,17 @@ const TournamentCommandCenterDashboard = () => {
       if (tournamentInfo.status === 'completed') return 'TOURNAMENT_COMPLETE';
       const currentRound = tournamentInfo.currentRound || 1;
       const pairingsForCurrentRound = tournamentInfo.pairing_schedule?.[currentRound];
-      if (pairingsForCurrentRound) {
+      if (pairingsForCurrentRound || tournamentInfo.type === 'best_of_league') {
           const resultsForCurrentRound = recentResults.filter(r => r.round === currentRound);
-          const expectedResults = pairingsForCurrentRound.filter(p => p.player2.name !== 'BYE').length;
-          if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
+          const expectedResults = (pairingsForCurrentRound || []).filter(p => p.player2.name !== 'BYE').length;
+
+          if (tournamentInfo.type === 'best_of_league') {
+              const matchesForRound = players.length / 2;
+              const completedMatches = recentResults.filter(r => r.round === currentRound && r.is_bye === false).length >= (matchesForRound * (Math.floor(tournamentInfo.games_per_match / 2) + 1));
+              if (completedMatches) return 'ROUND_COMPLETE';
+          } else {
+              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
+          }
           return 'ROUND_IN_PROGRESS';
       }
       return (players || []).length >= 2 ? 'ROSTER_READY' : 'EMPTY_ROSTER';
@@ -404,7 +455,14 @@ const TournamentCommandCenterDashboard = () => {
           onCancel={() => setShowUnpairModal(false)}
           confirmText="Yes, Unpair Last Round"
       />
-      <ScoreEntryModal isOpen={showScoreModal.isOpen} onClose={() => setShowScoreModal({ isOpen: false, existingResult: null })} matchup={activeMatchup} onResultSubmit={handleResultSubmit} existingResult={showScoreModal.existingResult} />
+      <ScoreEntryModal 
+          isOpen={showScoreModal.isOpen} 
+          onClose={() => setShowScoreModal({ isOpen: false, existingResult: null })} 
+          matchup={activeMatchup} 
+          onResultSubmit={handleResultSubmit} 
+          existingResult={showScoreModal.existingResult}
+          tournamentType={tournamentInfo?.type}
+      />
       <PlayerStatsModal 
           player={selectedPlayerModal} 
           results={recentResults} 

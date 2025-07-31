@@ -37,7 +37,7 @@ const TournamentSetupConfiguration = () => {
   const [reconciliationData, setReconciliationData] = useState({ imports: [], matches: new Map() });
   
   const [formData, setFormData] = useState({
-    name: '', venue: '', date: '', type: 'individual', rounds: 8, playerCount: 0, player_ids: [], teams: [], divisions: []
+    name: '', venue: '', date: '', type: 'individual', rounds: 8, playerCount: 0, player_ids: [], teams: [], divisions: [], start_date: '', end_date: '', games_per_match: 0,
   });
 
   const [playerDetails, setPlayerDetails] = useState([]);
@@ -201,15 +201,21 @@ const TournamentSetupConfiguration = () => {
     setIsLoading(true);
     try {
         const uniqueSlug = await generateUniqueSlug(formData.name);
+        
+        const rounds = formData.type === 'best_of_league' ? formData.playerCount - 1 : formData.rounds;
+
         const tournamentData = {
             name: formData.name,
             venue: formData.venue,
             date: formData.date,
-            rounds: formData.rounds,
+            start_date: formData.start_date,
+            end_date: formData.end_date,
+            rounds: rounds,
             status: 'setup',
             playerCount: formData.playerCount,
             type: formData.type,
             divisions: formData.divisions,
+            games_per_match: formData.games_per_match,
             slug: uniqueSlug,
         };
         
