@@ -24,7 +24,7 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                     <div key={p.id} className="bg-muted/10 p-3 rounded-lg">
                         <div className="flex justify-between items-center">
                             <div>
-                                <p className="font-medium">{p.player1_name} vs {p.player2_name}</p>
+                                <p className="font-medium">{p.player1_name} vs {p.player2_name} <span className="text-muted-foreground font-normal">(Round {p.round})</span></p>
                                 <p className="font-mono text-lg">{p.score1} - {p.score2}</p>
                                 <p className="text-xs text-muted-foreground">Submitted by: {p.submitted_by_name}</p>
                             </div>
