@@ -52,6 +52,7 @@ const PublicTournamentPage = () => {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
     const [showPairingsDropdown, setShowPairingsDropdown] = useState(true);
+    const isMobile = !useMediaQuery('(min-width: 1024px)');
 
     const standingsRef = useRef(null);
     const pairingsRef = useRef(null);
@@ -297,6 +298,16 @@ const PublicTournamentPage = () => {
         </div>
     );
 
+    const MobileActionBar = () => (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border p-2 z-40">
+            {tournament.is_remote_submission_enabled && (
+                <Button onClick={() => setShowSubmissionModal(true)} className="w-full shadow-glow">
+                    <Icon name="Send" className="mr-2" size={16}/>Submit Result
+                </Button>
+            )}
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Toaster position="top-center" richColors />
@@ -403,6 +414,7 @@ const PublicTournamentPage = () => {
                     </div>
                 </div>
             </main>
+            {isMobile && <MobileActionBar />}
         </div>
     );
 };
