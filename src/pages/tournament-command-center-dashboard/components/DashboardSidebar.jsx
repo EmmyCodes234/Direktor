@@ -15,6 +15,7 @@ const DashboardSidebar = () => {
     { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
     { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
     { label: 'Reports', path: `/tournament/${tournamentSlug}/reports`, icon: 'FileText' },
+    { label: 'Wall Chart', path: `/tournament/${tournamentSlug}/wall-chart`, icon: 'Table' },
   ];
 
   return (

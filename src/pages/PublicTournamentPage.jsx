@@ -47,6 +47,7 @@ const PublicTournamentPage = () => {
     const [results, setResults] = useState([]);
     const [teams, setTeams] = useState([]);
     const [prizes, setPrizes] = useState([]);
+    const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
@@ -58,9 +59,12 @@ const PublicTournamentPage = () => {
     const rosterRef = useRef(null);
     const prizesRef = useRef(null);
 
-    const recalculateRanks = useCallback((playerList) => {
+    const recalculateRanks = useCallback((playerList, tournamentType) => {
         if (!playerList) return [];
         return [...playerList].sort((a, b) => {
+            if (tournamentType === 'best_of_league') {
+                if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+            }
             if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
             return (b.spread || 0) - (a.spread || 0);
         }).map((player, index) => ({ ...player, rank: index + 1 }));
@@ -96,6 +100,7 @@ const PublicTournamentPage = () => {
                     setResults([]);
                     setTeams([]);
                     setPrizes([]);
+                    setMatches([]);
                     setLoading(false);
                     return;
                 }
@@ -114,17 +119,19 @@ const PublicTournamentPage = () => {
                     ...tp
                 }));
 
-                setPlayers(recalculateRanks(combinedPlayers));
+                setPlayers(recalculateRanks(combinedPlayers, tournamentData.type));
 
-                const [{ data: resultsData }, {data: teamsData}, {data: prizesData}] = await Promise.all([
+                const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}] = await Promise.all([
                     supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
                     supabase.from('teams').select('id, name').eq('tournament_id', tournamentData.id),
-                    supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true })
+                    supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true }),
+                    supabase.from('matches').select('*').eq('tournament_id', tournamentData.id).order('round', { ascending: true })
                 ]);
 
                 setResults(resultsData || []);
                 setTeams(teamsData || []);
                 setPrizes(prizesData || []);
+                setMatches(matchesData || []);
 
             } catch (error) {
                 console.error("Error fetching public data:", error);
@@ -196,7 +203,18 @@ const PublicTournamentPage = () => {
         });
     }, [results]);
 
-    const pairingsByRound = useMemo(() => tournament?.pairing_schedule || {}, [tournament]);
+    const pairingsByRound = useMemo(() => {
+        if (tournament?.type !== 'best_of_league') {
+            return tournament?.pairing_schedule || {};
+        }
+        return matches.reduce((acc, match) => {
+            if (!acc[match.round]) {
+                acc[match.round] = [];
+            }
+            acc[match.round].push(match);
+            return acc;
+        }, {});
+    }, [tournament, matches]);
 
     const tournamentStats = useMemo(() => {
         if (!results || results.length === 0) return {};
@@ -230,7 +248,9 @@ const PublicTournamentPage = () => {
     if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading Tournament Portal...</p></div>;
     if (!tournament) return <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center p-4"><Icon name="SearchX" size={64} className="text-destructive opacity-50 mb-4" /><h1 className="text-2xl font-heading font-bold text-foreground">Tournament Not Found</h1></div>;
     
-    const formattedDate = tournament.date ? format(new Date(tournament.date), "MMMM do, yyyy") : "Date not set";
+    const formattedDate = tournament.type === 'best_of_league' 
+        ? `${format(new Date(tournament.start_date), "MMM do")} - ${format(new Date(tournament.end_date), "MMM do, yyyy")}`
+        : tournament.date ? format(new Date(tournament.date), "MMMM do, yyyy") : "Date not set";
 
     const SidebarContent = () => (
         <div className="glass-card p-4 space-y-1">
@@ -286,20 +306,20 @@ const PublicTournamentPage = () => {
             </AnimatePresence>
             <TournamentTicker messages={tickerMessages} />
             
-            <header className="fixed top-0 left-0 right-0 z-50 border-b border-border text-center bg-background py-4">
-                <div className="relative z-10 max-w-7xl mx-auto px-6">
-                    <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gradient">{tournament.name}</h1>
-                    <p className="text-muted-foreground mt-2">{tournament.venue} • {formattedDate}</p>
+            <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg py-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+                    <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gradient">{tournament.name}</h1>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">{tournament.venue} • {formattedDate}</p>
                 </div>
             </header>
             
-            <main className="pt-40 pb-10">
+            <main className="pt-32 pb-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <aside className="md:col-span-1 md:sticky top-32 self-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <aside className="hidden lg:block lg:col-span-1 lg:sticky top-32 self-start">
                             <SidebarContent />
                         </aside>
-                        <div className="md:col-span-3 space-y-16">
+                        <div className="lg:col-span-3 space-y-12">
                             <AnnouncementsDisplay />
                             <section id="standings" ref={standingsRef}>
                                 <h2 className="font-heading text-2xl font-semibold mb-4 flex items-center">
@@ -332,27 +352,21 @@ const PublicTournamentPage = () => {
                                             <h3 className="p-4 border-b border-border font-semibold text-lg">Round {roundNum}</h3>
                                             <div className="p-4 space-y-3">
                                                 {pairingsByRound[roundNum].map(pairing => {
-                                                    let p1Data = pairing.player1;
-                                                    let p2Data = pairing.player2;
-                                                    if (p2Data.starts) {
-                                                        [p1Data, p2Data] = [p2Data, p1Data];
-                                                    }
-                                                    const p1Formatted = formatPlayerName(p1Data.name, players);
-                                                    const p2Formatted = formatPlayerName(p2Data.name, players);
+                                                    const player1 = players.find(p => p.player_id === pairing.player1_id);
+                                                    const player2 = players.find(p => p.player_id === pairing.player2_id);
                                                     
                                                     return (
-                                                        <div key={pairing.table} className="p-3 bg-muted/20 rounded-lg flex items-center justify-between font-mono text-sm sm:text-base">
-                                                            <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                                                <span className="font-bold text-primary w-4 text-center">{pairing.table}</span>
-                                                                <button onClick={() => setSelectedPlayer(players.find(p => p.name === p1Data.name))} className="hover:underline text-left truncate">
-                                                                    <span>{p1Formatted.formattedName}</span> <span className="text-muted-foreground">{p1Formatted.seedInfo}</span>
+                                                        <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg flex flex-col sm:flex-row items-center justify-between font-mono text-sm sm:text-base">
+                                                            <div className="flex items-center space-x-3 w-full sm:w-auto mb-2 sm:mb-0">
+                                                                <span className="font-bold text-primary w-4 text-center">{pairing.round || pairing.table}</span>
+                                                                <button onClick={() => setSelectedPlayer(player1)} className="hover:underline text-left truncate">
+                                                                    <span>{player1?.name}</span> <span className="text-muted-foreground">(#{player1?.seed})</span>
                                                                 </button>
-                                                                {p1Data.starts && <i className="text-xs text-primary not-italic">*first*</i>}
                                                             </div>
                                                             <div className="font-semibold text-muted-foreground mx-2">vs.</div>
-                                                            <div className="flex items-center space-x-3 flex-1 min-w-0 text-right justify-end">
-                                                                <button onClick={() => setSelectedPlayer(players.find(p => p.name === p2Data.name))} className="hover:underline text-left truncate">
-                                                                    <span>{p2Formatted.formattedName}</span> {p2Data.name !== 'BYE' && <span className="text-muted-foreground">{p2Formatted.seedInfo}</span>}
+                                                            <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                                                                <button onClick={() => setSelectedPlayer(player2)} className="hover:underline text-left truncate">
+                                                                    <span>{player2?.name}</span> {player2 && <span className="text-muted-foreground">(#{player2?.seed})</span>}
                                                                 </button>
                                                             </div>
                                                         </div>

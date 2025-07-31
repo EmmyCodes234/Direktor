@@ -5,12 +5,13 @@ import Input from '../../../components/ui/Input';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingResult }) => {
+const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingResult, tournamentType }) => {
   const [score1, setScore1] = useState('');
   const [score2, setScore2] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const isEditing = !!existingResult;
+  const isBestOfLeague = tournamentType === 'best_of_league';
 
   useEffect(() => {
     if (isOpen) {
@@ -30,12 +31,12 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
     setIsLoading(true);
     
     const resultPayload = {
-      player1: matchup.player1.name,
-      player2: matchup.player2.name,
+      player1: isBestOfLeague ? matchup.player1_name : matchup.player1.name,
+      player2: isBestOfLeague ? matchup.player2_name : matchup.player2.name,
       score1: parseInt(score1, 10),
       score2: parseInt(score2, 10),
-      // If editing, include the original result ID for the update
-      id: isEditing ? existingResult.id : undefined 
+      id: isEditing ? existingResult.id : undefined,
+      match_id: isBestOfLeague ? matchup.id : undefined,
     };
 
     try {
@@ -47,6 +48,9 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       setIsLoading(false);
     }
   };
+
+  const player1Name = isBestOfLeague ? matchup.player1_name : matchup.player1.name;
+  const player2Name = isBestOfLeague ? matchup.player2_name : matchup.player2.name;
 
   return (
     <AnimatePresence>
@@ -69,13 +73,22 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
             <form onSubmit={handleSubmit}>
               <div className="p-6 border-b border-border">
                 <h2 className="text-xl font-heading font-semibold text-foreground">
-                  {isEditing ? 'Edit Score' : 'Enter Score'} for Table {matchup.table}
+                  {isEditing ? 'Edit Score' : 'Enter Score'} for {isBestOfLeague ? 'Match' : `Table ${matchup.table}`}
                 </h2>
                 <p className="text-sm text-muted-foreground">Round {matchup.round}</p>
+                {isBestOfLeague && (
+                    <div className="mt-2 text-center bg-muted/20 p-2 rounded-lg">
+                        <span className="font-medium text-foreground">{player1Name}</span>
+                        <span className="font-bold text-primary mx-2">{matchup.player1_wins}</span>
+                        <span className="text-muted-foreground mx-2">vs</span>
+                        <span className="font-bold text-primary mx-2">{matchup.player2_wins}</span>
+                        <span className="font-medium text-foreground">{player2Name}</span>
+                    </div>
+                )}
               </div>
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-lg font-medium text-foreground">{matchup.player1.name}</label>
+                  <label className="text-lg font-medium text-foreground">{player1Name}</label>
                   <Input
                     type="number"
                     value={score1}
@@ -86,7 +99,7 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-lg font-medium text-foreground">{matchup.player2.name}</label>
+                  <label className="text-lg font-medium text-foreground">{player2Name}</label>
                   <Input
                     type="number"
                     value={score2}

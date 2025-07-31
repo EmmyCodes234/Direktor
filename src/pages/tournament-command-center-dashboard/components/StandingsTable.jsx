@@ -7,6 +7,7 @@ import { cn } from '../../../utils/cn';
 const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings }) => {
   const [viewMode, setViewMode] = useState('individual');
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const isBestOfLeague = tournamentType === 'best_of_league';
 
   const playersByDivision = useMemo(() => {
     return players.reduce((acc, player) => {
@@ -48,9 +49,10 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
         <thead>
           <tr className="border-b border-border">
             <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
-            <th className="p-4 w-[50%] text-left font-semibold text-foreground">Player</th>
-            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Record</th>
-            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Spread</th>
+            <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
+            {isBestOfLeague && <th className="p-4 w-[15%] text-center font-semibold text-foreground">Match Wins</th>}
+            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Game Record</th>
+            <th className="p-4 w-[15%] text-center font-semibold text-foreground">Spread</th>
           </tr>
         </thead>
         <tbody>
@@ -58,6 +60,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
             <tr key={player.id} className="border-b border-border/50 hover:bg-muted/5 transition-colors group cursor-pointer" onClick={() => onSelectPlayer(player)}>
               <td className="p-4 font-mono font-bold text-lg text-primary">{player.rank}</td>
               <td className="p-4 font-medium text-foreground">{player.name}</td>
+              {isBestOfLeague && <td className="p-4 text-center font-mono">{player.match_wins || 0}</td>}
               <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
               <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {player.spread > 0 ? '+' : ''}{player.spread || 0}
