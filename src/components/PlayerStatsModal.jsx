@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Icon from './AppIcon';
 import Button from './ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName }) => {
-  const handleOpponentClick = (name) => {
+const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players }) => {
+  const navigate = useNavigate();
+
+  const handleOpponentClick = (opponent) => {
     onClose(); // Close current modal
-    setTimeout(() => onSelectPlayer(name), 150); // Open new modal after a short delay
+    if (opponent?.slug) {
+        setTimeout(() => navigate(`/players/${opponent.slug}`), 150);
+    } else if (opponent) {
+        // Fallback for older data or if slug is not available
+        setTimeout(() => onSelectPlayer(opponent.name), 150);
+    }
   };
 
   const playerResults = player
@@ -15,7 +23,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
         .sort((a, b) => a.round - b.round)
     : [];
 
-  const advancedStats = React.useMemo(() => {
+  const advancedStats = useMemo(() => {
     if (!player || playerResults.length === 0) {
       return {
         avgOpponentRating: 'N/A',
@@ -28,7 +36,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
     const opponents = playerResults.map(r => {
         const isPlayer1 = r.player1_name === player.name;
         const opponentName = isPlayer1 ? r.player2_name : r.player1_name;
-        const opponent = results.find(p => p.name === opponentName) || { rating: 1500 }; 
+        const opponent = players.find(p => p.name === opponentName) || { rating: 1500 }; 
         return opponent;
     });
     const totalOpponentRating = opponents.reduce((acc, opp) => acc + (opp.rating || 1500), 0);
@@ -49,7 +57,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
       lowScore: Math.min(Infinity, ...playerResults.map(r => r.player1_name === player.name ? r.score1 : r.score2)),
       avgScore: playerResults.length > 0 ? Math.round(playerResults.reduce((acc, r) => acc + (r.player1_name === player.name ? r.score1 : r.score2), 0) / playerResults.length) : 0,
     };
-  }, [player, playerResults, results]);
+  }, [player, playerResults, players]);
   
 
   return (
@@ -105,6 +113,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                 {playerResults.map(r => {
                   const isPlayer1 = r.player1_name === player.name;
                   const opponentName = isPlayer1 ? r.player2_name : r.player1_name;
+                  const opponent = players.find(p => p.name === opponentName);
                   const playerScore = isPlayer1 ? r.score1 : r.score2;
                   const opponentScore = isPlayer1 ? r.score2 : r.score1;
                   const isDraw = playerScore === opponentScore;
@@ -115,7 +124,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                       <div className="flex items-center space-x-3">
                          <Icon name={isDraw ? 'Minus' : won ? "TrendingUp" : "TrendingDown"} className={isDraw ? 'text-warning' : won ? "text-success" : "text-destructive"} />
                          <div>
-                            <p className="text-sm text-muted-foreground">vs <button onClick={() => handleOpponentClick(opponentName)} className="text-primary hover:underline">{opponentName}</button> (Round {r.round})</p>
+                            <p className="text-sm text-muted-foreground">vs <button onClick={() => handleOpponentClick(opponent)} className="text-primary hover:underline">{opponentName}</button> (Round {r.round})</p>
                             <p className="font-mono text-lg">{playerScore} - {opponentScore}</p>
                          </div>
                       </div>

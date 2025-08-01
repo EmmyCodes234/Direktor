@@ -23,7 +23,6 @@ const PlayerManagementRosterControl = () => {
 
     const fetchPlayers = useCallback(async (tournamentId) => {
         if (!tournamentId) return;
-        setLoading(true);
         
         const { data, error } = await supabase
             .from('tournament_players')
@@ -47,7 +46,6 @@ const PlayerManagementRosterControl = () => {
                 .filter(p => p.name);
             setPlayers(combinedPlayers);
         }
-        setLoading(false);
     }, []);
     
     useEffect(() => {
@@ -66,6 +64,7 @@ const PlayerManagementRosterControl = () => {
             } else {
                 setTournamentInfo(data);
                 await fetchPlayers(data.id);
+                setLoading(false);
             }
         };
         fetchTournamentAndPlayers();
@@ -236,7 +235,9 @@ const PlayerManagementRosterControl = () => {
             <main className="pt-20 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <DashboardSidebar tournamentSlug={tournamentSlug} />
+                        <div className="hidden md:block md:col-span-1">
+                            <DashboardSidebar tournamentSlug={tournamentSlug} />
+                        </div>
                         <div className="md:col-span-3">
                             <div className="mb-8">
                                 <h1 className="text-3xl font-heading font-bold text-gradient mb-2">Player Roster</h1>
