@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import PlayerStatsModal from 'components/PlayerStatsModal';
@@ -7,7 +7,7 @@ import ResultSubmissionModal from 'components/ResultSubmissionModal';
 import Button from 'components/ui/Button';
 import { cn } from 'utils/cn';
 import 'styles/ticker.css';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMediaQuery } from '../hooks/useMediaQuery';
@@ -42,6 +42,7 @@ const formatPlayerName = (name, players) => {
 
 const PublicTournamentPage = () => {
     const { tournamentSlug } = useParams();
+    const navigate = useNavigate();
     const [tournament, setTournament] = useState(null);
     const [players, setPlayers] = useState([]);
     const [results, setResults] = useState([]);
@@ -89,34 +90,13 @@ const PublicTournamentPage = () => {
 
                 const { data: tournamentPlayersData, error: tpError } = await supabase
                     .from('tournament_players')
-                    .select(`*`)
+                    .select(`*, players(id, name, rating, photo_url, slug)`)
                     .eq('tournament_id', tournamentData.id);
 
                 if (tpError) throw tpError;
 
-                const playerIds = tournamentPlayersData.map(tp => tp.player_id);
-                
-                if (playerIds.length === 0) {
-                    setPlayers([]);
-                    setResults([]);
-                    setTeams([]);
-                    setPrizes([]);
-                    setMatches([]);
-                    setLoading(false);
-                    return;
-                }
-
-                const { data: playersData, error: pError } = await supabase
-                    .from('players')
-                    .select('*')
-                    .in('id', playerIds);
-
-                if (pError) throw pError;
-
-                const playersMap = new Map(playersData.map(p => [p.id, p]));
-
                 const combinedPlayers = tournamentPlayersData.map(tp => ({
-                    ...playersMap.get(tp.player_id),
+                    ...tp.players,
                     ...tp
                 }));
 
@@ -136,6 +116,7 @@ const PublicTournamentPage = () => {
 
             } catch (error) {
                 console.error("Error fetching public data:", error);
+                toast.error("Failed to load tournament data. The link may be incorrect or the tournament was not found.");
             } finally {
                 setLoading(false);
             }
@@ -143,6 +124,13 @@ const PublicTournamentPage = () => {
         fetchPublicData();
         
     }, [tournamentSlug, recalculateRanks]);
+
+    const handlePlayerClick = (e, player) => {
+        e.preventDefault();
+        if (player?.slug) {
+            navigate(`/players/${player.slug}`);
+        }
+    };
 
     const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
     
@@ -311,7 +299,7 @@ const PublicTournamentPage = () => {
     return (
         <div className="min-h-screen bg-background text-foreground">
             <Toaster position="top-center" richColors />
-            <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} />
+            <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} players={players} />
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
@@ -370,15 +358,15 @@ const PublicTournamentPage = () => {
                                                         <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg flex flex-col sm:flex-row items-center justify-between font-mono text-sm sm:text-base">
                                                             <div className="flex items-center space-x-3 w-full sm:w-auto mb-2 sm:mb-0">
                                                                 <span className="font-bold text-primary w-4 text-center">{pairing.round || pairing.table}</span>
-                                                                <button onClick={() => setSelectedPlayer(player1)} className="hover:underline text-left truncate">
+                                                                <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="hover:underline text-left truncate">
                                                                     <span>{player1?.name}</span> <span className="text-muted-foreground">(#{player1?.seed})</span>
-                                                                </button>
+                                                                </a>
                                                             </div>
                                                             <div className="font-semibold text-muted-foreground mx-2">vs.</div>
                                                             <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                                                                <button onClick={() => setSelectedPlayer(player2)} className="hover:underline text-left truncate">
+                                                                <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="hover:underline text-left truncate">
                                                                     <span>{player2?.name}</span> {player2 && <span className="text-muted-foreground">(#{player2?.seed})</span>}
-                                                                </button>
+                                                                </a>
                                                             </div>
                                                         </div>
                                                     );
@@ -398,7 +386,7 @@ const PublicTournamentPage = () => {
                                                 <div className="flex items-center space-x-4">
                                                     <span className="font-mono text-muted-foreground w-6 text-right">{index + 1}.</span>
                                                     <div>
-                                                        <button onClick={() => setSelectedPlayer(p)} className="font-medium hover:underline">{p.name}</button>
+                                                        <a href={`/players/${p.slug}`} onClick={(e) => handlePlayerClick(e, p)} className="font-medium hover:underline">{p.name}</a>
                                                         {tournament.type === 'team' && p.team_id && (
                                                             <p className="text-xs text-accent">{teamMap.get(p.team_id) || 'Unknown Team'}</p>
                                                         )}

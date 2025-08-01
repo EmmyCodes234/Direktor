@@ -151,28 +151,17 @@ const TournamentSetupConfiguration = () => {
         rating: p.rating,
       }));
 
-      // Check for existing players before creating new ones
-      const namesToCreate = newPlayerRecords.map(p => p.name);
-      const { data: existingPlayers } = await supabase.from('players').select('id, name').in('name', namesToCreate);
-      
-      const existingNames = new Set(existingPlayers.map(p => p.name));
-      const trulyNewPlayers = newPlayerRecords.filter(p => !existingNames.has(p.name));
-      
-      existingPlayers.forEach(p => finalPlayerIds.push(p.id));
+      const { data: createdPlayers, error } = await supabase
+        .from('players')
+        .insert(newPlayerRecords)
+        .select('id');
 
-      if (trulyNewPlayers.length > 0) {
-          const { data: createdPlayers, error } = await supabase
-            .from('players')
-            .insert(trulyNewPlayers)
-            .select('id');
-
-          if (error) {
-            toast.error(`Failed to create new players: ${error.message}`);
-            setIsLoading(false);
-            return;
-          }
-          finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
+      if (error) {
+        toast.error(`Failed to create new players: ${error.message}`);
+        setIsLoading(false);
+        return;
       }
+      finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
     }
 
     setFormData(prev => ({ ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length }));
@@ -322,9 +311,9 @@ const TournamentSetupConfiguration = () => {
         )}
       </AnimatePresence>
       <main className="pt-20 pb-12">
-        <div className="max-w-4xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-heading font-bold text-gradient mb-4">
+            <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gradient mb-4">
               New Tournament Wizard
             </h1>
           </div>

@@ -91,7 +91,7 @@ const TournamentCommandCenterDashboard = () => {
     try {
       const { data: tournamentData, error: tErr } = await supabase
         .from('tournaments')
-        .select(`*, tournament_players(*, players(*))`)
+        .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug))`)
         .eq('slug', tournamentSlug)
         .single();
 

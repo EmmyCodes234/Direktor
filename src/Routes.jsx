@@ -21,6 +21,7 @@ import TournamentSettingsAdministration from "./pages/TournamentSettingsAdminist
 import ReportsPage from "./pages/ReportsPage";
 import PairingManagementPage from "./pages/PairingManagementPage";
 import WallChartPage from "./pages/WallChartPage";
+import PlayerProfilePage from "./pages/PlayerProfilePage"; // Import the new page
 
 const Routes = () => {
   return (
@@ -40,9 +41,10 @@ const Routes = () => {
         <Route path="/tournament-planner" element={<TournamentPlannerPage />} />
         <Route path="/tournament-setup-configuration" element={<TournamentSetupConfiguration />} />
         
-        {/* Public Tournament Routes */}
+        {/* Public Tournament & Player Routes */}
         <Route path="/tournaments/:tournamentSlug/register" element={<RegistrationPage />} />
         <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPage />} />
+        <Route path="/players/:playerSlug" element={<PlayerProfilePage />} />
         
         {/* Admin/Dashboard Routes */}
         <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />
