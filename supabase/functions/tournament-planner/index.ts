@@ -1,26 +1,95 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from '../_shared/cors.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// --- IMPORTANT: Set these in your Supabase project's environment variables ---
+const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // Or your preferred conversational AI key
 
 serve(async (req) => {
-  // Handle preflight requests for CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Add the current timestamp to the response for debugging
-  const deploymentTimestamp = new Date().toISOString();
+  try {
+    const { audio, conversationHistory } = await req.json();
 
-  const payload = {
-    plan: `The Tournament Planner AI is temporarily unavailable. We are working on an upgrade and will bring it back soon. Please proceed with the manual setup for now. (Deployment: ${deploymentTimestamp})`,
-    status: "unavailable",
-  };
+    // Step 1: Transcribe Audio to Text (using a service like Gemini)
+    // For this to work, the audio must be sent as a base64 encoded string
+    const transcriptionResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{
+                parts: [
+                    { text: "Transcribe this audio:" },
+                    { inline_data: { mime_type: "audio/webm", data: audio.split(',')[1] } }
+                ]
+            }]
+        })
+    });
 
-  return new Response(JSON.stringify(payload), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    status: 200,
-  });
+    if (!transcriptionResponse.ok) {
+        throw new Error(`Transcription API failed: ${await transcriptionResponse.text()}`);
+    }
+
+    const transcriptionData = await transcriptionResponse.json();
+    const transcribedText = transcriptionData.candidates[0].content.parts[0].text;
+
+    const newConversation = `${conversationHistory}\nUser: ${transcribedText}`;
+
+    // Step 2: Get a Text Response from Gemini
+    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{ text: `You are a Scrabble tournament planning assistant. Based on the following conversation, ask the next logical question to help the user build their tournament plan. Keep your response to a single, short sentence.\n\n${newConversation}` }]
+            }]
+        })
+    });
+    
+    if (!geminiResponse.ok) {
+        throw new Error(`Gemini API failed: ${await geminiResponse.text()}`);
+    }
+
+    const geminiData = await geminiResponse.json();
+    const aiTextResponse = geminiData.candidates[0].content.parts[0].text;
+
+    // Step 3: Convert the AI's Text Response to Audio using ElevenLabs
+    const elevenLabsResponse = await fetch("https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM", { // Using a default voice ID
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': ELEVENLABS_API_KEY
+        },
+        body: JSON.stringify({
+            text: aiTextResponse,
+            voice_settings: {
+                stability: 0.5,
+                similarity_boost: 0.5
+            }
+        })
+    });
+
+    if (!elevenLabsResponse.ok) {
+        throw new Error(`ElevenLabs API failed with status: ${elevenLabsResponse.statusText}`);
+    }
+
+    const audioResponseBlob = await elevenLabsResponse.blob();
+
+    // Step 4: Return the audio to the client
+    return new Response(audioResponseBlob, {
+        headers: {
+            ...corsHeaders,
+            'Content-Type': 'audio/mpeg',
+        },
+        status: 200,
+    });
+
+  } catch (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
 });

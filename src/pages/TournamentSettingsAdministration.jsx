@@ -9,10 +9,12 @@ import SystemPreferencesSection from '../components/settings/SystemPreferencesSe
 import EmergencyControlsSection from '../components/settings/EmergencyControlsSection';
 import PrizeManager from '../components/settings/PrizeManager';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ResetTournamentModal from '../components/settings/ResetTournamentModal';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 const ShareSection = ({ tournamentSlug }) => {
     const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
@@ -46,6 +48,8 @@ const TournamentSettingsAdministration = () => {
     const [loading, setLoading] = useState(true);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showResetModal, setShowResetModal] = useState(false);
+    const isDesktop = useMediaQuery('(min-width: 768px)');
 
     useEffect(() => {
         const fetchTournament = async () => {
@@ -127,6 +131,32 @@ const TournamentSettingsAdministration = () => {
         setShowDeleteModal(false);
     };
 
+    const handleResetTournament = async (resetType) => {
+        if (!settings) return;
+        
+        toast.info("Resetting tournament...");
+        setShowResetModal(false);
+
+        try {
+            if (resetType === 'results_only') {
+                const { error: resultsError } = await supabase.from('results').delete().eq('tournament_id', settings.id);
+                if (resultsError) throw resultsError;
+                // Also reset player stats
+                await supabase.from('tournament_players').update({ wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }).eq('tournament_id', settings.id);
+            } else if (resetType === 'full_reset') {
+                const { error: resultsError } = await supabase.from('results').delete().eq('tournament_id', settings.id);
+                const { error: matchesError } = await supabase.from('matches').delete().eq('tournament_id', settings.id);
+                if (resultsError || matchesError) throw new Error("Failed to clear old data.");
+                
+                await supabase.from('tournaments').update({ pairing_schedule: null, status: 'setup', currentRound: 1 }).eq('id', settings.id);
+                await supabase.from('tournament_players').update({ wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }).eq('tournament_id', settings.id);
+            }
+            toast.success("Tournament has been successfully reset.");
+        } catch (error) {
+            toast.error(`Failed to reset tournament: ${error.message}`);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <ConfirmationModal
@@ -137,13 +167,22 @@ const TournamentSettingsAdministration = () => {
                 onCancel={() => setShowDeleteModal(false)}
                 confirmText="Yes, Delete It"
             />
+            <ResetTournamentModal
+                isOpen={showResetModal}
+                onClose={() => setShowResetModal(false)}
+                onConfirm={handleResetTournament}
+            />
             <Toaster position="top-center" richColors />
             <Header />
             <main className="pt-20 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <DashboardSidebar tournamentSlug={tournamentSlug} />
-                        <div className="md:col-span-3 space-y-8">
+                        {isDesktop && (
+                            <div className="md:col-span-1">
+                                <DashboardSidebar tournamentSlug={tournamentSlug} />
+                            </div>
+                        )}
+                        <div className={isDesktop ? "md:col-span-3 space-y-8" : "col-span-1 space-y-8"}>
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h1 className="text-3xl font-heading font-bold text-gradient mb-2">Settings</h1>
@@ -165,7 +204,7 @@ const TournamentSettingsAdministration = () => {
                                     <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <SystemPreferencesSection />
-                                    <EmergencyControlsSection onDeleteTournament={() => setShowDeleteModal(true)} />
+                                    <EmergencyControlsSection onDeleteTournament={() => setShowDeleteModal(true)} onResetTournament={() => setShowResetModal(true)} />
                                 </>
                             )}
                         </div>

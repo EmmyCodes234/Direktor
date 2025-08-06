@@ -1,11 +1,34 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Icon from './AppIcon';
 import Button from './ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { toast } from 'sonner';
 
-const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players }) => {
+const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players, tournamentType, tournamentId }) => {
   const navigate = useNavigate();
+  const [matches, setMatches] = useState([]);
+
+  useEffect(() => {
+    if (player && tournamentType === 'best_of_league') {
+        const fetchMatches = async () => {
+            const { data, error } = await supabase
+                .from('matches')
+                .select('*')
+                .eq('tournament_id', tournamentId)
+                .or(`player1_id.eq.${player.player_id},player2_id.eq.${player.player_id}`)
+                .order('round', { ascending: true });
+            
+            if (error) {
+                toast.error("Failed to load player's match history.");
+            } else {
+                setMatches(data);
+            }
+        };
+        fetchMatches();
+    }
+  }, [player, tournamentType, tournamentId]);
 
   const handleOpponentClick = (opponent) => {
     onClose(); // Close current modal
@@ -76,7 +99,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="glass-card w-full max-w-2xl mx-4"
+            className="glass-card w-full max-w-2xl mx-4 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-border flex justify-between items-start">
@@ -108,39 +131,59 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
             </div>
 
             <div className="p-6 max-h-[50vh] overflow-y-auto">
-              <h3 className="font-semibold mb-3">Game History</h3>
+              <h3 className="font-semibold mb-3">
+                {tournamentType === 'best_of_league' ? 'Match History' : 'Game History'}
+              </h3>
               <div className="space-y-3">
-                {playerResults.map(r => {
-                  const isPlayer1 = r.player1_name === player.name;
-                  const opponentName = isPlayer1 ? r.player2_name : r.player1_name;
-                  const opponent = players.find(p => p.name === opponentName);
-                  const playerScore = isPlayer1 ? r.score1 : r.score2;
-                  const opponentScore = isPlayer1 ? r.score2 : r.score1;
-                  const isDraw = playerScore === opponentScore;
-                  const won = playerScore > opponentScore;
+                {tournamentType === 'best_of_league' ? (
+                    matches.map(match => {
+                        const opponent = players.find(p => p.player_id !== player.player_id && (p.player_id === match.player1_id || p.player_id === match.player2_id));
+                        const matchResults = results.filter(r => r.match_id === match.id);
+                        return (
+                            <div key={match.id} className="p-3 bg-muted/10 rounded-lg">
+                                <p className="font-semibold text-foreground">Round {match.round} vs {opponent?.name}</p>
+                                {matchResults.map(r => (
+                                    <div key={r.id} className="flex justify-between items-center text-sm ml-4 mt-2">
+                                        <span>Game Score: {r.score1} - {r.score2}</span>
+                                        <Button size="xs" variant="ghost" onClick={() => onEditResult(r)}>Edit</Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )
+                    })
+                ) : (
+                    playerResults.map(r => {
+                      const isPlayer1 = r.player1_name === player.name;
+                      const opponentName = isPlayer1 ? r.player2_name : r.player1_name;
+                      const opponent = players.find(p => p.name === opponentName);
+                      const playerScore = isPlayer1 ? r.score1 : r.score2;
+                      const opponentScore = isPlayer1 ? r.score2 : r.score1;
+                      const isDraw = playerScore === opponentScore;
+                      const won = playerScore > opponentScore;
 
-                  return (
-                    <div key={r.id} className="p-3 bg-muted/10 rounded-lg flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                         <Icon name={isDraw ? 'Minus' : won ? "TrendingUp" : "TrendingDown"} className={isDraw ? 'text-warning' : won ? "text-success" : "text-destructive"} />
-                         <div>
-                            <p className="text-sm text-muted-foreground">vs <button onClick={() => handleOpponentClick(opponent)} className="text-primary hover:underline">{opponentName}</button> (Round {r.round})</p>
-                            <p className="font-mono text-lg">{playerScore} - {opponentScore}</p>
-                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {onEditResult && (
-                          <Button variant="ghost" size="sm" onClick={() => onEditResult(r)}>
-                            Edit
-                          </Button>
-                        )}
-                        <div className={`font-semibold px-2 py-1 rounded text-xs ${isDraw ? 'bg-warning/20 text-warning' : won ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
-                          {isDraw ? 'DRAW' : won ? `WIN (+${playerScore - opponentScore})` : `LOSS (${playerScore - opponentScore})`}
+                      return (
+                        <div key={r.id} className="p-3 bg-muted/10 rounded-lg flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                             <Icon name={isDraw ? 'Minus' : won ? "TrendingUp" : "TrendingDown"} className={isDraw ? 'text-warning' : won ? "text-success" : "text-destructive"} />
+                             <div>
+                                <p className="text-sm text-muted-foreground">vs <button onClick={() => handleOpponentClick(opponent)} className="text-primary hover:underline">{opponentName}</button> (Round {r.round})</p>
+                                <p className="font-mono text-lg">{playerScore} - {opponentScore}</p>
+                             </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {onEditResult && (
+                              <Button variant="ghost" size="sm" onClick={() => onEditResult(r)}>
+                                Edit
+                              </Button>
+                            )}
+                            <div className={`font-semibold px-2 py-1 rounded text-xs ${isDraw ? 'bg-warning/20 text-warning' : won ? 'bg-success/20 text-success' : 'bg-destructive/20 text-destructive'}`}>
+                              {isDraw ? 'DRAW' : won ? `WIN (+${playerScore - opponentScore})` : `LOSS (${playerScore - opponentScore})`}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                      );
+                    })
+                )}
               </div>
             </div>
           </motion.div>

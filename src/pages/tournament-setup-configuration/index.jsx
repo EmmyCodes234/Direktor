@@ -43,8 +43,25 @@ const TournamentSetupConfiguration = () => {
   const [playerDetails, setPlayerDetails] = useState([]);
 
   useEffect(() => {
-    // Placeholder for draft functionality
-  }, [draftId]);
+    const planName = query.get('name');
+    const planRounds = query.get('rounds');
+    const planVenue = query.get('venue');
+    const planDate = query.get('date');
+    const planStartDate = query.get('start_date');
+    const planEndDate = query.get('end_date');
+    const planType = query.get('type');
+
+    setFormData(prev => ({
+        ...prev,
+        name: planName || prev.name,
+        rounds: planRounds ? parseInt(planRounds, 10) : prev.rounds,
+        venue: planVenue || prev.venue,
+        date: planDate || prev.date,
+        start_date: planStartDate || prev.start_date,
+        end_date: planEndDate || prev.end_date,
+        type: planType || prev.type,
+    }));
+  }, [query]);
   
   useEffect(() => {
     const fetchPlayerDetails = async () => {
@@ -151,17 +168,28 @@ const TournamentSetupConfiguration = () => {
         rating: p.rating,
       }));
 
-      const { data: createdPlayers, error } = await supabase
-        .from('players')
-        .insert(newPlayerRecords)
-        .select('id');
+      // Check for existing players before creating new ones
+      const namesToCreate = newPlayerRecords.map(p => p.name);
+      const { data: existingPlayers } = await supabase.from('players').select('id, name').in('name', namesToCreate);
+      
+      const existingNames = new Set(existingPlayers.map(p => p.name));
+      const trulyNewPlayers = newPlayerRecords.filter(p => !existingNames.has(p.name));
+      
+      existingPlayers.forEach(p => finalPlayerIds.push(p.id));
 
-      if (error) {
-        toast.error(`Failed to create new players: ${error.message}`);
-        setIsLoading(false);
-        return;
+      if (trulyNewPlayers.length > 0) {
+          const { data: createdPlayers, error } = await supabase
+            .from('players')
+            .insert(trulyNewPlayers)
+            .select('id');
+
+          if (error) {
+            toast.error(`Failed to create new players: ${error.message}`);
+            setIsLoading(false);
+            return;
+          }
+          finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
       }
-      finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
     }
 
     setFormData(prev => ({ ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length }));
@@ -200,6 +228,9 @@ const TournamentSetupConfiguration = () => {
   const handleCreateTournament = async () => {
     setIsLoading(true);
     try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("You must be logged in to create a tournament.");
+
         const uniqueSlug = await generateUniqueSlug(formData.name);
         
         const rounds = formData.type === 'best_of_league' ? formData.playerCount - 1 : formData.rounds;
@@ -217,6 +248,7 @@ const TournamentSetupConfiguration = () => {
             divisions: formData.divisions,
             games_per_match: formData.games_per_match,
             slug: uniqueSlug,
+            user_id: user.id, // Assign ownership
         };
         
         const { data: newTournament, error: tournamentError } = await supabase
@@ -331,7 +363,7 @@ const TournamentSetupConfiguration = () => {
                   transition={{ duration: 0.2 }}
                 >
                   {currentStep === 'details' && <TournamentDetailsForm formData={formData} onChange={handleFormChange} errors={{}} />}
-                  {currentStep === 'players' && <PlayerRosterManager formData={formData} onStartReconciliation={startReconciliation} />}
+                  {currentStep === 'players' && <PlayerRosterManager formData={formData} onStartReconciliation={startReconciliation} onDivisionsChange={handleDivisionsChange} />}
                   {currentStep === 'divisions' && <DivisionManager formData={formData} onDivisionsChange={handleDivisionsChange} />}
                   {currentStep === 'teams' && <TeamManager formData={{...formData, player_ids: playerDetails}} onTeamUpdate={handleTeamUpdate} />}
                   {currentStep === 'rounds' && <RoundsConfiguration formData={formData} onChange={handleFormChange} errors={{}} />}
