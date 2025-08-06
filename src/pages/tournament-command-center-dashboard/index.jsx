@@ -64,6 +64,51 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
 });
 
 
+const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentType) => {
+    const statsMap = new Map(players.map(p => [p.player_id, {
+        wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0
+    }]));
+
+    if (allResults) {
+        allResults.forEach(res => {
+            const p1Stats = statsMap.get(res.player1_id);
+            const p2Stats = statsMap.get(res.player2_id);
+            if (p1Stats) {
+                p1Stats.spread += res.score1 - res.score2;
+                if (res.score1 > res.score2) p1Stats.wins++;
+                else if (res.score1 < res.score2) p1Stats.losses++;
+                else p1Stats.ties++;
+            }
+            if (p2Stats) {
+                p2Stats.spread += res.score2 - res.score1;
+                if (res.score2 > res.score1) p2Stats.wins++;
+                else if (res.score2 < res.score1) p2Stats.losses++;
+                else p2Stats.ties++;
+            }
+        });
+    }
+
+    if (tournamentType === 'best_of_league') {
+        const allCompletedMatches = allMatches.filter(m => m.status === 'complete');
+        if (allCompletedMatches) {
+            allCompletedMatches.forEach(match => {
+                const winnerStats = statsMap.get(match.winner_id);
+                if (winnerStats) {
+                    winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
+                }
+
+                const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
+                const loserStats = statsMap.get(loserId);
+                if (loserStats) {
+                    loserStats.match_losses = (loserStats.match_losses || 0) + 1;
+                }
+            });
+        }
+    }
+
+    return statsMap;
+};
+
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
@@ -362,47 +407,8 @@ const TournamentCommandCenterDashboard = () => {
             );
         }
 
-        const statsMap = new Map(players.map(p => [p.player_id, {
-            wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0
-        }]));
-
         const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-        if (allResults) {
-            allResults.forEach(res => {
-                const p1Stats = statsMap.get(res.player1_id);
-                const p2Stats = statsMap.get(res.player2_id);
-                if (p1Stats) {
-                    p1Stats.spread += res.score1 - res.score2;
-                    if (res.score1 > res.score2) p1Stats.wins++;
-                    else if (res.score1 < res.score2) p1Stats.losses++;
-                    else p1Stats.ties++;
-                }
-                if (p2Stats) {
-                    p2Stats.spread += res.score2 - res.score1;
-                    if (res.score2 > res.score1) p2Stats.wins++;
-                    else if (res.score2 < res.score1) p2Stats.losses++;
-                    else p2Stats.ties++;
-                }
-            });
-        }
-
-        if (tournamentInfo.type === 'best_of_league') {
-            const allCompletedMatches = updatedMatches.filter(m => m.status === 'complete');
-            if (allCompletedMatches) {
-                allCompletedMatches.forEach(match => {
-                    const winnerStats = statsMap.get(match.winner_id);
-                    if (winnerStats) {
-                        winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
-                    }
-
-                    const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
-                    const loserStats = statsMap.get(loserId);
-                    if (loserStats) {
-                        loserStats.match_losses = (loserStats.match_losses || 0) + 1;
-                    }
-                });
-            }
-        }
+        const statsMap = recalculateAllPlayerStats(players, allResults, updatedMatches, tournamentInfo.type);
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
             supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
