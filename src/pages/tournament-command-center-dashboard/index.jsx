@@ -64,6 +64,51 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
 });
 
 
+const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentType) => {
+    const statsMap = new Map(players.map(p => [p.player_id, { 
+        wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0 
+    }]));
+
+    if (allResults) {
+        allResults.forEach(res => {
+            const p1Stats = statsMap.get(res.player1_id);
+            const p2Stats = statsMap.get(res.player2_id);
+            if (p1Stats) {
+                p1Stats.spread += res.score1 - res.score2;
+                if (res.score1 > res.score2) p1Stats.wins++;
+                else if (res.score1 < res.score2) p1Stats.losses++;
+                else p1Stats.ties++;
+            }
+            if (p2Stats) {
+                p2Stats.spread += res.score2 - res.score1;
+                if (res.score2 > res.score1) p2Stats.wins++;
+                else if (res.score2 < res.score1) p2Stats.losses++;
+                else p2Stats.ties++;
+            }
+        });
+    }
+
+    if (tournamentType === 'best_of_league') {
+        const allCompletedMatches = allMatches.filter(m => m.status === 'complete');
+        if (allCompletedMatches) {
+            allCompletedMatches.forEach(match => {
+                const winnerStats = statsMap.get(match.winner_id);
+                if (winnerStats) {
+                    winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
+                }
+                
+                const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
+                const loserStats = statsMap.get(loserId);
+                if (loserStats) {
+                    loserStats.match_losses = (loserStats.match_losses || 0) + 1;
+                }
+            });
+        }
+    }
+
+    return statsMap;
+};
+
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
@@ -114,7 +159,11 @@ const TournamentCommandCenterDashboard = () => {
       ];
 
       const [{ data: resultsData }, { data: pendingData }, { data: teamsData }, { data: matchesData }] = await Promise.all(promises);
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
       setTeams(teamsData || []);
@@ -200,7 +249,11 @@ const TournamentCommandCenterDashboard = () => {
         if (tournamentInfo?.type === 'best_of_league') {
             if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
         }
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
         const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
         const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
         if (aGameScore !== bGameScore) return bGameScore - aGameScore;
@@ -262,6 +315,8 @@ const TournamentCommandCenterDashboard = () => {
 
   const handleResultSubmit = async (result, isEditing = false) => {
     setIsSubmitting(true);
+    let updatedMatches = [...matches];
+
     try {
         const player1 = players.find(p => p.name === result.player1);
         const player2 = players.find(p => p.name === result.player2);
@@ -321,7 +376,10 @@ const TournamentCommandCenterDashboard = () => {
         }
 
         if (tournamentInfo.type === 'best_of_league' && result.match_id) {
+<<<<<<< HEAD
             // When a game is entered or edited, recalculate the entire match's win/loss state from the ground up.
+=======
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
             const { data: matchResults, error: resultsError } = await supabase
                 .from('results')
                 .select('score1, score2')
@@ -333,7 +391,11 @@ const TournamentCommandCenterDashboard = () => {
             const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
             
             const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
             let newStatus = 'in_progress';
             let newWinnerId = null;
 
@@ -347,6 +409,7 @@ const TournamentCommandCenterDashboard = () => {
                 toast.success(`${player2.name} has won the match!`);
             }
 
+<<<<<<< HEAD
             // This single update ensures the match state is always correct based on the latest game results.
             await supabase.from('matches').update({
                 player1_wins,
@@ -354,6 +417,20 @@ const TournamentCommandCenterDashboard = () => {
                 status: newStatus,
                 winner_id: newWinnerId
             }).eq('id', result.match_id);
+=======
+            await supabase.from('matches').update({ 
+                player1_wins, 
+                player2_wins, 
+                status: newStatus, 
+                winner_id: newWinnerId 
+            }).eq('id', result.match_id);
+
+            updatedMatches = updatedMatches.map(m => 
+                m.id === result.match_id 
+                ? { ...m, player1_wins, player2_wins, status: newStatus, winner_id: newWinnerId } 
+                : m
+            );
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
         }
 
         // Recalculate all player stats from the ground up to ensure consistency.
@@ -363,6 +440,7 @@ const TournamentCommandCenterDashboard = () => {
 
         // Calculate game wins, losses, ties, and spread from individual results.
         const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
+<<<<<<< HEAD
         if (allResults) {
             allResults.forEach(res => {
                 const p1Stats = statsMap.get(res.player1_id);
@@ -401,6 +479,9 @@ const TournamentCommandCenterDashboard = () => {
                 });
             }
         }
+=======
+        const statsMap = recalculateAllPlayerStats(players, allResults, updatedMatches, tournamentInfo.type);
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
             supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
@@ -545,8 +626,13 @@ const TournamentCommandCenterDashboard = () => {
 
   const tournamentState = getTournamentState();
   const handlers = { handleRoundPaired, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, setSelectedPlayerModal, isSubmitting, handleUnpairRound };
+<<<<<<< HEAD
   const currentRoundMatches = useMemo(() =>
       matches.filter(m => m.round === tournamentInfo?.currentRound),
+=======
+  const currentRoundMatches = useMemo(() => 
+      matches.filter(m => m.round === tournamentInfo?.currentRound), 
+>>>>>>> b005737 (fix: Resolve race condition in match wins calculation)
       [matches, tournamentInfo?.currentRound]
   );
 
