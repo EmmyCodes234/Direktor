@@ -6,29 +6,15 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { toast } from 'sonner';
 
-const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players, tournamentType, tournamentId }) => {
+const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players, tournamentType, tournamentId, matches: allMatches }) => {
   const navigate = useNavigate();
-  const [matches, setMatches] = useState([]);
 
-  useEffect(() => {
-    if (player && tournamentType === 'best_of_league') {
-        const fetchMatches = async () => {
-            const { data, error } = await supabase
-                .from('matches')
-                .select('*')
-                .eq('tournament_id', tournamentId)
-                .or(`player1_id.eq.${player.player_id},player2_id.eq.${player.player_id}`)
-                .order('round', { ascending: true });
-            
-            if (error) {
-                toast.error("Failed to load player's match history.");
-            } else {
-                setMatches(data);
-            }
-        };
-        fetchMatches();
-    }
-  }, [player, tournamentType, tournamentId]);
+  const playerMatches = useMemo(() => {
+    if (!player || !allMatches) return [];
+    return allMatches
+        .filter(m => m.player1_id === player.player_id || m.player2_id === player.player_id)
+        .sort((a, b) => a.round - b.round);
+  }, [player, allMatches]);
 
   const handleOpponentClick = (opponent) => {
     onClose(); // Close current modal
@@ -136,15 +122,16 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
               </h3>
               <div className="space-y-3">
                 {tournamentType === 'best_of_league' ? (
-                    matches.map(match => {
+                    playerMatches.map(match => {
                         const opponent = players.find(p => p.player_id !== player.player_id && (p.player_id === match.player1_id || p.player_id === match.player2_id));
                         const matchResults = results.filter(r => r.match_id === match.id);
                         return (
                             <div key={match.id} className="p-3 bg-muted/10 rounded-lg">
                                 <p className="font-semibold text-foreground">Round {match.round} vs {opponent?.name}</p>
-                                {matchResults.map(r => (
-                                    <div key={r.id} className="flex justify-between items-center text-sm ml-4 mt-2">
-                                        <span>Game Score: {r.score1} - {r.score2}</span>
+                                {matchResults.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((r, index) => (
+                                    <div key={r.id} className="flex justify-between items-center text-sm ml-4 mt-2 p-2 rounded-md hover:bg-muted/20">
+                                        <span className="font-medium text-muted-foreground">Game {index + 1}</span>
+                                        <span className="font-mono text-foreground">{r.score1} - {r.score2}</span>
                                         <Button size="xs" variant="ghost" onClick={() => onEditResult(r)}>Edit</Button>
                                     </div>
                                 ))}
