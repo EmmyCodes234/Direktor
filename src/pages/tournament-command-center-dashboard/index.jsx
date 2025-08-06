@@ -288,11 +288,34 @@ const TournamentCommandCenterDashboard = () => {
             await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
         }
 
-        if (tournamentInfo.type === 'best_of_league') {
-            const { data: match } = await supabase.from('matches').select('*').eq('id', result.match_id).single();
-            const player1_wins = match.player1_wins + (score1 > score2 ? 1 : 0);
-            const player2_wins = match.player2_wins + (score2 > score1 ? 1 : 0);
+        const rating1 = player1.rating || 0;
+        const rating2 = player2.rating || 0;
+        const ratingDiff = Math.abs(rating1 - rating2);
+        const upsetThreshold = 200;
 
+        let upsetMessage = '';
+
+        if (ratingDiff >= upsetThreshold) {
+            if (score1 > score2 && rating1 < rating2) {
+                upsetMessage = `🚀 Upset Alert! ${player1.name} (${rating1}) has just defeated ${player2.name} (${rating2}) in a stunning Round ${resultData.round} victory!`;
+            } else if (score2 > score1 && rating2 < rating1) {
+                upsetMessage = `🚀 Upset Alert! ${player2.name} (${rating2}) has just defeated ${player1.name} (${rating1}) in a stunning Round ${resultData.round} victory!`;
+            }
+        }
+
+        if (upsetMessage) {
+            await supabase.from('announcements').insert({
+                tournament_id: tournamentInfo.id,
+                message: upsetMessage,
+            });
+        }
+
+        if (tournamentInfo.type === 'best_of_league' && result.match_id) {
+            const { data: matchResults } = await supabase.from('results').select('score1, score2, player1_id, player2_id').eq('match_id', result.match_id);
+            
+            const player1_wins = matchResults.filter(r => r.score1 > r.score2).length;
+            const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
+            
             const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
             let status = 'in_progress';
             let winner_id = null;
@@ -315,28 +338,41 @@ const TournamentCommandCenterDashboard = () => {
         
         if (tournamentInfo.type === 'best_of_league') {
             const { data: allMatches } = await supabase.from('matches').select('*').eq('tournament_id', tournamentInfo.id).eq('status', 'complete');
-            allMatches.forEach(m => {
-                const winnerStats = statsMap.get(m.winner_id);
-                if (winnerStats) winnerStats.match_wins++;
-            });
+            if (allMatches) {
+                allMatches.forEach(m => {
+                    const winnerStats = statsMap.get(m.winner_id);
+                    if (winnerStats) winnerStats.match_wins++;
+                });
+            }
         }
 
-        allResults.forEach(res => {
-            const p1Stats = statsMap.get(res.player1_id);
-            const p2Stats = statsMap.get(res.player2_id);
-            if (!p1Stats || !p2Stats) return;
-            p1Stats.spread += res.score1 - res.score2;
-            p2Stats.spread += res.score2 - res.score1;
-            if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; }
-            else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; }
-            else { p1Stats.ties++; p2Stats.ties++; }
-        });
+        if (allResults) {
+            allResults.forEach(res => {
+                const p1Stats = statsMap.get(res.player1_id);
+                const p2Stats = statsMap.get(res.player2_id);
+                if (p1Stats) {
+                    p1Stats.spread += res.score1 - res.score2;
+                    if (res.score1 > res.score2) p1Stats.wins++;
+                    else if (res.score1 < res.score2) p1Stats.losses++;
+                    else p1Stats.ties++;
+                }
+                if (p2Stats) {
+                    p2Stats.spread += res.score2 - res.score1;
+                    if (res.score2 > res.score1) p2Stats.wins++;
+                    else if (res.score2 < res.score1) p2Stats.losses++;
+                    else p2Stats.ties++;
+                }
+            });
+        }
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
             supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
         );
         await Promise.all(updates);
+        
+        await fetchTournamentData(); 
         toast.success("Standings updated!");
+
     } catch (error) {
         toast.error(`Operation failed: ${error.message}`);
     } finally {
@@ -369,32 +405,58 @@ const TournamentCommandCenterDashboard = () => {
   };
 
   const handleEnterScore = (matchup, existingResult = null) => {
-    if (tournamentInfo.type === 'best_of_league') {
-        const player1 = players.find(p => p.player_id === matchup.player1_id);
-        const player2 = players.find(p => p.player_id === matchup.player2_id);
-        setActiveMatchup({
-            ...matchup,
-            player1_name: player1.name,
-            player2_name: player2.name,
-        });
-    } else {
-        setActiveMatchup(matchup);
+    let finalMatchup = { ...matchup };
+
+    if (!finalMatchup.player1 && finalMatchup.player1_id) {
+        finalMatchup.player1 = players.find(p => p.player_id === finalMatchup.player1_id);
     }
+    if (!finalMatchup.player2 && finalMatchup.player2_id) {
+        finalMatchup.player2 = players.find(p => p.player_id === finalMatchup.player2_id);
+    }
+    
+    if (tournamentInfo.type === 'best_of_league') {
+        finalMatchup.player1_name = finalMatchup.player1.name;
+        finalMatchup.player2_name = finalMatchup.player2.name;
+    }
+
+    if (!finalMatchup.player1 || !finalMatchup.player2) {
+        toast.error("Could not find player details for this match.");
+        return;
+    }
+
+    setActiveMatchup(finalMatchup);
     setShowScoreModal({ isOpen: true, existingResult: existingResult });
   };
   
-  const handleEditResultFromModal = (resultToEdit) => {
-    const player1 = players.find(p => p.name === resultToEdit.player1_name);
-    const player2 = players.find(p => p.name === resultToEdit.player2_name);
-    if (!player1 || !player2) {
-        toast.error("Could not find players for this result.");
-        return;
+  const handleEditResultFromModal = async (resultToEdit) => {
+    if (tournamentInfo.type === 'best_of_league') {
+        const { data: matchData, error } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('id', resultToEdit.match_id)
+            .single();
+
+        if (error || !matchData) {
+            toast.error("Could not find the original match for this result.");
+            return;
+        }
+        
+        handleEnterScore(matchData, resultToEdit);
+
+    } else {
+        const player1 = players.find(p => p.name === resultToEdit.player1_name);
+        const player2 = players.find(p => p.name === resultToEdit.player2_name);
+        if (!player1 || !player2) {
+            toast.error("Could not find players for this result.");
+            return;
+        }
+        const roundPairings = tournamentInfo.pairing_schedule?.[resultToEdit.round];
+        const pairing = roundPairings?.find(p => (p.player1.name === player1.name && p.player2.name === player2.name) || (p.player1.name === player2.name && p.player2.name === player1.name));
+        const matchup = { player1, player2, table: pairing?.table || 'N/A', round: resultToEdit.round };
+        
+        handleEnterScore(matchup, resultToEdit);
     }
-    const roundPairings = tournamentInfo.pairing_schedule?.[resultToEdit.round];
-    const pairing = roundPairings?.find(p => (p.player1.name === player1.name && p.player2.name === player2.name) || (p.player1.name === player2.name && p.player2.name === player1.name));
-    const matchup = { player1, player2, table: pairing?.table || 'N/A', round: resultToEdit.round };
     setSelectedPlayerModal(null);
-    setTimeout(() => handleEnterScore(matchup, resultToEdit), 150);
   };
 
   const handleApproveResult = async (pendingResult) => {
@@ -420,7 +482,6 @@ const TournamentCommandCenterDashboard = () => {
         toast.error(`Failed to reject result: ${error.message}`);
     } else {
         toast.success("Result has been rejected.");
-        // The real-time subscription will handle removing it from the UI
     }
   };
 
@@ -478,6 +539,9 @@ const TournamentCommandCenterDashboard = () => {
           onSelectPlayer={(name) => setSelectedPlayerModal(players.find(p => p.name === name))} 
           onEditResult={handleEditResultFromModal}
           teamName={selectedPlayerModal?.team_id ? teamMap.get(selectedPlayerModal.team_id) : null}
+          players={players}
+          tournamentType={tournamentInfo?.type}
+          tournamentId={tournamentInfo?.id}
       />
       <main className="pt-20 pb-24 sm:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">

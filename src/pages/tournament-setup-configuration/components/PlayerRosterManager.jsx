@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
+import SmartSuggestions from '../../../components/setup/SmartSuggestions'; // Import the new component
 
-const PlayerRosterManager = ({ formData, onStartReconciliation }) => {
+const PlayerRosterManager = ({ formData, onStartReconciliation, onDivisionsChange }) => {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
   const [localPlayerNames, setLocalPlayerNames] = useState(formData.playerNames || '');
+  const [parsedPlayers, setParsedPlayers] = useState([]);
 
   const parsePlayerLines = (lines) => {
     return lines.map(line => {
@@ -16,10 +18,14 @@ const PlayerRosterManager = ({ formData, onStartReconciliation }) => {
       return { name, rating };
     }).filter(Boolean);
   };
+  
+  const handleTextChange = (text) => {
+    setLocalPlayerNames(text);
+    const lines = text.split('\n').filter(Boolean);
+    setParsedPlayers(parsePlayerLines(lines));
+  };
 
   const handleProcessPlayers = () => {
-    const lines = localPlayerNames.split('\n').filter(Boolean);
-    const parsedPlayers = parsePlayerLines(lines);
     if (parsedPlayers.length > 0) {
       onStartReconciliation(parsedPlayers);
     }
@@ -59,7 +65,7 @@ const PlayerRosterManager = ({ formData, onStartReconciliation }) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const csv = e.target.result;
-      setLocalPlayerNames(csv);
+      handleTextChange(csv);
     };
     reader.readAsText(file);
   };
@@ -75,7 +81,7 @@ Grace Taylor, 1330
 Henry Anderson, 1950
 Ivy Thompson, 1100
 Jack Martinez, 1770`;
-    setLocalPlayerNames(samplePlayers);
+    handleTextChange(samplePlayers);
   };
   
   const playerCount = (localPlayerNames || '').split('\n').filter(Boolean).length;
@@ -121,7 +127,7 @@ Jack Martinez, 1770`;
                 </label>
                 <textarea
                     value={localPlayerNames}
-                    onChange={(e) => setLocalPlayerNames(e.target.value)}
+                    onChange={(e) => handleTextChange(e.target.value)}
                     placeholder={`Enter one player per line in "Name, Rating" format:\n\nAlice Johnson, 1500\nBob Smith, 1250...`}
                     className="w-full h-64 px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground resize-none focus:ring-2 focus:ring-primary font-mono text-sm"
                 />
@@ -147,6 +153,9 @@ Jack Martinez, 1770`;
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>Browse File</Button>
             </div>
         </div>
+
+        <SmartSuggestions players={parsedPlayers} onApplyDivisions={onDivisionsChange} />
+
         <div className="mt-6 border-t border-border pt-6">
             <Button onClick={handleProcessPlayers} disabled={playerCount === 0 || formData.playerCount > 0} className="w-full" size="lg">
                 <Icon name="CheckSquare" className="mr-2" />

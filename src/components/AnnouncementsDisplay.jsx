@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Icon from './AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../utils/cn';
 
 const AnnouncementsDisplay = () => {
   const { tournamentSlug } = useParams();
@@ -61,28 +62,53 @@ const AnnouncementsDisplay = () => {
     return null;
   }
 
+  const getAnnouncementStyle = (message) => {
+    if (message.includes('Clash of the Titans')) {
+        return {
+            icon: 'Swords',
+            borderColor: 'border-amber-500',
+            iconColor: 'text-amber-500'
+        };
+    }
+    if (message.includes('Upset Alert')) {
+        return {
+            icon: 'Rocket',
+            borderColor: 'border-emerald-500',
+            iconColor: 'text-emerald-500'
+        };
+    }
+    return {
+        icon: 'Megaphone',
+        borderColor: 'border-primary',
+        iconColor: 'text-primary'
+    };
+  };
+
   return (
     <div className="mb-8">
       <AnimatePresence>
-        {announcements.map((ann, index) => (
-          <motion.div
-            key={ann.id}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="glass-card p-4 mb-3 border-l-4 border-primary"
-          >
-            <div className="flex items-start space-x-3">
-              <Icon name="Megaphone" className="text-primary mt-1" size={20} />
-              <div>
-                <p className="text-foreground">{ann.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Posted {new Date(ann.created_at).toLocaleString()}
-                </p>
+        {announcements.map((ann, index) => {
+          const style = getAnnouncementStyle(ann.message);
+          return (
+            <motion.div
+              key={ann.id}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={cn("glass-card p-4 mb-3 border-l-4", style.borderColor)}
+            >
+              <div className="flex items-start space-x-3">
+                <Icon name={style.icon} className={cn("mt-1", style.iconColor)} size={20} />
+                <div>
+                  <p className="text-foreground">{ann.message}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Posted {new Date(ann.created_at).toLocaleString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

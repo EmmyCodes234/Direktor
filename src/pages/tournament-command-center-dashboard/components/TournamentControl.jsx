@@ -123,10 +123,9 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     if (error) {
         toast.error(`Failed to generate schedule: ${error.message}`);
     } else {
-        // A simple way to trigger a refresh and show the generated matches
         const { data, error: updateError } = await supabase
             .from('tournaments')
-            .update({ status: 'in_progress' }) // Mark as started
+            .update({ status: 'in_progress' })
             .eq('id', tournamentInfo.id)
             .select()
             .single();
@@ -143,10 +142,9 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
   const generateLitoPairings = (playersToPair, previousMatchups, allResults, currentRound, totalRounds) => {
     let availablePlayers = [...playersToPair.filter(p => p.status !== 'withdrawn')];
     let newPairings = [];
-    let table = 1;
 
     const roundsRemaining = totalRounds - currentRound;
-    const isLateStage = roundsRemaining < 3; // Contention pairing for last 2 rounds
+    const isLateStage = roundsRemaining < 3;
 
     if (isLateStage) {
         const prizeContenders = playersToPair.filter(p => p.rank <= (tournamentInfo.prizes?.length || 3));
@@ -168,13 +166,12 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     let newPairings = [];
     let table = 1;
 
-    // Handle bye assignment
     if (availablePlayers.length % 2 !== 0) {
         const playersWithByes = new Set(allResults.filter(r => r.player2_name === 'BYE').map(r => r.player1_name));
         
         let eligibleForBye = availablePlayers
             .filter(p => !playersWithByes.has(p.name))
-            .sort((a, b) => b.rank - a.rank); // Sort by rank descending (lowest rank first)
+            .sort((a, b) => b.rank - a.rank);
 
         if (eligibleForBye.length === 0) {
             eligibleForBye = availablePlayers.sort((a, b) => b.rank - a.rank);
@@ -209,109 +206,6 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     }
     
     return assignStarts(newPairings, players, allResults);
-  };
-
-  const generateFullRoundRobinSchedule = (playersToPair, totalRounds, allResults) => {
-    const scheduleTemplate = roundRobinSchedules[players.length];
-    if (!scheduleTemplate) {
-        toast.error(`Round Robin is not supported for ${players.length} players. Use 4, 6, 8, 10, 12, 14, or 16.`);
-        return null;
-    }
-
-    const fullSchedule = {};
-    for (let round = 1; round <= totalRounds; round++) {
-        const roundPairings = [];
-        const pairedPlayers = new Set();
-        playersToPair.forEach((player1) => {
-            if (pairedPlayers.has(player1.id)) return;
-            const opponentSeed = scheduleTemplate[player1.seed - 1][round - 1];
-            const player2 = playersToPair.find(p => p.seed === opponentSeed);
-            if (player2 && !pairedPlayers.has(player2.id)) {
-                roundPairings.push({ table: roundPairings.length + 1, player1: { name: player1.name }, player2: { name: player2.name } });
-                pairedPlayers.add(player1.id);
-                pairedPlayers.add(player2.id);
-            }
-        });
-        fullSchedule[round] = assignStarts(roundPairings, players, allResults);
-    }
-    return fullSchedule;
-  };
-
-  const generateFullTeamRoundRobinSchedule = async (totalRounds, allResults) => {
-    const { data: teamsData, error: teamsError } = await supabase
-        .from('teams')
-        .select(`*, tournament_players(*, players(*))`)
-        .eq('tournament_id', tournamentInfo.id);
-
-    if (teamsError || !teamsData) {
-        toast.error("Could not fetch team data for pairings.");
-        return null;
-    }
-    
-    let teams = [...teamsData];
-    if (teams.length % 2 !== 0) {
-        teams.push({ id: 'bye', name: 'BYE Team', tournament_players: [] });
-    }
-
-    const fullSchedule = {};
-    const teamIds = teams.map(t => t.id);
-    const numTeams = teamIds.length;
-
-    for (let round = 1; round <= totalRounds; round++) {
-        const roundPairings = [];
-        let table = 1;
-
-        for (let i = 0; i < numTeams / 2; i++) {
-            const team1Id = teamIds[i];
-            const team2Id = teamIds[numTeams - 1 - i];
-            
-            if (team1Id !== 'bye' && team2Id !== 'bye') {
-                const team1 = teams.find(t => t.id === team1Id);
-                const team2 = teams.find(t => t.id === team2Id);
-
-                const team1Players = team1.tournament_players.sort((a,b) => a.seed - b.seed);
-                const team2Players = team2.tournament_players.sort((a,b) => a.seed - b.seed);
-
-                for (let j = 0; j < Math.min(team1Players.length, team2Players.length); j++) {
-                    roundPairings.push({
-                        table: table++,
-                        player1: { name: team1Players[j].players.name },
-                        player2: { name: team2Players[j].players.name },
-                        teamMatch: `${team1.name} vs ${team2.name}`
-                    });
-                }
-            }
-        }
-        fullSchedule[round] = assignStarts(roundPairings, players, allResults);
-        // Rotate teams for the next round
-        teamIds.splice(1, 0, teamIds.pop());
-    }
-
-    // Assign BYEs for each round
-    const allPlayerNames = new Set(players.map(p => p.name));
-    for (let round = 1; round <= totalRounds; round++) {
-        const pairedPlayerNames = new Set(fullSchedule[round].flatMap(p => [p.player1.name, p.player2.name]));
-        allPlayerNames.forEach(playerName => {
-            if (!pairedPlayerNames.has(playerName)) {
-                fullSchedule[round].push({ table: 'BYE', player1: { name: playerName }, player2: { name: 'BYE' } });
-            }
-        });
-    }
-    
-    return fullSchedule;
-  };
-
-
-  const checkForClinch = (sortedPlayers, roundsRemaining) => {
-    if (roundsRemaining > 2 || sortedPlayers.length < 2) return null;
-    const p1 = sortedPlayers[0];
-    const p2 = sortedPlayers[1];
-    const p1Score = p1.wins + (p1.ties * 0.5);
-    const p2MaxScore = p2.wins + (p2.ties * 0.5) + roundsRemaining;
-    if (p1Score > p2MaxScore + 0.5) {
-        return p1;
-    }
-    return null;
   };
 
   const handlePairCurrentRound = async () => {
@@ -357,7 +251,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
             playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
             
             let previousMatchups = new Set();
-            const allowRematches = advancedSettings?.allow_rematches ?? false; // Lito pairing minimizes rematches
+            const allowRematches = advancedSettings?.allow_rematches ?? false;
             if (!allowRematches) {
                 allResultsSoFar.forEach(res => {
                     previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
@@ -367,19 +261,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
 
             divisionPairings = generateLitoPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
 
-        } else if (pairingSystem === 'round_robin') {
-            if (!schedule[currentRound]) {
-                const playersBySeed = [...divisionPlayers].sort((a, b) => a.seed - b.seed);
-                const divisionSchedule = generateFullRoundRobinSchedule(playersBySeed, tournamentInfo.rounds, allResultsSoFar);
-                if (divisionSchedule) {
-                    Object.keys(divisionSchedule).forEach(round => {
-                        schedule[round] = [...(schedule[round] || []), ...divisionSchedule[round]];
-                    });
-                }
-            }
-            divisionPairings = schedule[currentRound].filter(p => divisionPlayers.some(dp => dp.name === p.player1.name));
-
-        } else { // Default to Swiss
+        } else { // Fallback to Swiss
             let playersToPair = [...divisionPlayers];
             divisionPairings = generateSwissPairings(playersToPair, new Set(), allResultsSoFar);
         }
@@ -399,9 +281,36 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
 
     setIsLoading(false);
     if (error) {
-        toast.error(`Failed to generate pairings: ${error?.message}`);
+        toast.error(`Failed to generate pairings: ${error.message}`);
     } else {
         onRoundPaired(data);
+
+        // --- New "Clash of the Titans" Logic ---
+        const roundPairings = schedule[currentRound] || [];
+        let topMatchup = null;
+        let highestCombinedRating = 0;
+
+        roundPairings.forEach(p => {
+            if (p.player2.name === 'BYE') return;
+            const player1 = players.find(pl => pl.name === p.player1.name);
+            const player2 = players.find(pl => pl.name === p.player2.name);
+            if (player1 && player2) {
+                const combinedRating = (player1.rating || 0) + (player2.rating || 0);
+                if (combinedRating > highestCombinedRating) {
+                    highestCombinedRating = combinedRating;
+                    topMatchup = { player1, player2, table: p.table };
+                }
+            }
+        });
+
+        if (topMatchup) {
+            const announcementMessage = `🔥 Clash of the Titans! Don't miss this Round ${currentRound} marquee matchup between ${topMatchup.player1.name} (${topMatchup.player1.rating}) and ${topMatchup.player2.name} (${topMatchup.player2.rating}) on Table ${topMatchup.table}.`;
+            await supabase.from('announcements').insert({
+                tournament_id: tournamentInfo.id,
+                message: announcementMessage,
+            });
+        }
+        
         const byePairings = schedule[currentRound]?.filter(p => p.player2.name === 'BYE');
         if (byePairings && byePairings.length > 0) {
             for (const byePairing of byePairings) {
@@ -424,7 +333,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
         }
     }
   };
-
+  
   const isLeagueGenerated = useMemo(() => {
     return tournamentInfo?.type === 'best_of_league' && matches.length > 0;
   }, [tournamentInfo, matches]);
@@ -436,14 +345,26 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
       </h2>
       <AnimatePresence mode="wait">
         <motion.div
-            key={isLeagueGenerated ? 'league-generated' : 'league-unstarted'}
+            key={isPaired || isLeagueGenerated ? 'paired' : 'unpaired'}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.2 }}
         >
-          {tournamentInfo?.type === 'best_of_league' ? (
-            isLeagueGenerated ? (
+          {!isPaired && tournamentInfo?.type !== 'best_of_league' ? (
+              <div className="text-center">
+                  <Button
+                      size="lg"
+                      onClick={handlePairCurrentRound}
+                      loading={isLoading}
+                      disabled={!players || players.length < 2}
+                      className="w-full shadow-glow animate-pulse-bright mb-2"
+                  >
+                      Pair & Start Round {tournamentInfo.currentRound || 1}
+                  </Button>
+              </div>
+          ) : tournamentInfo?.type === 'best_of_league' ? (
+             isLeagueGenerated ? (
                 <div>
                     <h3 className="font-heading font-medium text-lg text-foreground mb-4">
                       Match Terminal - Round {tournamentInfo.currentRound}
@@ -479,19 +400,6 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
                 </div>
             )
           ) : (
-            !isPaired ? (
-              <div className="text-center">
-                  <Button
-                      size="lg"
-                      onClick={handlePairCurrentRound}
-                      loading={isLoading}
-                      disabled={!players || players.length < 2}
-                      className="w-full shadow-glow animate-pulse-bright mb-2"
-                  >
-                      Pair & Start Round {tournamentInfo.currentRound || 1}
-                  </Button>
-              </div>
-            ) : (
                <div>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-heading font-medium text-lg text-foreground">
@@ -548,7 +456,6 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
                       })}
                   </div>
               </div>
-            )
           )}
         </motion.div>
       </AnimatePresence>
