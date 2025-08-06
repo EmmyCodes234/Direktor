@@ -112,7 +112,7 @@ const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentTy
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
-  const [recentResults, setRecentResults] = useState([]);
+    const [recentResults, setRecentResults] = useState([]);
   const [tournamentInfo, setTournamentInfo] = useState(null);
   const [pendingResults, setPendingResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -307,7 +307,6 @@ const TournamentCommandCenterDashboard = () => {
 
   const handleResultSubmit = async (result, isEditing = false) => {
     setIsSubmitting(true);
-    let updatedMatches = [...matches];
 
     try {
         const player1 = players.find(p => p.name === result.player1);
@@ -400,15 +399,27 @@ const TournamentCommandCenterDashboard = () => {
                 winner_id: newWinnerId 
             }).eq('id', result.match_id);
 
-            updatedMatches = updatedMatches.map(m => 
-                m.id === result.match_id 
-                ? { ...m, player1_wins, player2_wins, status: newStatus, winner_id: newWinnerId } 
-                : m
-            );
+            // Update match wins directly in the database when a match completes
+            if (newStatus === 'complete') {
+                const winnerPlayer = players.find(p => p.player_id === newWinnerId);
+                const loserPlayer = players.find(p => p.player_id !== newWinnerId && (p.player_id === player1.player_id || p.player_id === player2.player_id));
+                
+                if (winnerPlayer) {
+                    await supabase.from('tournament_players').update({
+                        match_wins: (winnerPlayer.match_wins || 0) + 1
+                    }).match({ tournament_id: tournamentInfo.id, player_id: winnerPlayer.player_id });
+                }
+
+                if (loserPlayer) {
+                    await supabase.from('tournament_players').update({
+                        match_losses: (loserPlayer.match_losses || 0) + 1
+                    }).match({ tournament_id: tournamentInfo.id, player_id: loserPlayer.player_id });
+                }
+            }
         }
 
         const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-        const statsMap = recalculateAllPlayerStats(players, allResults, updatedMatches, tournamentInfo.type);
+        const statsMap = recalculateAllPlayerStats(players, allResults, matches, tournamentInfo.type);
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
             supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
