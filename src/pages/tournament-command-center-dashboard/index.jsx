@@ -28,7 +28,7 @@ const debounce = (func, delay) => {
   };
 };
 
-// Memoized Main Content to prevent unnecessary re-renders
+// Memoized Main Content to prevent unnecessary re-render
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
     const navigate = useNavigate();
     const { tournamentSlug } = useParams();
