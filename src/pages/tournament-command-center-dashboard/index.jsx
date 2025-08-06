@@ -311,26 +311,39 @@ const TournamentCommandCenterDashboard = () => {
         }
 
         if (tournamentInfo.type === 'best_of_league' && result.match_id) {
-            const { data: matchResults } = await supabase.from('results').select('score1, score2, player1_id, player2_id').eq('match_id', result.match_id);
-            
+            // When a game is entered or edited, recalculate the entire match's win/loss state from the ground up.
+            const { data: matchResults, error: resultsError } = await supabase
+                .from('results')
+                .select('score1, score2')
+                .eq('match_id', result.match_id);
+
+            if (resultsError) throw new Error(`Failed to fetch match results: ${resultsError.message}`);
+
             const player1_wins = matchResults.filter(r => r.score1 > r.score2).length;
             const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
             
             const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
-            let status = 'in_progress';
-            let winner_id = null;
+
+            let newStatus = 'in_progress';
+            let newWinnerId = null;
 
             if (player1_wins >= winsNeeded) {
-                status = 'complete';
-                winner_id = player1.player_id;
+                newStatus = 'complete';
+                newWinnerId = player1.player_id;
                 toast.success(`${player1.name} has won the match!`);
             } else if (player2_wins >= winsNeeded) {
-                status = 'complete';
-                winner_id = player2.player_id;
+                newStatus = 'complete';
+                newWinnerId = player2.player_id;
                 toast.success(`${player2.name} has won the match!`);
             }
 
-            await supabase.from('matches').update({ player1_wins, player2_wins, status, winner_id }).eq('id', result.match_id);
+            // This single update ensures the match state is always correct based on the latest game results.
+            await supabase.from('matches').update({
+                player1_wins,
+                player2_wins,
+                status: newStatus,
+                winner_id: newWinnerId
+            }).eq('id', result.match_id);
         }
 
         const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
