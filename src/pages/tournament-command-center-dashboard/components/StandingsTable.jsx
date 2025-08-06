@@ -39,9 +39,11 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     const wins = player.wins || 0;
     const losses = player.losses || 0;
     const ties = player.ties || 0;
-    const winPoints = wins + (ties * 0.5);
-    const lossPoints = losses + (ties * 0.5);
-    return `${winPoints} - ${lossPoints}`;
+
+    if (ties > 0) {
+      return `${wins} - ${losses} - ${ties}`;
+    }
+    return `${wins} - ${losses}`;
   };
 
   const handlePlayerClick = (e, player) => {
@@ -62,7 +64,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
             <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
             <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
             {isBestOfLeague && <th className="p-4 w-[15%] text-center font-semibold text-foreground">Match Wins</th>}
-            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Game Record</th>
+            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Record (W-L-T)</th>
             <th className="p-4 w-[15%] text-center font-semibold text-foreground">Spread</th>
             <th className="p-4 w-[10%] text-center font-semibold text-foreground">Stats</th>
           </tr>

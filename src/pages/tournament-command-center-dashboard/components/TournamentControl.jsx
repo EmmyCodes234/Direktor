@@ -54,11 +54,10 @@ const assignStarts = (pairings, players, allResults) => {
     });
 };
 
-const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScore, recentResults, onUnpairRound }) => {
+const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScore, recentResults, onUnpairRound, matches }) => {
   const [currentPairings, setCurrentPairings] = useState([]);
   const [isPaired, setIsPaired] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [matches, setMatches] = useState([]);
 
   useEffect(() => {
     const currentRound = tournamentInfo?.currentRound || 1;
@@ -68,18 +67,6 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     } else {
         setIsPaired(false);
         setCurrentPairings([]);
-    }
-
-    if (tournamentInfo?.type === 'best_of_league') {
-        const fetchMatches = async () => {
-            const { data } = await supabase
-                .from('matches')
-                .select('*')
-                .eq('tournament_id', tournamentInfo.id)
-                .eq('round', currentRound);
-            setMatches(data || []);
-        };
-        fetchMatches();
     }
   }, [tournamentInfo]);
 

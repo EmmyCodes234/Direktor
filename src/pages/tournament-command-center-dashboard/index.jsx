@@ -29,7 +29,7 @@ const debounce = (func, delay) => {
 };
 
 // Memoized Main Content to prevent unnecessary re-renders
-const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings }) => {
+const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
     const navigate = useNavigate();
     const { tournamentSlug } = useParams();
     const {
@@ -52,7 +52,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
             )}
             <AnimatePresence mode="wait">
               <motion.div key={tournamentState} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
-                  {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} />}
+                  {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} matches={matches} />}
                   {tournamentState === 'ROUND_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="CheckCircle" size={48} className="mx-auto text-success mb-4" /> <h2 className="text-xl font-bold">Round {tournamentInfo.currentRound} Complete!</h2> <Button size="lg" className="shadow-glow mt-4" onClick={handleCompleteRound} loading={isSubmitting}> {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`} </Button> </div> )}
                   {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}>View Final Reports</Button> </div> )}
               </motion.div>
@@ -76,6 +76,7 @@ const TournamentCommandCenterDashboard = () => {
   const [activeMatchup, setActiveMatchup] = useState(null);
   const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
   const [teams, setTeams] = useState([]);
+  const [matches, setMatches] = useState([]);
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -105,14 +106,19 @@ const TournamentCommandCenterDashboard = () => {
       setPlayers(combinedPlayers);
       setTournamentInfo(tournamentData);
 
-      const [{ data: resultsData }, { data: pendingData }, { data: teamsData }] = await Promise.all([
+      const promises = [
         supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
         supabase.from('pending_results').select('*').eq('tournament_id', tournamentData.id).eq('status', 'pending').order('created_at', { ascending: true }),
-        supabase.from('teams').select('*').eq('tournament_id', tournamentData.id)
-      ]);
+        supabase.from('teams').select('*').eq('tournament_id', tournamentData.id),
+        supabase.from('matches').select('*').eq('tournament_id', tournamentData.id)
+      ];
+
+      const [{ data: resultsData }, { data: pendingData }, { data: teamsData }, { data: matchesData }] = await Promise.all(promises);
+
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
       setTeams(teamsData || []);
+      setMatches(matchesData || []);
 
     } catch (error) {
         console.error("Error fetching tournament:", error);
@@ -194,7 +200,11 @@ const TournamentCommandCenterDashboard = () => {
         if (tournamentInfo?.type === 'best_of_league') {
             if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
         }
-        if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
+
+        const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
+        const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
+        if (aGameScore !== bGameScore) return bGameScore - aGameScore;
+
         return (b.spread || 0) - (a.spread || 0);
     }).map((player, index) => ({ ...player, rank: index + 1 }));
   }, [players, tournamentInfo]);
@@ -346,19 +356,13 @@ const TournamentCommandCenterDashboard = () => {
             }).eq('id', result.match_id);
         }
 
-        const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-        const statsMap = new Map(players.map(p => [p.player_id, { wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }]));
-        
-        if (tournamentInfo.type === 'best_of_league') {
-            const { data: allMatches } = await supabase.from('matches').select('*').eq('tournament_id', tournamentInfo.id).eq('status', 'complete');
-            if (allMatches) {
-                allMatches.forEach(m => {
-                    const winnerStats = statsMap.get(m.winner_id);
-                    if (winnerStats) winnerStats.match_wins++;
-                });
-            }
-        }
+        // Recalculate all player stats from the ground up to ensure consistency.
+        const statsMap = new Map(players.map(p => [p.player_id, {
+            wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0
+        }]));
 
+        // Calculate game wins, losses, ties, and spread from individual results.
+        const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
         if (allResults) {
             allResults.forEach(res => {
                 const p1Stats = statsMap.get(res.player1_id);
@@ -376,6 +380,26 @@ const TournamentCommandCenterDashboard = () => {
                     else p2Stats.ties++;
                 }
             });
+        }
+
+        // Calculate match wins and losses for 'best_of_league' tournaments.
+        if (tournamentInfo.type === 'best_of_league') {
+            const { data: allMatches } = await supabase.from('matches').select('*').eq('tournament_id', tournamentInfo.id).eq('status', 'complete');
+            if (allMatches) {
+                allMatches.forEach(match => {
+                    const winnerStats = statsMap.get(match.winner_id);
+                    if (winnerStats) {
+                        winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
+                    }
+
+                    // Determine loser and increment their match_losses
+                    const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
+                    const loserStats = statsMap.get(loserId);
+                    if (loserStats) {
+                        loserStats.match_losses = (loserStats.match_losses || 0) + 1;
+                    }
+                });
+            }
         }
         
         const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
@@ -521,6 +545,10 @@ const TournamentCommandCenterDashboard = () => {
 
   const tournamentState = getTournamentState();
   const handlers = { handleRoundPaired, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, setSelectedPlayerModal, isSubmitting, handleUnpairRound };
+  const currentRoundMatches = useMemo(() =>
+      matches.filter(m => m.round === tournamentInfo?.currentRound),
+      [matches, tournamentInfo?.currentRound]
+  );
 
   if (isLoading) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading Dashboard...</p></div>; }
   if (!tournamentInfo) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Tournament not found.</p></div>; }
@@ -555,16 +583,17 @@ const TournamentCommandCenterDashboard = () => {
           players={players}
           tournamentType={tournamentInfo?.type}
           tournamentId={tournamentInfo?.id}
+          matches={matches}
       />
       <main className="pt-20 pb-24 sm:pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
             {isDesktop ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="md:col-span-1"><DashboardSidebar tournamentSlug={tournamentSlug} /></div>
-                    <div className="md:col-span-3"><MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings }} /></div>
+                    <div className="md:col-span-3"><MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches: currentRoundMatches }} /></div>
                 </div>
             ) : ( 
-                <MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings }} />
+                <MainContent {...{ tournamentInfo, players: rankedPlayers, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches: currentRoundMatches }} />
             )}
         </div>
       </main>
