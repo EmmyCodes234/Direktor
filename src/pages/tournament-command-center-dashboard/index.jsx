@@ -338,6 +338,59 @@ const TournamentCommandCenterDashboard = () => {
     }
   }, [tournamentInfo, fetchTournamentData]);
 
+  const updateBestOfLeagueMatch = useCallback(async (resultData, p1NewStats, p2NewStats, player1, player2) => {
+    if (!resultData.match_id) return;
+    const { data: allMatchResults, error: resultsError } = await supabase
+      .from('results')
+      .select('score1, score2, player1_id, player2_id')
+      .eq('match_id', resultData.match_id);
+
+    if (resultsError) throw resultsError;
+
+    const p1GameWins = allMatchResults.filter(r => r.score1 > r.score2 && r.player1_id === player1.player_id).length;
+    const p2GameWins = allMatchResults.filter(r => r.score2 > r.score1 && r.player2_id === player2.player_id).length;
+    const bestOfValue = Math.ceil(tournamentInfo.best_of_value / 2);
+
+    let winnerId = null;
+    let loserId = null;
+
+    if (p1GameWins >= bestOfValue) {
+      winnerId = player1.player_id;
+      loserId = player2.player_id;
+    } else if (p2GameWins >= bestOfValue) {
+      winnerId = player2.player_id;
+      loserId = player1.player_id;
+    }
+
+    if (winnerId) {
+      await supabase.from('matches').update({ winner_id: winnerId, status: 'complete' }).eq('id', resultData.match_id);
+      
+      const { data: winnerCurrent, error: wError } = await supabase
+        .from('tournament_players')
+        .select('match_wins')
+        .eq('player_id', winnerId)
+        .eq('tournament_id', tournamentInfo.id)
+        .single();
+      if (wError) throw wError;
+      
+      const { data: loserCurrent, error: lError } = await supabase
+        .from('tournament_players')
+        .select('match_losses')
+        .eq('player_id', loserId)
+        .eq('tournament_id', tournamentInfo.id)
+        .single();
+      if (lError) throw lError;
+
+      p1NewStats.match_wins = (p1NewStats.player_id === winnerId ? (winnerCurrent.match_wins || 0) + 1 : (p1NewStats.match_wins || 0));
+      p1NewStats.match_losses = (p1NewStats.player_id === loserId ? (loserCurrent.match_losses || 0) + 1 : (p1NewStats.match_losses || 0));
+      p2NewStats.match_wins = (p2NewStats.player_id === winnerId ? (winnerCurrent.match_wins || 0) + 1 : (p2NewStats.match_wins || 0));
+      p2NewStats.match_losses = (p2NewStats.player_id === loserId ? (loserCurrent.match_losses || 0) + 1 : (p2NewStats.match_losses || 0));
+      
+      toast.success(`${player1.name} vs ${player2.name} match is complete. Winner: ${winnerId === player1.player_id ? player1.name : player2.name}.`);
+    }
+  }, [tournamentInfo, players]);
+
+
   const handleResultSubmit = useCallback(async (result, isEditing = false) => {
     setIsSubmitting(true);
     let originalResult = result.existingResult || null;
@@ -378,7 +431,7 @@ const TournamentCommandCenterDashboard = () => {
           .select('id, score1, score2, player1_id, player2_id')
           .eq('tournament_id', tournamentInfo.id)
           .eq('round', resultData.round)
-          .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2.player_id.eq.${player1.player_id})`)
+          .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2_id.eq.${player1.player_id})`)
           .single();
           
         if (existingResult) {
@@ -392,7 +445,7 @@ const TournamentCommandCenterDashboard = () => {
       const playerIdsToFetch = isEditing ? [originalResult.player1_id, originalResult.player2_id] : [player1.player_id, player2.player_id];
       const { data: currentStats, error: statsError } = await supabase
           .from('tournament_players')
-          .select('player_id, wins, losses, ties, spread')
+          .select('player_id, wins, losses, ties, spread, match_wins, match_losses')
           .in('player_id', playerIdsToFetch)
           .eq('tournament_id', tournamentInfo.id);
 
@@ -445,23 +498,42 @@ const TournamentCommandCenterDashboard = () => {
       }
       p1NewStats.spread = (p1NewStats.spread || 0) + (score1 - score2);
       p2NewStats.spread = (p2NewStats.spread || 0) + (score2 - score1);
+
+      if (tournamentInfo?.type === 'best_of_league') {
+        await updateBestOfLeagueMatch(resultData, p1NewStats, p2NewStats, player1, player2);
+      }
       
       const { error: updateError } = await supabase
         .from('tournament_players')
         .upsert([
-          { player_id: player1.player_id, tournament_id: tournamentInfo.id, wins: p1NewStats.wins, losses: p1NewStats.losses, ties: p1NewStats.ties, spread: p1NewStats.spread },
-          { player_id: player2.player_id, tournament_id: tournamentInfo.id, wins: p2NewStats.wins, losses: p2NewStats.losses, ties: p2NewStats.ties, spread: p2NewStats.spread },
+          { player_id: player1.player_id, tournament_id: tournamentInfo.id, wins: p1NewStats.wins, losses: p1NewStats.losses, ties: p1NewStats.ties, spread: p1NewStats.spread, match_wins: p1NewStats.match_wins, match_losses: p1NewStats.match_losses },
+          { player_id: player2.player_id, tournament_id: tournamentInfo.id, wins: p2NewStats.wins, losses: p2NewStats.losses, ties: p2NewStats.ties, spread: p2NewStats.spread, match_wins: p2NewStats.match_wins, match_losses: p2NewStats.match_losses },
         ], { onConflict: ['player_id', 'tournament_id'] });
 
       if (updateError) throw updateError;
+
+      // Update local state directly with the new stats to force a re-render
+      setPlayers(prevPlayers => {
+        const updatedPlayers = prevPlayers.map(p => {
+          if (p.player_id === player1.player_id) {
+            return { ...p, ...p1NewStats };
+          }
+          if (p.player_id === player2.player_id) {
+            return { ...p, ...p2NewStats };
+          }
+          return p;
+        });
+        return updatedPlayers;
+      });
+
     } catch (error) {
       toast.error(`Operation failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
       setShowScoreModal({ isOpen: false, existingResult: null });
-      fetchTournamentData(); 
+      // Removed the fetchTournamentData call here to avoid redundancy and potential race conditions
     }
-  }, [players, tournamentInfo, fetchTournamentData]);
+  }, [players, tournamentInfo, updateBestOfLeagueMatch]);
 
   const handleCompleteRound = useCallback(async () => {
     setIsSubmitting(true);
@@ -625,7 +697,6 @@ const TournamentCommandCenterDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-right" richColors />
-      <Header />
       <ConfirmationModal
           isOpen={showUnpairModal}
           title="Unpair Last Round"
