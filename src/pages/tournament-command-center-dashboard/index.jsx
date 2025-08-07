@@ -395,8 +395,8 @@ const TournamentCommandCenterDashboard = () => {
         await supabase.from('matches').update({
           player1_wins: player1_wins ?? 0,
           player2_wins: player2_wins ?? 0,
-          status: newStatus ?? 'in_progress',
-          winner_id: newWinnerId ?? null,
+          status: newStatus,
+          winner_id: newWinnerId,
         }).eq('id', result.match_id);
 
         // Update match wins directly in the database when a match completes
