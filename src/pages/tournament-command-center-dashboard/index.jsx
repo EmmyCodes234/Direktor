@@ -65,8 +65,8 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
 
 
 const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentType) => {
-    const statsMap = new Map(players.map(p => [p.player_id, { 
-        wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0 
+    const statsMap = new Map(players.map(p => [p.player_id, {
+        wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0
     }]));
 
     if (allResults) {
@@ -88,10 +88,9 @@ const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentTy
         });
     }
 
-    if (tournamentType === 'best_of_league') {
-        const allCompletedMatches = allMatches.filter(m => m.status === 'complete');
-        if (allCompletedMatches) {
-            allCompletedMatches.forEach(match => {
+    if (tournamentType === 'best_of_league' && allMatches) {
+        allMatches.forEach(match => {
+            if (match.winner_id) {
                 const winnerStats = statsMap.get(match.winner_id);
                 if (winnerStats) {
                     winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
@@ -102,8 +101,8 @@ const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentTy
                 if (loserStats) {
                     loserStats.match_losses = (loserStats.match_losses || 0) + 1;
                 }
-            });
-        }
+            }
+        });
     }
 
     return statsMap;
