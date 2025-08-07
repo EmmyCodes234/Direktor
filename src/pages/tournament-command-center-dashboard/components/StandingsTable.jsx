@@ -70,36 +70,26 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
           </tr>
         </thead>
         <tbody>
-          {sortedPlayers.map((player) => {
-            // --- FIX STARTS HERE ---
-            // For 'best_of_league' formats, we calculate match wins on the fly.
-            // Assuming a "Best of 15" format where 8 game wins equal 1 match win.
-            const WINS_NEEDED_FOR_MATCH = 8;
-            const calculatedMatchWins = (player.wins || 0) >= WINS_NEEDED_FOR_MATCH ? 1 : 0;
-            // --- FIX ENDS HERE ---
-
-            return (
-              <tr key={player.id} className="border-b border-border/50 hover:bg-muted/5 transition-colors group">
-                <td className="p-4 font-mono font-bold text-lg text-primary">{player.rank}</td>
-                <td className="p-4 font-medium text-foreground">
-                  <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
-                    {player.name}
-                  </a>
-                </td>
-                {/* Use the new calculated value instead of the raw data property */}
-                {isBestOfLeague && <td className="p-4 text-center font-mono">{calculatedMatchWins}</td>}
-                <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
-                <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {player.spread > 0 ? '+' : ''}{player.spread || 0}
-                </td>
-                <td className="p-4 text-center">
-                  <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)}>
-                    <Icon name="BarChartHorizontal" size={16} />
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
+          {sortedPlayers.map((player) => (
+            <tr key={player.id} className="border-b border-border/50 hover:bg-muted/5 transition-colors group">
+              <td className="p-4 font-mono font-bold text-lg text-primary">{player.rank}</td>
+              <td className="p-4 font-medium text-foreground">
+                <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
+                  {player.name}
+                </a>
+              </td>
+              {isBestOfLeague && <td className="p-4 text-center font-mono">{player.match_wins || 0}</td>}
+              <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
+              <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {player.spread > 0 ? '+' : ''}{player.spread || 0}
+              </td>
+              <td className="p-4 text-center">
+                <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)}>
+                  <Icon name="BarChartHorizontal" size={16} />
+                </Button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
