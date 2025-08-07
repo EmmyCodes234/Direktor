@@ -1,3 +1,4 @@
+// File: TournamentCommandCenterDashboard.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -18,16 +19,6 @@ import MobileNavBar from './components/MobileNavBar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import AnnouncementsManager from './components/AnnouncementsManager';
 
-const debounce = (func, delay) => {
-  let timeoutId;
-  return (...args) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      func.apply(this, args);
-    }, delay);
-  };
-};
-
 // Memoized Main Content to prevent unnecessary re-renders
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
   const navigate = useNavigate();
@@ -40,7 +31,8 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
     handleRejectResult,
     setSelectedPlayerModal,
     isSubmitting,
-    handleUnpairRound
+    handleUnpairRound,
+    isLoading
   } = handlers;
 
   return (
@@ -58,56 +50,10 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
         </motion.div>
       </AnimatePresence>
       {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') &&
-        <StandingsTable players={players} recentResults={recentResults} onSelectPlayer={setSelectedPlayerModal} tournamentType={tournamentInfo?.type} teamStandings={teamStandings} />}
+        <StandingsTable players={players} recentResults={recentResults} onSelectPlayer={setSelectedPlayerModal} tournamentType={tournamentInfo?.type} teamStandings={teamStandings} isLoading={isLoading}/>}
     </div>
   );
 });
-
-
-const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentType) => {
-  const statsMap = new Map(players.map(p => [p.player_id, { 
-    wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0 
-  }]));
-
-  if (allResults) {
-    allResults.forEach(res => {
-      const p1Stats = statsMap.get(res.player1_id);
-      const p2Stats = statsMap.get(res.player2_id);
-      if (p1Stats) {
-        p1Stats.spread += res.score1 - res.score2;
-        if (res.score1 > res.score2) p1Stats.wins++;
-        else if (res.score1 < res.score2) p1Stats.losses++;
-        else p1Stats.ties++;
-      }
-      if (p2Stats) {
-        p2Stats.spread += res.score2 - res.score1;
-        if (res.score2 > res.score1) p2Stats.wins++;
-        else if (res.score2 < res.score1) p2Stats.losses++;
-        else p2Stats.ties++;
-      }
-    });
-  }
-
-  if (tournamentType === 'best_of_league') {
-    const allCompletedMatches = allMatches.filter(m => m.status === 'complete');
-    if (allCompletedMatches) {
-      allCompletedMatches.forEach(match => {
-        const winnerStats = statsMap.get(match.winner_id);
-        if (winnerStats) {
-          winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
-        }
-        
-        const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
-        const loserStats = statsMap.get(loserId);
-        if (loserStats) {
-          loserStats.match_losses = (loserStats.match_losses || 0) + 1;
-        }
-      });
-    }
-  }
-
-  return statsMap;
-};
 
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
@@ -125,6 +71,7 @@ const TournamentCommandCenterDashboard = () => {
   const [showUnpairModal, setShowUnpairModal] = useState(false);
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const [playerStatsMap, setPlayerStatsMap] = useState(new Map());
 
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentSlug) {
@@ -174,23 +121,65 @@ const TournamentCommandCenterDashboard = () => {
     }
   }, [tournamentSlug]);
 
-  const debouncedFetch = useMemo(() => debounce(fetchTournamentData, 300), [fetchTournamentData]);
+  useEffect(() => {
+    const channel = supabase.channel(`dashboard-updates-for-tournament-${tournamentInfo?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        const { table, eventType, new: newRecord, old: oldRecord } = payload;
+        
+        switch (table) {
+          case 'results':
+            if (eventType === 'INSERT') {
+              setRecentResults(prev => [newRecord, ...prev]);
+            } else if (eventType === 'UPDATE') {
+              setRecentResults(prev => prev.map(r => r.id === newRecord.id ? newRecord : r));
+            } else if (eventType === 'DELETE') {
+              setRecentResults(prev => prev.filter(r => r.id !== oldRecord.id));
+            }
+            break;
+          case 'pending_results':
+            if (eventType === 'INSERT') {
+              setPendingResults(prev => [...prev, newRecord]);
+            } else if (eventType === 'DELETE') {
+              setPendingResults(prev => prev.filter(r => r.id !== oldRecord.id));
+            }
+            break;
+          case 'tournaments':
+            if (eventType === 'UPDATE' && newRecord.id === tournamentInfo?.id) {
+              setTournamentInfo(prev => ({ ...prev, ...newRecord }));
+            }
+            break;
+          case 'tournament_players':
+            if (eventType === 'UPDATE') {
+              setPlayers(prev => prev.map(p => p.player_id === newRecord.player_id ? { ...p, ...newRecord } : p));
+            }
+            break;
+          case 'matches':
+            if (eventType === 'INSERT') {
+              setMatches(prev => [...prev, newRecord]);
+            } else if (eventType === 'UPDATE') {
+              setMatches(prev => prev.map(m => m.id === newRecord.id ? newRecord : m));
+            }
+            break;
+          default:
+            // For any other event, or if the update is complex, we just refetch everything.
+            // This is our safety net.
+            fetchTournamentData();
+            break;
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [tournamentInfo?.id, fetchTournamentData]);
 
   useEffect(() => {
     fetchTournamentData();
-    const channel = supabase
-      .channel(`dashboard-updates-for-tournament-${tournamentInfo?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-          debouncedFetch();
-        }
-      )
-      .subscribe();
-    return () => {
-        if (channel) {
-            supabase.removeChannel(channel);
-        }
-    }
-  }, [tournamentSlug, debouncedFetch, fetchTournamentData, tournamentInfo?.id]);
+  }, [tournamentSlug, fetchTournamentData]);
+  
 
   const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
 
@@ -266,47 +255,92 @@ const TournamentCommandCenterDashboard = () => {
     return recentResults.some(r => r.round === lastPairedRound);
   }, [recentResults, lastPairedRound]);
 
-  const handleRoundPaired = (updatedTournamentInfo) => setTournamentInfo(updatedTournamentInfo);
+  const handleRoundPaired = useCallback((updatedTournamentInfo) => {
+    setTournamentInfo(updatedTournamentInfo);
+  }, []);
 
-  const handleUnpairRound = () => {
-      setShowUnpairModal(true);
-  };
+  const handleUnpairRound = useCallback(() => {
+    setShowUnpairModal(true);
+  }, []);
 
-  const confirmUnpairRound = async () => {
-      const schedule = tournamentInfo.pairing_schedule || {};
-      const pairedRounds = Object.keys(schedule).map(Number);
-      if (pairedRounds.length === 0) {
-          toast.error("No rounds are currently paired.");
-          setShowUnpairModal(false);
-          return;
+  const confirmUnpairRound = useCallback(async () => {
+    const schedule = tournamentInfo.pairing_schedule || {};
+    const pairedRounds = Object.keys(schedule).map(Number);
+    if (pairedRounds.length === 0) {
+      toast.error("No rounds are currently paired.");
+      setShowUnpairModal(false);
+      return;
+    }
+    const roundToUnpair = Math.max(...pairedRounds);
+
+    toast.info(`Unpairing Round ${roundToUnpair}...`);
+
+    try {
+      const { data: resultsToRevert, error: fetchError } = await supabase
+        .from('results')
+        .select('*')
+        .eq('tournament_id', tournamentInfo.id)
+        .eq('round', roundToUnpair);
+
+      if (fetchError) throw fetchError;
+
+      for (const result of resultsToRevert) {
+        const { score1, score2, player1_id, player2_id } = result;
+        const { data: currentStats, error: statsError } = await supabase
+          .from('tournament_players')
+          .select('wins, losses, ties, spread')
+          .in('player_id', [player1_id, player2_id])
+          .eq('tournament_id', tournamentInfo.id);
+
+        if (statsError) throw statsError;
+
+        const player1Stats = currentStats.find(s => s.player_id === player1_id);
+        const player2Stats = currentStats.find(s => s.player_id === player2_id);
+
+        let p1NewStats = { ...player1Stats };
+        let p2NewStats = { ...player2Stats };
+
+        if (score1 > score2) {
+          p1NewStats.wins = Math.max(0, (p1NewStats.wins || 0) - 1);
+          p2NewStats.losses = Math.max(0, (p2NewStats.losses || 0) - 1);
+        } else if (score2 > score1) {
+          p2NewStats.wins = Math.max(0, (p2NewStats.wins || 0) - 1);
+          p1NewStats.losses = Math.max(0, (p1NewStats.losses || 0) - 1);
+        } else {
+          p1NewStats.ties = Math.max(0, (p1NewStats.ties || 0) - 1);
+          p2NewStats.ties = Math.max(0, (p2NewStats.ties || 0) - 1);
+        }
+
+        p1NewStats.spread = (p1NewStats.spread || 0) - (score1 - score2);
+        p2NewStats.spread = (p2NewStats.spread || 0) - (score2 - score1);
+
+        await Promise.all([
+          supabase.from('tournament_players').update(p1NewStats).eq('player_id', player1_id).eq('tournament_id', tournamentInfo.id),
+          supabase.from('tournament_players').update(p2NewStats).eq('player_id', player2_id).eq('tournament_id', tournamentInfo.id),
+        ]);
       }
-      const roundToUnpair = Math.max(...pairedRounds);
-
-      toast.info(`Unpairing Round ${roundToUnpair}...`);
 
       const { error: deleteError } = await supabase.from('results').delete().eq('tournament_id', tournamentInfo.id).eq('round', roundToUnpair);
-      if (deleteError) {
-          toast.error(`Failed to delete existing results for Round ${roundToUnpair}: ${deleteError.message}`);
-          setShowUnpairModal(false);
-          return;
-      }
+      if (deleteError) throw deleteError;
 
       const newSchedule = { ...schedule };
       delete newSchedule[roundToUnpair];
-
       const { data, error: updateError } = await supabase.from('tournaments').update({ pairing_schedule: newSchedule }).eq('id', tournamentInfo.id).select().single();
+      if (updateError) throw updateError;
 
-      if (updateError) {
-          toast.error(`Failed to unpair round: ${updateError.message}`);
-      } else {
-          toast.success(`Round ${roundToUnpair} has been successfully unpaired.`);
-          setTournamentInfo(data);
-      }
+      toast.success(`Round ${roundToUnpair} has been successfully unpaired.`);
+      setTournamentInfo(data);
+    } catch (error) {
+      toast.error(`Failed to unpair round: ${error.message}`);
+    } finally {
       setShowUnpairModal(false);
-  };
+      fetchTournamentData();
+    }
+  }, [tournamentInfo, fetchTournamentData]);
 
-  const handleResultSubmit = async (result, isEditing = false) => {
+  const handleResultSubmit = useCallback(async (result, isEditing = false) => {
     setIsSubmitting(true);
+    let originalResult = result.existingResult || null;
 
     try {
       const player1 = players.find(p => p.name === result.player1);
@@ -325,123 +359,111 @@ const TournamentCommandCenterDashboard = () => {
           score1 = score2 - maxSpread;
         }
       }
-
+      
       const resultData = {
         tournament_id: tournamentInfo.id,
-        round: result.round || tournamentInfo.currentRound || 1,
+        round: result.round || tournamentInfo.currentRound,
         player1_id: player1.player_id,
         player2_id: player2.player_id,
+        score1,
+        score2,
+        match_id: result.match_id || null,
         player1_name: player1.name,
         player2_name: player2.name,
-        score1: score1,
-        score2: score2,
-        match_id: result.match_id
       };
 
       if (!isEditing) {
-        await supabase.from('results').insert([resultData]);
-      } else {
-        await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
-      }
-
-      const rating1 = player1.rating || 0;
-      const rating2 = player2.rating || 0;
-      const ratingDiff = Math.abs(rating1 - rating2);
-      const upsetThreshold = 200;
-
-      let upsetMessage = '';
-
-      if (ratingDiff >= upsetThreshold) {
-        if (score1 > score2 && rating1 < rating2) {
-          upsetMessage = `🚀 Upset Alert! ${player1.name} (${rating1}) has just defeated ${player2.name} (${rating2}) in a stunning Round ${resultData.round} victory!`;
-        } else if (score2 > score1 && rating2 < rating1) {
-          upsetMessage = `🚀 Upset Alert! ${player2.name} (${rating2}) has just defeated ${player1.name} (${rating1}) in a stunning Round ${resultData.round} victory!`;
-        }
-      }
-
-      if (upsetMessage) {
-        await supabase.from('announcements').insert({
-          tournament_id: tournamentInfo.id,
-          message: upsetMessage,
-        });
-      }
-
-      if (tournamentInfo.type === 'best_of_league' && result.match_id) {
-        const { data: matchResults, error: resultsError } = await supabase
+        const { data: existingResult, error: fetchError } = await supabase
           .from('results')
-          .select('score1, score2')
-          .eq('match_id', result.match_id);
-
-        if (resultsError) throw new Error(`Failed to fetch match results: ${resultsError.message}`);
-
-        const player1_wins = matchResults.filter(r => r.score1 > r.score2).length;
-        const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
-        
-        const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
-        
-        let newStatus = 'in_progress';
-        let newWinnerId = null;
-
-        if (player1_wins >= winsNeeded) {
-          newStatus = 'complete';
-          newWinnerId = player1.player_id;
-          toast.success(`${player1.name} has won the match!`);
-        } else if (player2_wins >= winsNeeded) {
-          newStatus = 'complete';
-          newWinnerId = player2.player_id;
-          toast.success(`${player2.name} has won the match!`);
-        }
-
-        await supabase.from('matches').update({
-          player1_wins: player1_wins ?? 0,
-          player2_wins: player2_wins ?? 0,
-          status: newStatus,
-          winner_id: newWinnerId,
-        }).eq('id', result.match_id);
-
-        // Update match wins directly in the database when a match completes
-        if (newStatus === 'complete') {
-          const winnerPlayer = players.find(p => p.player_id === newWinnerId);
-          const loserPlayer = players.find((p) => {
-            return (
-              p.player_id !== newWinnerId &&
-              (p.player_id === player1.player_id || p.player_id === player2.player_id)
-            );
-          });
+          .select('id, score1, score2, player1_id, player2_id')
+          .eq('tournament_id', tournamentInfo.id)
+          .eq('round', resultData.round)
+          .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2.player_id.eq.${player1.player_id})`)
+          .single();
           
-          if (winnerPlayer) {
-            await supabase.from('tournament_players').update({
-              match_wins: (winnerPlayer.match_wins || 0) + 1
-            }).match({ tournament_id: tournamentInfo.id, player_id: winnerPlayer.player_id });
-          }
-
-          if (loserPlayer) {
-            await supabase.from('tournament_players').update({
-              match_losses: (loserPlayer.match_losses || 0) + 1
-            }).match({ tournament_id: tournamentInfo.id, player_id: loserPlayer.player_id });
-          }
+        if (existingResult) {
+          isEditing = true;
+          originalResult = existingResult;
+          resultData.id = existingResult.id;
         }
       }
 
-      const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-      const statsMap = recalculateAllPlayerStats(players, allResults, matches, tournamentInfo.type);
-      
-      const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
-          supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
-      );
-      await Promise.all(updates);
-      
-      await fetchTournamentData(); 
-      toast.success("Standings updated!");
+      // Fetch current stats for both players in one go
+      const playerIdsToFetch = isEditing ? [originalResult.player1_id, originalResult.player2_id] : [player1.player_id, player2.player_id];
+      const { data: currentStats, error: statsError } = await supabase
+          .from('tournament_players')
+          .select('player_id, wins, losses, ties, spread')
+          .in('player_id', playerIdsToFetch)
+          .eq('tournament_id', tournamentInfo.id);
 
+      if (statsError) throw statsError;
+
+      const player1Stats = currentStats.find(s => s.player_id === player1.player_id) || {};
+      const player2Stats = currentStats.find(s => s.player_id === player2.player_id) || {};
+
+      // Initialize with current stats or default to 0
+      let p1NewStats = { ...player1Stats };
+      let p2NewStats = { ...player2Stats };
+
+      if (isEditing) {
+        if (!originalResult?.id || isNaN(originalResult.id)) {
+          throw new Error("Invalid result ID for editing.");
+        }
+        // Revert old stats
+        if (originalResult.score1 > originalResult.score2) {
+          p1NewStats.wins = Math.max(0, (p1NewStats.wins || 0) - 1);
+          p2NewStats.losses = Math.max(0, (p2NewStats.losses || 0) - 1);
+        } else if (originalResult.score2 > originalResult.score1) {
+          p2NewStats.wins = Math.max(0, (p2NewStats.wins || 0) - 1);
+          p1NewStats.losses = Math.max(0, (p1NewStats.losses || 0) - 1);
+        } else {
+          p1NewStats.ties = Math.max(0, (p1NewStats.ties || 0) - 1);
+          p2NewStats.ties = Math.max(0, (p2NewStats.ties || 0) - 1);
+        }
+        p1NewStats.spread = (p1NewStats.spread || 0) - (originalResult.score1 - originalResult.score2);
+        p2NewStats.spread = (p2NewStats.spread || 0) - (originalResult.score2 - originalResult.score1);
+
+        const { error: updateError } = await supabase.from('results').update(resultData).eq('id', originalResult.id);
+        if (updateError) throw updateError;
+        toast.success("Result updated successfully!");
+      } else {
+        const { error: insertError } = await supabase.from('results').insert(resultData);
+        if (insertError) throw insertError;
+        toast.success("Result submitted successfully!");
+      }
+
+      // Update with new result
+      if (score1 > score2) {
+        p1NewStats.wins = (p1NewStats.wins || 0) + 1;
+        p2NewStats.losses = (p2NewStats.losses || 0) + 1;
+      } else if (score2 > score1) {
+        p2NewStats.wins = (p2NewStats.wins || 0) + 1;
+        p1NewStats.losses = (p1NewStats.losses || 0) + 1;
+      } else {
+        p1NewStats.ties = (p1NewStats.ties || 0) + 1;
+        p2NewStats.ties = (p2NewStats.ties || 0) + 1;
+      }
+      p1NewStats.spread = (p1NewStats.spread || 0) + (score1 - score2);
+      p2NewStats.spread = (p2NewStats.spread || 0) + (score2 - score1);
+      
+      const { error: updateError } = await supabase
+        .from('tournament_players')
+        .upsert([
+          { player_id: player1.player_id, tournament_id: tournamentInfo.id, wins: p1NewStats.wins, losses: p1NewStats.losses, ties: p1NewStats.ties, spread: p1NewStats.spread },
+          { player_id: player2.player_id, tournament_id: tournamentInfo.id, wins: p2NewStats.wins, losses: p2NewStats.losses, ties: p2NewStats.ties, spread: p2NewStats.spread },
+        ], { onConflict: ['player_id', 'tournament_id'] });
+
+      if (updateError) throw updateError;
     } catch (error) {
       toast.error(`Operation failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
+      setShowScoreModal({ isOpen: false, existingResult: null });
+      fetchTournamentData(); 
     }
-  };
+  }, [players, tournamentInfo, fetchTournamentData]);
 
-  const handleCompleteRound = async () => {
+  const handleCompleteRound = useCallback(async () => {
     setIsSubmitting(true);
     const originalTournamentInfo = tournamentInfo;
     const currentRound = originalTournamentInfo.currentRound || 1;
@@ -463,9 +485,9 @@ const TournamentCommandCenterDashboard = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [tournamentInfo]);
 
-  const handleEnterScore = (matchup, existingResult = null) => {
+  const handleEnterScore = useCallback((matchup, existingResult = null) => {
     let finalMatchup = { ...matchup };
 
     if (!finalMatchup.player1 && finalMatchup.player1_id) {
@@ -487,9 +509,9 @@ const TournamentCommandCenterDashboard = () => {
 
     setActiveMatchup(finalMatchup);
     setShowScoreModal({ isOpen: true, existingResult: existingResult });
-  };
+  }, [players, tournamentInfo]);
   
-  const handleEditResultFromModal = async (resultToEdit) => {
+  const handleEditResultFromModal = useCallback(async (resultToEdit) => {
     if (tournamentInfo.type === 'best_of_league') {
       const { data: matchData, error } = await supabase
         .from('matches')
@@ -511,17 +533,27 @@ const TournamentCommandCenterDashboard = () => {
         toast.error("Could not find players for this result.");
         return;
       }
+
+      // Check if resultToEdit.id is a valid number, and pass a clean object
+      const cleanResultToEdit = { ...resultToEdit };
+      if (cleanResultToEdit.id && !isNaN(parseInt(cleanResultToEdit.id, 10))) {
+        cleanResultToEdit.id = parseInt(cleanResultToEdit.id, 10);
+      } else {
+        toast.error("Invalid result ID for editing.");
+        return;
+      }
+
       const roundPairings = tournamentInfo.pairing_schedule?.[resultToEdit.round];
       const pairing = roundPairings?.find(p => (p.player1.name === player1.name && p.player2.name === player2.name) || (p.player1.name === player2.name && p.player2.name === player1.name));
       const matchup = { player1, player2, table: pairing?.table || 'N/A', round: resultToEdit.round };
       
-      handleEnterScore(matchup, resultToEdit);
+      handleEnterScore(matchup, cleanResultToEdit);
     }
     setSelectedPlayerModal(null);
-  };
+  }, [players, tournamentInfo, handleEnterScore]);
 
-  const handleApproveResult = async (pendingResult) => {
-    setPendingResults(prev => prev.filter(p => p.id !== pendingResult.id));
+  const handleApproveResult = useCallback(async (pendingResult) => {
+    setIsSubmitting(true);
     try {
       await handleResultSubmit({
         player1: pendingResult.player1_name,
@@ -534,17 +566,19 @@ const TournamentCommandCenterDashboard = () => {
       toast.success("Result has been approved and standings are updated.");
     } catch (error) {
       toast.error(`Failed to approve result: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }, [handleResultSubmit]);
 
-  const handleRejectResult = async (id) => {
+  const handleRejectResult = useCallback(async (id) => {
     const { error } = await supabase.from('pending_results').delete().eq('id', id);
     if (error) {
       toast.error(`Failed to reject result: ${error.message}`);
     } else {
       toast.success("Result has been rejected.");
     }
-  };
+  }, []);
 
   const getTournamentState = () => {
       if (!tournamentInfo) return 'NO_TOURNAMENT';
@@ -557,9 +591,10 @@ const TournamentCommandCenterDashboard = () => {
 
           if (tournamentInfo.type === 'best_of_league') {
               const matchesForRound = players.length / 2;
-              const completedMatches = recentResults.filter(r => r.round === currentRound && r.is_bye === false).length >= (matchesForRound * (Math.floor(tournamentInfo.games_per_match / 2) + 1));
-              if (completedMatches) return 'ROUND_COMPLETE';
+              const completedMatches = matches.filter(m => m.round === currentRound && m.status === 'complete').length;
+              if (completedMatches >= matchesForRound) return 'ROUND_COMPLETE';
           } else {
+              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_IN_PROGRESS';
               if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
           }
           return 'ROUND_IN_PROGRESS';
@@ -568,7 +603,17 @@ const TournamentCommandCenterDashboard = () => {
   };
 
   const tournamentState = getTournamentState();
-  const handlers = { handleRoundPaired, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, setSelectedPlayerModal, isSubmitting, handleUnpairRound };
+  const handlers = useMemo(() => ({
+    handleRoundPaired,
+    handleEnterScore,
+    handleCompleteRound,
+    handleApproveResult,
+    handleRejectResult,
+    setSelectedPlayerModal,
+    isSubmitting,
+    handleUnpairRound,
+    isLoading
+  }), [handleRoundPaired, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, isSubmitting, handleUnpairRound, isLoading]);
   const currentRoundMatches = useMemo(() => 
       matches.filter(m => m.round === tournamentInfo?.currentRound), 
       [matches, tournamentInfo?.currentRound]
