@@ -84,7 +84,11 @@ const TournamentCommandCenterDashboard = () => {
     try {
       const { data: tournamentData, error: tErr } = await supabase
         .from('tournaments')
-        .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug))`)
+        .select(`
+          *,
+          tournament_settings(*),
+          tournament_players(*, players(id, name, rating, photo_url, slug))
+        `)
         .eq('slug', tournamentSlug)
         .single();
 
@@ -446,14 +450,34 @@ const TournamentCommandCenterDashboard = () => {
       p1NewStats.spread = (p1NewStats.spread || 0) + (score1 - score2);
       p2NewStats.spread = (p2NewStats.spread || 0) + (score2 - score1);
       
-      const { error: updateError } = await supabase
-        .from('tournament_players')
-        .upsert([
-          { player_id: player1.player_id, tournament_id: tournamentInfo.id, wins: p1NewStats.wins, losses: p1NewStats.losses, ties: p1NewStats.ties, spread: p1NewStats.spread },
-          { player_id: player2.player_id, tournament_id: tournamentInfo.id, wins: p2NewStats.wins, losses: p2NewStats.losses, ties: p2NewStats.ties, spread: p2NewStats.spread },
-        ], { onConflict: ['player_id', 'tournament_id'] });
+      const playerUpdates = [
+        supabase.from('tournament_players').update({
+          wins: p1NewStats.wins, losses: p1NewStats.losses, ties: p1NewStats.ties, spread: p1NewStats.spread
+        }).eq('player_id', player1.player_id).eq('tournament_id', tournamentInfo.id),
+        supabase.from('tournament_players').update({
+          wins: p2NewStats.wins, losses: p2NewStats.losses, ties: p2NewStats.ties, spread: p2NewStats.spread
+        }).eq('player_id', player2.player_id).eq('tournament_id', tournamentInfo.id)
+      ];
 
-      if (updateError) throw updateError;
+      await Promise.all(playerUpdates);
+
+      if (tournamentInfo.type === 'best_of_league' && result.match_id) {
+        const gamesForMatchWin = tournamentInfo.tournament_settings[0]?.games_for_match_win || 1;
+        const matchWinner = p1NewStats.wins >= gamesForMatchWin ? player1 : (p2NewStats.wins >= gamesForMatchWin ? player2 : null);
+
+        if (matchWinner) {
+          const matchLoser = matchWinner.id === player1.id ? player2 : player1;
+          const winnerStats = players.find(p => p.player_id === matchWinner.player_id);
+          const loserStats = players.find(p => p.player_id === matchLoser.player_id);
+
+          await Promise.all([
+            supabase.from('tournament_players').update({ match_wins: (winnerStats.match_wins || 0) + 1 }).eq('player_id', winnerStats.player_id).eq('tournament_id', tournamentInfo.id),
+            supabase.from('tournament_players').update({ match_losses: (loserStats.match_losses || 0) + 1 }).eq('player_id', loserStats.player_id).eq('tournament_id', tournamentInfo.id),
+            supabase.from('matches').update({ status: 'complete', winner_id: winnerStats.player_id, loser_id: loserStats.player_id }).eq('id', result.match_id)
+          ]);
+          toast.success(`${matchWinner.name} wins the match!`);
+        }
+      }
     } catch (error) {
       toast.error(`Operation failed: ${error.message}`);
     } finally {
@@ -590,12 +614,17 @@ const TournamentCommandCenterDashboard = () => {
           const expectedResults = (pairingsForCurrentRound || []).filter(p => p.player2.name !== 'BYE').length;
 
           if (tournamentInfo.type === 'best_of_league') {
-              const matchesForRound = players.length / 2;
-              const completedMatches = matches.filter(m => m.round === currentRound && m.status === 'complete').length;
-              if (completedMatches >= matchesForRound) return 'ROUND_COMPLETE';
+            const matchesForCurrentRound = matches.filter(m => m.round === currentRound);
+            if (matchesForCurrentRound.length === 0) return 'ROSTER_READY';
+
+            const completedMatches = matchesForCurrentRound.filter(m => m.status === 'complete').length;
+            if (completedMatches >= matchesForCurrentRound.length) {
+              return 'ROUND_COMPLETE';
+            }
           } else {
-              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_IN_PROGRESS';
-              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
+            if (resultsForCurrentRound.length >= expectedResults) {
+              return 'ROUND_COMPLETE';
+            }
           }
           return 'ROUND_IN_PROGRESS';
       }
