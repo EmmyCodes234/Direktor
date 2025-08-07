@@ -96,6 +96,7 @@ const PlayerManagementRosterControl = () => {
         
         const { error } = await supabase
             .from('tournament_players')
+      .select('*')
             .delete()
             .match({ tournament_id: tournamentInfo.id, player_id: playerToRemove.id });
 

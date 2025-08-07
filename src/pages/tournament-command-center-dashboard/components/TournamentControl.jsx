@@ -225,6 +225,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
                 const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
                 const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
                 for (const res of historicalResults) {
+    await updatePlayerStatsInSupabase(statsMap);
                     const p1Stats = statsMap.get(res.player1_id);
                     const p2Stats = statsMap.get(res.player2_id);
                     if (!p1Stats || !p2Stats) continue;
@@ -449,5 +450,20 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     </div>
   );
 };
+
+
+  const updatePlayerStatsInSupabase = async (statsMap) => {
+    for (const [playerId, stats] of statsMap.entries()) {
+      await supabase
+        .from('players')
+        .update({
+          wins: stats.wins,
+          losses: stats.losses,
+          ties: stats.ties,
+        })
+        .eq('id', playerId);
+    }
+  };
+
 
 export default TournamentControl;

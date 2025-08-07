@@ -30,88 +30,89 @@ const debounce = (func, delay) => {
 
 // Memoized Main Content to prevent unnecessary re-renders
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
-    const navigate = useNavigate();
-    const { tournamentSlug } = useParams();
-    const {
-        handleRoundPaired,
-        handleEnterScore,
-        handleCompleteRound,
-        handleApproveResult,
-        handleRejectResult,
-        setSelectedPlayerModal,
-        isSubmitting,
-        handleUnpairRound
-    } = handlers;
+  const navigate = useNavigate();
+  const { tournamentSlug } = useParams();
+  const {
+    handleRoundPaired,
+    handleEnterScore,
+    handleCompleteRound,
+    handleApproveResult,
+    handleRejectResult,
+    setSelectedPlayerModal,
+    isSubmitting,
+    handleUnpairRound
+  } = handlers;
 
-    return (
-        <div className="space-y-6">
-            <AnnouncementsManager />
-            <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
-            {tournamentInfo?.is_remote_submission_enabled && (
-                <PendingResults pending={pendingResults} onApprove={handleApproveResult} onReject={handleRejectResult} />
-            )}
-            <AnimatePresence mode="wait">
-              <motion.div key={tournamentState} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
-                  {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} matches={matches} />}
-                  {tournamentState === 'ROUND_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="CheckCircle" size={48} className="mx-auto text-success mb-4" /> <h2 className="text-xl font-bold">Round {tournamentInfo.currentRound} Complete!</h2> <Button size="lg" className="shadow-glow mt-4" onClick={handleCompleteRound} loading={isSubmitting}> {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`} </Button> </div> )}
-                  {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}>View Final Reports</Button> </div> )}
-              </motion.div>
-            </AnimatePresence>
-            {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') &&
-                <StandingsTable players={players} recentResults={recentResults} onSelectPlayer={setSelectedPlayerModal} tournamentType={tournamentInfo?.type} teamStandings={teamStandings} />}
-        </div>
-    );
+  return (
+    <div className="space-y-6">
+      <AnnouncementsManager />
+      <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
+      {tournamentInfo?.is_remote_submission_enabled && (
+        <PendingResults pending={pendingResults} onApprove={handleApproveResult} onReject={handleRejectResult} />
+      )}
+      <AnimatePresence mode="wait">
+        <motion.div key={tournamentState} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
+          {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} matches={matches} />}
+          {tournamentState === 'ROUND_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="CheckCircle" size={48} className="mx-auto text-success mb-4" /> <h2 className="text-xl font-bold">Round {tournamentInfo.currentRound} Complete!</h2> <Button size="lg" className="shadow-glow mt-4" onClick={handleCompleteRound} loading={isSubmitting}> {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`} </Button> </div> )}
+          {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}>View Final Reports</Button> </div> )}
+        </motion.div>
+      </AnimatePresence>
+      {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') &&
+        <StandingsTable players={players} recentResults={recentResults} onSelectPlayer={setSelectedPlayerModal} tournamentType={tournamentInfo?.type} teamStandings={teamStandings} />}
+    </div>
+  );
 });
 
 
 const recalculateAllPlayerStats = (players, allResults, allMatches, tournamentType) => {
-    const statsMap = new Map(players.map(p => [p.player_id, {
-        wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0
-    }]));
+  const statsMap = new Map(players.map(p => [p.player_id, { 
+    wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0 
+  }]));
 
-    if (allResults) {
-        allResults.forEach(res => {
-            const p1Stats = statsMap.get(res.player1_id);
-            const p2Stats = statsMap.get(res.player2_id);
-            if (p1Stats) {
-                p1Stats.spread += res.score1 - res.score2;
-                if (res.score1 > res.score2) p1Stats.wins++;
-                else if (res.score1 < res.score2) p1Stats.losses++;
-                else p1Stats.ties++;
-            }
-            if (p2Stats) {
-                p2Stats.spread += res.score2 - res.score1;
-                if (res.score2 > res.score1) p2Stats.wins++;
-                else if (res.score2 < res.score1) p2Stats.losses++;
-                else p2Stats.ties++;
-            }
-        });
+  if (allResults) {
+    allResults.forEach(res => {
+      const p1Stats = statsMap.get(res.player1_id);
+      const p2Stats = statsMap.get(res.player2_id);
+      if (p1Stats) {
+        p1Stats.spread += res.score1 - res.score2;
+        if (res.score1 > res.score2) p1Stats.wins++;
+        else if (res.score1 < res.score2) p1Stats.losses++;
+        else p1Stats.ties++;
+      }
+      if (p2Stats) {
+        p2Stats.spread += res.score2 - res.score1;
+        if (res.score2 > res.score1) p2Stats.wins++;
+        else if (res.score2 < res.score1) p2Stats.losses++;
+        else p2Stats.ties++;
+      }
+    });
+  }
+
+  if (tournamentType === 'best_of_league') {
+    const allCompletedMatches = allMatches.filter(m => m.status === 'complete');
+    if (allCompletedMatches) {
+      allCompletedMatches.forEach(match => {
+        const winnerStats = statsMap.get(match.winner_id);
+        if (winnerStats) {
+          winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
+        }
+        
+        const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
+        const loserStats = statsMap.get(loserId);
+        if (loserStats) {
+          loserStats.match_losses = (loserStats.match_losses || 0) + 1;
+        }
+      });
     }
+  }
 
-    if (tournamentType === 'best_of_league' && allMatches) {
-        allMatches.forEach(match => {
-            if (match.winner_id) {
-                const winnerStats = statsMap.get(match.winner_id);
-                if (winnerStats) {
-                    winnerStats.match_wins = (winnerStats.match_wins || 0) + 1;
-                }
-                
-                const loserId = match.player1_id === match.winner_id ? match.player2_id : match.player1_id;
-                const loserStats = statsMap.get(loserId);
-                if (loserStats) {
-                    loserStats.match_losses = (loserStats.match_losses || 0) + 1;
-                }
-            }
-        });
-    }
-
-    return statsMap;
+  return statsMap;
 };
 
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
-    const [recentResults, setRecentResults] = useState([]);
+  const [recentResults, setRecentResults] = useState([]);
   const [tournamentInfo, setTournamentInfo] = useState(null);
   const [pendingResults, setPendingResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,11 +166,11 @@ const TournamentCommandCenterDashboard = () => {
       setMatches(matchesData || []);
 
     } catch (error) {
-        console.error("Error fetching tournament:", error);
-        toast.error(`A critical error occurred: ${error.message}`);
-        setTournamentInfo(null);
+      console.error("Error fetching tournament:", error);
+      toast.error(`A critical error occurred: ${error.message}`);
+      setTournamentInfo(null);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   }, [tournamentSlug]);
 
@@ -194,62 +195,62 @@ const TournamentCommandCenterDashboard = () => {
   const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
 
   const teamStandings = useMemo(() => {
-      if (tournamentInfo?.type !== 'team' || !teams.length || !players.length) return [];
-      const resultsByRound = recentResults.reduce((acc, result) => {
-          (acc[result.round] = acc[result.round] || []).push(result);
-          return acc;
-      }, {});
-      const teamStats = teams.map(team => ({ id: team.id, name: team.name, teamWins: 0, teamLosses: 0, individualWins: 0, totalSpread: 0, players: players.filter(p => p.team_id === team.id) }));
-      Object.values(resultsByRound).forEach(roundResults => {
-          const teamRoundWins = new Map();
-          roundResults.forEach(result => {
-              const p1 = players.find(p => p.player_id === result.player1_id);
-              const p2 = players.find(p => p.player_id === result.player2_id);
-              if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
-              if (result.score1 > result.score2) {
-                  teamRoundWins.set(p1.team_id, (teamRoundWins.get(p1.team_id) || 0) + 1);
-              } else if (result.score2 > result.score1) {
-                  teamRoundWins.set(p2.team_id, (teamRoundWins.get(p2.team_id) || 0) + 1);
-              }
-          });
-          if(teamRoundWins.size > 0) {
-              const [team1Id, team1Wins] = [...teamRoundWins.entries()][0];
-              const [team2Id, team2Wins] = [...teamRoundWins.entries()][1] || [null, 0];
-              const team1 = teamStats.find(t => t.id === team1Id);
-              const team2 = teamStats.find(t => t.id === team2Id);
-              if(team1 && team2) {
-                  if (team1Wins > team2Wins) {
-                      team1.teamWins++;
-                      team2.teamLosses++;
-                  } else if (team2Wins > team1Wins) {
-                      team2.teamWins++;
-                      team1.teamLosses++;
-                  }
-              }
+    if (tournamentInfo?.type !== 'team' || !teams.length || !players.length) return [];
+    const resultsByRound = recentResults.reduce((acc, result) => {
+      (acc[result.round] = acc[result.round] || []).push(result);
+      return acc;
+    }, {});
+    const teamStats = teams.map(team => ({ id: team.id, name: team.name, teamWins: 0, teamLosses: 0, individualWins: 0, totalSpread: 0, players: players.filter(p => p.team_id === team.id) }));
+    Object.values(resultsByRound).forEach(roundResults => {
+      const teamRoundWins = new Map();
+      roundResults.forEach(result => {
+        const p1 = players.find(p => p.player_id === result.player1_id);
+        const p2 = players.find(p => p.player_id === result.player2_id);
+        if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
+        if (result.score1 > result.score2) {
+          teamRoundWins.set(p1.team_id, (teamRoundWins.get(p1.team_id) || 0) + 1);
+        } else if (result.score2 > result.score1) {
+          teamRoundWins.set(p2.team_id, (teamRoundWins.get(p2.team_id) || 0) + 1);
+        }
+      });
+      if(teamRoundWins.size > 0) {
+        const [team1Id, team1Wins] = [...teamRoundWins.entries()][0];
+        const [team2Id, team2Wins] = [...teamRoundWins.entries()][1] || [null, 0];
+        const team1 = teamStats.find(t => t.id === team1Id);
+        const team2 = teamStats.find(t => t.id === team2Id);
+        if(team1 && team2) {
+          if (team1Wins > team2Wins) {
+            team1.teamWins++;
+            team2.teamLosses++;
+          } else if (team2Wins > team1Wins) {
+            team2.teamWins++;
+            team1.teamLosses++;
           }
-      });
-      teamStats.forEach(team => {
-          team.individualWins = team.players.reduce((sum, p) => sum + (p.wins || 0), 0);
-          team.totalSpread = team.players.reduce((sum, p) => sum + (p.spread || 0), 0);
-      });
-      return teamStats.sort((a, b) => {
-          if (a.teamWins !== b.teamWins) return b.teamWins - a.teamWins;
-          if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
-          return b.totalSpread - a.totalSpread;
-      }).map((team, index) => ({ ...team, rank: index + 1 }));
+        }
+      }
+    });
+    teamStats.forEach(team => {
+      team.individualWins = team.players.reduce((sum, p) => sum + (p.wins || 0), 0);
+      team.totalSpread = team.players.reduce((sum, p) => sum + (p.spread || 0), 0);
+    });
+    return teamStats.sort((a, b) => {
+      if (a.teamWins !== b.teamWins) return b.teamWins - a.teamWins;
+      if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
+      return b.totalSpread - a.totalSpread;
+    }).map((team, index) => ({ ...team, rank: index + 1 }));
   }, [players, recentResults, teams, tournamentInfo]);
 
   const rankedPlayers = useMemo(() => {
     return players.sort((a, b) => {
-        if (tournamentInfo?.type === 'best_of_league') {
-            if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
-        }
-        
-        const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
-        const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
-        if (aGameScore !== bGameScore) return bGameScore - aGameScore;
+      if (tournamentInfo?.type === 'best_of_league') {
+        if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+      }
+      
+      const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
+      const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
+      if (aGameScore !== bGameScore) return bGameScore - aGameScore;
 
-        return (b.spread || 0) - (a.spread || 0);
+      return (b.spread || 0) - (a.spread || 0);
     }).map((player, index) => ({ ...player, rank: index + 1 }));
   }, [players, tournamentInfo]);
 
@@ -308,116 +309,135 @@ const TournamentCommandCenterDashboard = () => {
     setIsSubmitting(true);
 
     try {
-        const player1 = players.find(p => p.name === result.player1);
-        const player2 = players.find(p => p.name === result.player2);
-        if (!player1 || !player2) throw new Error("Could not find players.");
+      const player1 = players.find(p => p.name === result.player1);
+      const player2 = players.find(p => p.name === result.player2);
+      if (!player1 || !player2) throw new Error("Could not find players.");
 
-        let score1 = parseInt(result.score1, 10);
-        let score2 = parseInt(result.score2, 10);
-        const maxSpread = tournamentInfo.max_spread;
+      let score1 = parseInt(result.score1, 10);
+      let score2 = parseInt(result.score2, 10);
+      const maxSpread = tournamentInfo.max_spread;
 
-        if (maxSpread && Math.abs(score1 - score2) > maxSpread) {
-            toast.info(`Spread has been automatically capped at ${maxSpread}.`);
-            if (score1 > score2) {
-                score2 = score1 - maxSpread;
-            } else {
-                score1 = score2 - maxSpread;
-            }
-        }
-
-        const resultData = {
-            tournament_id: tournamentInfo.id,
-            round: result.round || tournamentInfo.currentRound || 1,
-            player1_id: player1.player_id,
-            player2_id: player2.player_id,
-            player1_name: player1.name,
-            player2_name: player2.name,
-            score1: score1,
-            score2: score2,
-            match_id: result.match_id
-        };
-
-        if (!isEditing) {
-            await supabase.from('results').insert([resultData]);
+      if (maxSpread && Math.abs(score1 - score2) > maxSpread) {
+        toast.info(`Spread has been automatically capped at ${maxSpread}.`);
+        if (score1 > score2) {
+          score2 = score1 - maxSpread;
         } else {
-            await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
+          score1 = score2 - maxSpread;
         }
+      }
 
-        const rating1 = player1.rating || 0;
-        const rating2 = player2.rating || 0;
-        const ratingDiff = Math.abs(rating1 - rating2);
-        const upsetThreshold = 200;
+      const resultData = {
+        tournament_id: tournamentInfo.id,
+        round: result.round || tournamentInfo.currentRound || 1,
+        player1_id: player1.player_id,
+        player2_id: player2.player_id,
+        player1_name: player1.name,
+        player2_name: player2.name,
+        score1: score1,
+        score2: score2,
+        match_id: result.match_id
+      };
 
-        let upsetMessage = '';
+      if (!isEditing) {
+        await supabase.from('results').insert([resultData]);
+      } else {
+        await supabase.from('results').update({ score1: score1, score2: score2 }).eq('id', result.id);
+      }
 
-        if (ratingDiff >= upsetThreshold) {
-            if (score1 > score2 && rating1 < rating2) {
-                upsetMessage = `🚀 Upset Alert! ${player1.name} (${rating1}) has just defeated ${player2.name} (${rating2}) in a stunning Round ${resultData.round} victory!`;
-            } else if (score2 > score1 && rating2 < rating1) {
-                upsetMessage = `🚀 Upset Alert! ${player2.name} (${rating2}) has just defeated ${player1.name} (${rating1}) in a stunning Round ${resultData.round} victory!`;
-            }
+      const rating1 = player1.rating || 0;
+      const rating2 = player2.rating || 0;
+      const ratingDiff = Math.abs(rating1 - rating2);
+      const upsetThreshold = 200;
+
+      let upsetMessage = '';
+
+      if (ratingDiff >= upsetThreshold) {
+        if (score1 > score2 && rating1 < rating2) {
+          upsetMessage = `🚀 Upset Alert! ${player1.name} (${rating1}) has just defeated ${player2.name} (${rating2}) in a stunning Round ${resultData.round} victory!`;
+        } else if (score2 > score1 && rating2 < rating1) {
+          upsetMessage = `🚀 Upset Alert! ${player2.name} (${rating2}) has just defeated ${player1.name} (${rating1}) in a stunning Round ${resultData.round} victory!`;
         }
+      }
 
-        if (upsetMessage) {
-            await supabase.from('announcements').insert({
-                tournament_id: tournamentInfo.id,
-                message: upsetMessage,
-            });
-        }
+      if (upsetMessage) {
+        await supabase.from('announcements').insert({
+          tournament_id: tournamentInfo.id,
+          message: upsetMessage,
+        });
+      }
 
-        if (tournamentInfo.type === 'best_of_league' && result.match_id) {
-            const { data: matchResults, error: resultsError } = await supabase
-                .from('results')
-                .select('score1, score2')
-                .eq('match_id', result.match_id);
+      if (tournamentInfo.type === 'best_of_league' && result.match_id) {
+        const { data: matchResults, error: resultsError } = await supabase
+          .from('results')
+          .select('score1, score2')
+          .eq('match_id', result.match_id);
 
-            if (resultsError) throw new Error(`Failed to fetch match results: ${resultsError.message}`);
+        if (resultsError) throw new Error(`Failed to fetch match results: ${resultsError.message}`);
 
-            const player1_wins = matchResults.filter(r => r.score1 > r.score2).length;
-            const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
-            
-            const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
-            
-            let newStatus = 'in_progress';
-            let newWinnerId = null;
-
-            if (player1_wins >= winsNeeded) {
-                newStatus = 'complete';
-                newWinnerId = player1.player_id;
-                toast.success(`${player1.name} has won the match!`);
-            } else if (player2_wins >= winsNeeded) {
-                newStatus = 'complete';
-                newWinnerId = player2.player_id;
-                toast.success(`${player2.name} has won the match!`);
-            }
-
-            await supabase.from('matches').update({ 
-                player1_wins, 
-                player2_wins, 
-                status: newStatus, 
-                winner_id: newWinnerId 
-            }).eq('id', result.match_id);
-
-        }
-
-        // Recalculate all player stats including match wins
-        const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
-        const { data: allMatches } = await supabase.from('matches').select('*').eq('tournament_id', tournamentInfo.id);
-        const statsMap = recalculateAllPlayerStats(players, allResults, allMatches || [], tournamentInfo.type);
+        const player1_wins = matchResults.filter(r => r.score1 > r.score2).length;
+        const player2_wins = matchResults.filter(r => r.score2 > r.score1).length;
         
-        const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
-            supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
-        );
-        await Promise.all(updates);
+        const winsNeeded = Math.floor(tournamentInfo.games_per_match / 2) + 1;
         
-        // Fetch fresh data to ensure UI reflects the updated match wins
-        await fetchTournamentData();
-        toast.success("Standings updated!");
+        let newStatus = 'in_progress';
+        let newWinnerId = null;
+
+        if (player1_wins >= winsNeeded) {
+          newStatus = 'complete';
+          newWinnerId = player1.player_id;
+          toast.success(`${player1.name} has won the match!`);
+        } else if (player2_wins >= winsNeeded) {
+          newStatus = 'complete';
+          newWinnerId = player2.player_id;
+          toast.success(`${player2.name} has won the match!`);
+        }
+
+        await supabase.from('matches').update({
+          player1_wins: player1_wins ?? 0,
+          player2_wins: player2_wins ?? 0,
+          status: newStatus ?? 'in_progress',
+          winner_id: newWinnerId ?? null,
+        }).eq('id', result.match_id);
+
+        // Update match wins directly in the database when a match completes
+        if (newStatus === 'complete') {
+          const winnerPlayer = players.find(p => p.player_id === newWinnerId);
+          const loserPlayer = players.find((p) => {
+            return (
+              p.player_id !== newWinnerId &&
+              (p.player_id === player1.player_id || p.player_id === player2.player_id)
+            );
+          });
+          
+          if (winnerPlayer) {
+            await supabase.from('tournament_players').update({
+              match_wins: (winnerPlayer.match_wins || 0) + 1
+            }).match({ tournament_id: tournamentInfo.id, player_id: winnerPlayer.player_id });
+          }
+
+          if (loserPlayer) {
+            await supabase.from('tournament_players').update({
+              match_losses: (loserPlayer.match_losses || 0) + 1
+            }).match({ tournament_id: tournamentInfo.id, player_id: loserPlayer.player_id });
+          }
+        }
+      }
+
+      const { data: allResults } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
+      const statsMap = recalculateAllPlayerStats(players, allResults, matches, tournamentInfo.type);
+      
+      const updates = Array.from(statsMap.entries()).map(([player_id, stats]) => 
+          supabase.from('tournament_players').update(stats).match({ tournament_id: tournamentInfo.id, player_id: player_id })
+      );
+      await Promise.all(updates);
+      
+      await fetchTournamentData(); 
+      toast.success("Standings updated!");
 
     } catch (error) {
-        toast.error(`Operation failed: ${error.message}`);
+      toast.error(`Operation failed: ${error.message}`);
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -449,20 +469,20 @@ const TournamentCommandCenterDashboard = () => {
     let finalMatchup = { ...matchup };
 
     if (!finalMatchup.player1 && finalMatchup.player1_id) {
-        finalMatchup.player1 = players.find(p => p.player_id === finalMatchup.player1_id);
+      finalMatchup.player1 = players.find(p => p.player_id === finalMatchup.player1_id);
     }
     if (!finalMatchup.player2 && finalMatchup.player2_id) {
-        finalMatchup.player2 = players.find(p => p.player_id === finalMatchup.player2_id);
+      finalMatchup.player2 = players.find(p => p.player_id === finalMatchup.player2_id);
     }
     
     if (tournamentInfo.type === 'best_of_league') {
-        finalMatchup.player1_name = finalMatchup.player1.name;
-        finalMatchup.player2_name = finalMatchup.player2.name;
+      finalMatchup.player1_name = finalMatchup.player1.name;
+      finalMatchup.player2_name = finalMatchup.player2.name;
     }
 
     if (!finalMatchup.player1 || !finalMatchup.player2) {
-        toast.error("Could not find player details for this match.");
-        return;
+      toast.error("Could not find player details for this match.");
+      return;
     }
 
     setActiveMatchup(finalMatchup);
@@ -471,31 +491,31 @@ const TournamentCommandCenterDashboard = () => {
   
   const handleEditResultFromModal = async (resultToEdit) => {
     if (tournamentInfo.type === 'best_of_league') {
-        const { data: matchData, error } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('id', resultToEdit.match_id)
-            .single();
+      const { data: matchData, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('id', resultToEdit.match_id)
+        .single();
 
-        if (error || !matchData) {
-            toast.error("Could not find the original match for this result.");
-            return;
-        }
-        
-        handleEnterScore(matchData, resultToEdit);
+      if (error || !matchData) {
+        toast.error("Could not find the original match for this result.");
+        return;
+      }
+      
+      handleEnterScore(matchData, resultToEdit);
 
     } else {
-        const player1 = players.find(p => p.name === resultToEdit.player1_name);
-        const player2 = players.find(p => p.name === resultToEdit.player2_name);
-        if (!player1 || !player2) {
-            toast.error("Could not find players for this result.");
-            return;
-        }
-        const roundPairings = tournamentInfo.pairing_schedule?.[resultToEdit.round];
-        const pairing = roundPairings?.find(p => (p.player1.name === player1.name && p.player2.name === player2.name) || (p.player1.name === player2.name && p.player2.name === player1.name));
-        const matchup = { player1, player2, table: pairing?.table || 'N/A', round: resultToEdit.round };
-        
-        handleEnterScore(matchup, resultToEdit);
+      const player1 = players.find(p => p.name === resultToEdit.player1_name);
+      const player2 = players.find(p => p.name === resultToEdit.player2_name);
+      if (!player1 || !player2) {
+        toast.error("Could not find players for this result.");
+        return;
+      }
+      const roundPairings = tournamentInfo.pairing_schedule?.[resultToEdit.round];
+      const pairing = roundPairings?.find(p => (p.player1.name === player1.name && p.player2.name === player2.name) || (p.player1.name === player2.name && p.player2.name === player1.name));
+      const matchup = { player1, player2, table: pairing?.table || 'N/A', round: resultToEdit.round };
+      
+      handleEnterScore(matchup, resultToEdit);
     }
     setSelectedPlayerModal(null);
   };
@@ -503,13 +523,13 @@ const TournamentCommandCenterDashboard = () => {
   const handleApproveResult = async (pendingResult) => {
     setPendingResults(prev => prev.filter(p => p.id !== pendingResult.id));
     try {
-        await handleResultSubmit({
-            player1: pendingResult.player1_name,
-            player2: pendingResult.player2_name,
-            score1: pendingResult.score1,
-            score2: pendingResult.score2,
-            round: pendingResult.round,
-        });
+      await handleResultSubmit({
+        player1: pendingResult.player1_name,
+        player2: pendingResult.player2_name,
+        score1: pendingResult.score1,
+        score2: pendingResult.score2,
+        round: pendingResult.round,
+      });
       await supabase.from('pending_results').delete().eq('id', pendingResult.id);
       toast.success("Result has been approved and standings are updated.");
     } catch (error) {
@@ -520,9 +540,9 @@ const TournamentCommandCenterDashboard = () => {
   const handleRejectResult = async (id) => {
     const { error } = await supabase.from('pending_results').delete().eq('id', id);
     if (error) {
-        toast.error(`Failed to reject result: ${error.message}`);
+      toast.error(`Failed to reject result: ${error.message}`);
     } else {
-        toast.success("Result has been rejected.");
+      toast.success("Result has been rejected.");
     }
   };
 

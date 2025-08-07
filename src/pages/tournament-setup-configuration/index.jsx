@@ -281,6 +281,7 @@ const TournamentSetupConfiguration = () => {
         
         const { error: joinTableError } = await supabase
             .from('tournament_players')
+      .select('*')
             .insert(seededPlayers);
             
         if (joinTableError) throw joinTableError;

@@ -15,7 +15,7 @@ const EmergencyControlsSection = ({ onDeleteTournament, onResetTournament }) => 
             <Button variant="destructive" onClick={onDeleteTournament}>
                 Delete Tournament
             </Button>
-            <Button variant="destructive" variant="outline" onClick={onResetTournament}>
+            <Button variant="outline" onClick={onResetTournament}>
                 Reset Tournament
             </Button>
             <Button variant="outline" disabled>Pause Tournament (Coming Soon)</Button>
