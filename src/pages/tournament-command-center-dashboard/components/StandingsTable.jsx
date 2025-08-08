@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import useMediaQuery from '../../../hooks/useMediaQuery';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
  * @param {string} query The media query string to watch.
  * @returns {boolean} A boolean indicating whether the media query matches.
  */
-export const useMediaQuery = (query) => {
+const useMediaQuery = (query) => {
     // Initialize state with the current match status
     const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
 
@@ -24,3 +24,5 @@ export const useMediaQuery = (query) => {
 
     return matches;
 };
+
+export default useMediaQuery;

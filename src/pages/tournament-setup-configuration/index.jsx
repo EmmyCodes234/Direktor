@@ -238,9 +238,9 @@ const TournamentSetupConfiguration = () => {
         const tournamentData = {
             name: formData.name,
             venue: formData.venue,
-            date: formData.date,
-            start_date: formData.start_date,
-            end_date: formData.end_date,
+            date: (formData.date && typeof formData.date === 'string' && formData.date.trim() !== '' ? formData.date : null),
+            start_date: (formData.start_date && typeof formData.start_date === 'string' && formData.start_date.trim() !== '' ? formData.start_date : null),
+            end_date: (formData.end_date && typeof formData.end_date === 'string' && formData.end_date.trim() !== '' ? formData.end_date : null),
             rounds: rounds,
             status: 'setup',
             playerCount: formData.playerCount,
@@ -251,6 +251,9 @@ const TournamentSetupConfiguration = () => {
             user_id: user.id, // Assign ownership
         };
         
+        console.log("GET request slug:", uniqueSlug);
+        console.log("POST request tournamentData:", tournamentData);
+
         const { data: newTournament, error: tournamentError } = await supabase
             .from('tournaments')
             .insert(tournamentData)

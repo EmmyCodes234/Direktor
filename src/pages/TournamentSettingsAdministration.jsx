@@ -14,7 +14,7 @@ import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import useMediaQuery from '../hooks/useMediaQuery';
 
 const ShareSection = ({ tournamentSlug }) => {
     const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;

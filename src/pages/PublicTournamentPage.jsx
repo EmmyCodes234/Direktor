@@ -10,7 +10,7 @@ import 'styles/ticker.css';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import useMediaQuery from '../hooks/useMediaQuery';
 import TournamentTicker from '../components/TournamentTicker';
 import AnnouncementsDisplay from 'components/AnnouncementsDisplay';
 import StandingsTable from 'pages/tournament-command-center-dashboard/components/StandingsTable';

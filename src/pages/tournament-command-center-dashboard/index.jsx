@@ -1,21 +1,26 @@
-// ...existing code...
-// File: TournamentCommandCenterDashboard.jsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import TournamentTicker from '../../components/TournamentTicker';
-// ...existing code...
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import TeamManagerModal from './components/TeamManagerModal';
+import TournamentTicker from '../../components/TournamentTicker';
 import Header from '../../components/ui/Header';
 import TournamentStats from './components/TournamentStats';
 import TournamentControl from './components/TournamentControl';
 import StandingsTable from './components/StandingsTable';
 import ScoreEntryModal from './components/ScoreEntryModal';
-import PlayerStatsModal from '../../components/PlayerStatsModal';
+import PlayerStatsModal from '../../components/PlayerStatsModal.jsx';
 import PendingResults from './components/PendingResults';
-import ConfirmationModal from '../../components/ConfirmationModal';
-// Responsive Audit Log Modal: bottom sheet on mobile, right drawer on desktop
+import ConfirmationModal from '../../components/ConfirmationModal.jsx';
+import { Toaster, toast } from 'sonner';
+import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
+import { supabase } from '../../supabaseClient';
+import DashboardSidebar from './components/DashboardSidebar';
+import MobileNavBar from './components/MobileNavBar';
+import useMediaQuery from '../../hooks/useMediaQuery';
+import AnnouncementsManager from './components/AnnouncementsManager';
+
 const AuditLogModal = ({ isOpen, onClose, log }) => {
-  // Use a media query to determine if desktop
   const isDesktop = useMediaQuery('(min-width: 768px)');
   return (
     <AnimatePresence>
@@ -64,14 +69,6 @@ const AuditLogModal = ({ isOpen, onClose, log }) => {
     </AnimatePresence>
   );
 };
-import { Toaster, toast } from 'sonner';
-import Icon from '../../components/AppIcon';
-import Button from '../../components/ui/Button';
-import { supabase } from '../../supabaseClient';
-import DashboardSidebar from './components/DashboardSidebar';
-import MobileNavBar from './components/MobileNavBar';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
-import AnnouncementsManager from './components/AnnouncementsManager';
 
 // Memoized Main Content with custom comparison to ensure updates when players change
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
@@ -116,14 +113,81 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
       {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') && (
         <>
           {console.log('Rendering StandingsTable with players:', players)}
-          <StandingsTable 
-            players={players} 
-            recentResults={recentResults} 
-            onSelectPlayer={setSelectedPlayerModal} 
-            tournamentType={tournamentInfo?.type} 
-            teamStandings={teamStandings} 
-            isLoading={isLoading}
-          />
+          {tournamentInfo?.type === 'team' ? (
+            <>
+              <div className="flex justify-end mb-2">
+                <Button variant="outline" onClick={() => setShowTeamManager(true)}>
+                  Manage Teams
+                </Button>
+              </div>
+              <div className="overflow-x-auto my-6">
+                <table className="min-w-full border rounded-lg bg-white/80 shadow-lg">
+                  <thead className="bg-primary/10">
+                    <tr>
+                      <th className="px-3 py-2">Rank</th>
+                      <th className="px-3 py-2">Team</th>
+                      <th className="px-3 py-2">W</th>
+                      <th className="px-3 py-2">L</th>
+                      <th className="px-3 py-2">T</th>
+                      <th className="px-3 py-2">Ind. Wins</th>
+                      <th className="px-3 py-2">Spread</th>
+                      <th className="px-3 py-2">Players</th>
+                      <th className="px-3 py-2">Per Round</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamStandings.map(team => (
+                      <tr key={team.id} className="border-b last:border-0">
+                        <td className="px-3 py-2 font-bold text-center">{team.rank}</td>
+                        <td className="px-3 py-2 font-semibold flex items-center gap-2">
+                          {team.branding ? <img src={team.branding.logo} alt="logo" className="w-6 h-6 rounded-full" style={{ background: team.branding.color || '#eee' }} /> : <span className="inline-block w-6 h-6 rounded-full bg-gray-300" />}
+                          {team.name}
+                        </td>
+                        <td className="px-3 py-2 text-center">{team.teamWins}</td>
+                        <td className="px-3 py-2 text-center">{team.teamLosses}</td>
+                        <td className="px-3 py-2 text-center">{team.teamTies}</td>
+                        <td className="px-3 py-2 text-center">{team.individualWins}</td>
+                        <td className="px-3 py-2 text-center">{team.totalSpread}</td>
+                        <td className="px-3 py-2">
+                          <ul className="text-xs">
+                            {team.players.map(p => (
+                              <li key={p.player_id} className="flex items-center gap-1">
+                                <span className="font-mono">{p.name}</span>
+                                <span className="text-muted-foreground">({p.wins || 0}-{p.losses || 0}-{p.ties || 0}, {p.spread || 0})</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                        <td className="px-3 py-2">
+                          <ul className="flex flex-wrap gap-1 text-xs">
+                            {team.perRound.map((r, i) => (
+                              <li key={i} className={`px-2 py-1 rounded ${r.result === 'Win' ? 'bg-green-100 text-green-800' : r.result === 'Loss' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{`R${r.round}: ${r.result} (${r.score})`}</li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <TeamManagerModal
+                isOpen={showTeamManager}
+                onClose={() => setShowTeamManager(false)}
+                teams={teams}
+                players={players}
+                onSave={handleSaveTeams}
+              />
+            </>
+          ) : (
+            <StandingsTable 
+              players={players} 
+              recentResults={recentResults} 
+              onSelectPlayer={setSelectedPlayerModal} 
+              tournamentType={tournamentInfo?.type} 
+              teamStandings={teamStandings} 
+              isLoading={isLoading}
+            />
+          )}
         </>
       )}
     </div>
@@ -236,7 +300,6 @@ const TournamentCommandCenterDashboard = () => {
       <TournamentTicker messages={tickerMessages} />
     </div>
   );
-  // ...existing code...
 
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentSlug) {
@@ -247,13 +310,27 @@ const TournamentCommandCenterDashboard = () => {
     setIsLoading(true);
 
     try {
+      console.log("Fetching tournament data for slug:", tournamentSlug);
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+      };
+      console.log('GET Request Headers:', headers);
+      console.log('GET Request Query:', { slug: tournamentSlug });
+
       const { data: tournamentData, error: tErr } = await supabase
         .from('tournaments')
         .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug))`)
         .eq('slug', tournamentSlug)
         .single();
 
-      if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
+      if (tErr || !tournamentData) {
+        console.error("Error fetching tournament data:", tErr);
+        throw tErr || new Error("Tournament not found");
+      }
+
+      console.log("Tournament data fetched successfully:", tournamentData);
 
       const combinedPlayers = tournamentData.tournament_players.map(tp => ({
         ...tp.players,
@@ -270,8 +347,18 @@ const TournamentCommandCenterDashboard = () => {
         supabase.from('matches').select('*').eq('tournament_id', tournamentData.id)
       ];
 
-      const [{ data: resultsData }, { data: pendingData }, { data: teamsData }, { data: matchesData }] = await Promise.all(promises);
-      
+      const [{ data: resultsData, error: resultsError }, { data: pendingData, error: pendingError }, { data: teamsData, error: teamsError }, { data: matchesData, error: matchesError }] = await Promise.all(promises);
+
+      if (resultsError) console.error("Error fetching results:", resultsError);
+      if (pendingError) console.error("Error fetching pending results:", pendingError);
+      if (teamsError) console.error("Error fetching teams:", teamsError);
+      if (matchesError) console.error("Error fetching matches:", matchesError);
+
+      console.log("Results data:", resultsData);
+      console.log("Pending results data:", pendingData);
+      console.log("Teams data:", teamsData);
+      console.log("Matches data:", matchesData);
+
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
       setTeams(teamsData || []);
@@ -430,8 +517,20 @@ const TournamentCommandCenterDashboard = () => {
       (acc[result.round] = acc[result.round] || []).push(result);
       return acc;
     }, {});
-    const teamStats = teams.map(team => ({ id: team.id, name: team.name, teamWins: 0, teamLosses: 0, individualWins: 0, totalSpread: 0, players: players.filter(p => p.team_id === team.id) }));
-    Object.values(resultsByRound).forEach(roundResults => {
+    // Add ties and branding placeholder
+    const teamStats = teams.map(team => ({
+      id: team.id,
+      name: team.name,
+      teamWins: 0,
+      teamLosses: 0,
+      teamTies: 0,
+      individualWins: 0,
+      totalSpread: 0,
+      players: players.filter(p => p.team_id === team.id),
+      branding: team.branding || null, // placeholder for logo/color
+      perRound: [] // breakdown per round
+    }));
+    Object.entries(resultsByRound).forEach(([round, roundResults]) => {
       const teamRoundWins = new Map();
       roundResults.forEach(result => {
         const p1 = players.find(p => p.player_id === result.player1_id);
@@ -443,18 +542,29 @@ const TournamentCommandCenterDashboard = () => {
           teamRoundWins.set(p2.team_id, (teamRoundWins.get(p2.team_id) || 0) + 1);
         }
       });
-      if(teamRoundWins.size > 0) {
+      // Only consider rounds with exactly two teams
+      if (teamRoundWins.size === 2) {
         const [team1Id, team1Wins] = [...teamRoundWins.entries()][0];
-        const [team2Id, team2Wins] = [...teamRoundWins.entries()][1] || [null, 0];
+        const [team2Id, team2Wins] = [...teamRoundWins.entries()][1];
         const team1 = teamStats.find(t => t.id === team1Id);
         const team2 = teamStats.find(t => t.id === team2Id);
-        if(team1 && team2) {
+        if (team1 && team2) {
           if (team1Wins > team2Wins) {
             team1.teamWins++;
             team2.teamLosses++;
+            team1.perRound.push({ round, result: 'Win', score: `${team1Wins}-${team2Wins}` });
+            team2.perRound.push({ round, result: 'Loss', score: `${team2Wins}-${team1Wins}` });
           } else if (team2Wins > team1Wins) {
             team2.teamWins++;
             team1.teamLosses++;
+            team2.perRound.push({ round, result: 'Win', score: `${team2Wins}-${team1Wins}` });
+            team1.perRound.push({ round, result: 'Loss', score: `${team1Wins}-${team2Wins}` });
+          } else {
+            // Tie
+            team1.teamTies++;
+            team2.teamTies++;
+            team1.perRound.push({ round, result: 'Tie', score: `${team1Wins}-${team2Wins}` });
+            team2.perRound.push({ round, result: 'Tie', score: `${team2Wins}-${team1Wins}` });
           }
         }
       }
@@ -465,6 +575,7 @@ const TournamentCommandCenterDashboard = () => {
     });
     return teamStats.sort((a, b) => {
       if (a.teamWins !== b.teamWins) return b.teamWins - a.teamWins;
+      if (a.teamTies !== b.teamTies) return b.teamTies - a.teamTies;
       if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
       return b.totalSpread - a.totalSpread;
     }).map((team, index) => ({ ...team, rank: index + 1 }));
@@ -1089,18 +1200,18 @@ const TournamentCommandCenterDashboard = () => {
       const currentRound = tournamentInfo.currentRound || 1;
       const pairingsForCurrentRound = tournamentInfo.pairing_schedule?.[currentRound];
       if (pairingsForCurrentRound || tournamentInfo.type === 'best_of_league') {
-          const resultsForCurrentRound = recentResults.filter(r => r.round === currentRound);
-          const expectedResults = (pairingsForCurrentRound || []).filter(p => p.player2.name !== 'BYE').length;
+        const resultsForCurrentRound = recentResults.filter((r) => r.round === currentRound);
+        const expectedResults = (pairingsForCurrentRound || []).filter(p => p.player2.name !== 'BYE').length;
 
-          if (tournamentInfo.type === 'best_of_league') {
-              const matchesForRound = players.length / 2;
-              const completedMatches = matches.filter(m => m.round === currentRound && m.status === 'complete').length;
-              if (completedMatches >= matchesForRound) return 'ROUND_COMPLETE';
-          } else {
-              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_IN_PROGRESS';
-              if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
-          }
+        if (tournamentInfo.type === 'best_of_league') {
+          const matchesForRound = players.length / 2;
+          const completedMatches = matches.filter(m => m.round === currentRound && m.status === 'complete').length;
+          if (completedMatches >= matchesForRound) return 'ROUND_COMPLETE';
           return 'ROUND_IN_PROGRESS';
+        } else {
+          if (resultsForCurrentRound.length >= expectedResults) return 'ROUND_COMPLETE';
+          return 'ROUND_IN_PROGRESS';
+        }
       }
       return (players || []).length >= 2 ? 'ROSTER_READY' : 'EMPTY_ROSTER';
   };

@@ -4,7 +4,7 @@ import Icon from '../AppIcon';
 import Button from './Button';
 import { cn } from '../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
+import useMediaQuery from '../../hooks/useMediaQuery';
 
 const Header = () => {
   const location = useLocation();
