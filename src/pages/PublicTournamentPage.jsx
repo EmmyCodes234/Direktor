@@ -389,14 +389,16 @@ const PublicTournamentPage = () => {
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
-            <TournamentTicker messages={tickerMessages} />
-            
-            <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg py-4">
+            <header className="sticky top-0 left-0 right-0 z-[100] border-b border-border bg-background/90 backdrop-blur-lg py-4">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
                     <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gradient">{tournament.name}</h1>
                     <p className="text-sm sm:text-base text-muted-foreground mt-1">{tournament.venue} • {formattedDate}</p>
                 </div>
             </header>
+            {/* Ticker sits below header, sticky, always visible, never overlaps header */}
+            <div className="sticky top-[4rem] z-[90] w-full">
+                <TournamentTicker messages={tickerMessages} />
+            </div>
             
             <main className="pt-32 pb-10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6">

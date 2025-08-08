@@ -1,7 +1,5 @@
 .ticker-wrap {
-  position: fixed;
-  top: 4rem; /* 64px, to sit below the header */
-  left: 0;
+  position: relative;
   width: 100%;
   overflow: hidden;
   height: 2.5rem; /* 40px */
@@ -10,7 +8,7 @@
   -webkit-backdrop-filter: blur(8px);
   padding-left: 100%;
   box-sizing: content-box;
-  z-index: 40; /* Below the header (z-50) */
+  z-index: 1;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* --color-border */
 }
 

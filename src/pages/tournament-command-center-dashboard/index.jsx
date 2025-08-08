@@ -1,6 +1,8 @@
 // ...existing code...
 // File: TournamentCommandCenterDashboard.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import TournamentTicker from '../../components/TournamentTicker';
+// ...existing code...
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../../components/ui/Header';
@@ -130,6 +132,63 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
 });
 
 const TournamentCommandCenterDashboard = () => {
+  // Announcements for ticker
+  const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
+
+  // Fetch latest announcements for ticker
+  useEffect(() => {
+    if (!tournamentInfo?.id) return;
+    let isMounted = true;
+    const fetchAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('tournament_id', tournamentInfo.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      if (!error && isMounted) setTickerAnnouncements(data || []);
+    };
+    fetchAnnouncements();
+    // Listen for real-time updates
+    const channel = supabase
+      .channel(`ticker-announcements-${tournamentInfo.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements', filter: `tournament_id=eq.${tournamentInfo.id}` }, fetchAnnouncements)
+      .subscribe();
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [tournamentInfo?.id]);
+
+  // Interleave announcements and results for ticker
+  const tickerMessages = useMemo(() => {
+    const ann = (tickerAnnouncements || []).map(a => ({ type: 'announcement', text: a.message }));
+    const res = (recentResults || []).slice(0, 10).map(r => {
+      if (r.score1 > r.score2) {
+        return { type: 'result', text: `LATEST: ${r.player1_name} defeated ${r.player2_name} ${r.score1} - ${r.score2}` };
+      } else if (r.score2 > r.score1) {
+        return { type: 'result', text: `LATEST: ${r.player2_name} defeated ${r.player1_name} ${r.score2} - ${r.score1}` };
+      } else {
+        return { type: 'result', text: `LATEST: ${r.player1_name} and ${r.player2_name} drew ${r.score1} - ${r.score2}` };
+      }
+    });
+    // Interleave: announcement, result, announcement, result, ...
+    const out = [];
+    const maxLen = Math.max(ann.length, res.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (ann[i]) out.push(ann[i]);
+      if (res[i]) out.push(res[i]);
+    }
+    return out;
+  }, [tickerAnnouncements, recentResults]);
+
+  // Render ticker at the top of the dashboard
+  // Place just below header, similar to public page
+  const TickerBar = () => (
+    <div className="sticky top-0 z-[90] w-full">
+      <TournamentTicker messages={tickerMessages} />
+    </div>
+  );
   const { tournamentSlug } = useParams();
   const [players, setPlayers] = useState([]);
   const [recentResults, setRecentResults] = useState([]);
@@ -1039,6 +1098,7 @@ const TournamentCommandCenterDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <TickerBar />
       <Toaster position="top-right" richColors />
       <ConfirmationModal
           isOpen={showUnpairModal}
