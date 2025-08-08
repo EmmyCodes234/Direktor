@@ -13,33 +13,57 @@ import ScoreEntryModal from './components/ScoreEntryModal';
 import PlayerStatsModal from '../../components/PlayerStatsModal';
 import PendingResults from './components/PendingResults';
 import ConfirmationModal from '../../components/ConfirmationModal';
-// Simple audit log modal
-const AuditLogModal = ({ isOpen, onClose, log }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose} aria-modal="true" role="dialog">
-        <motion.div initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="glass-card w-full max-w-xl mx-4 p-6" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
-            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
-              <ul className="space-y-2">
-                {log.map((entry, i) => (
-                  <li key={i} className="p-2 bg-muted/10 rounded text-sm">
-                    <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br/>
-                    <span>{entry.action}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+// Responsive Audit Log Modal: bottom sheet on mobile, right drawer on desktop
+const AuditLogModal = ({ isOpen, onClose, log }) => {
+  // Use a media query to determine if desktop
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:justify-end bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+          aria-modal="true"
+          role="dialog"
+        >
+          <motion.div
+            initial={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+            animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }}
+            exit={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={
+              isDesktop
+                ? 'glass-card w-full max-w-md h-full md:h-auto md:max-h-[90vh] md:rounded-l-xl shadow-xl p-6 md:mr-0 md:mt-0 md:mb-0 md:ml-0 md:rounded-none border-l border-border flex flex-col'
+                : 'glass-card w-full max-w-lg mx-auto rounded-t-xl shadow-xl p-6 pb-8 mb-0 border-t border-border flex flex-col'
+            }
+            style={isDesktop ? { height: '100vh', maxHeight: '90vh', marginRight: 0 } : {}}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0 max-h-[60vh] md:max-h-[70vh]">
+              {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
+                <ul className="space-y-2">
+                  {log.map((entry, i) => (
+                    <li key={i} className="p-2 bg-muted/10 rounded text-sm">
+                      <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br/>
+                      <span>{entry.action}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
+      )}
+    </AnimatePresence>
+  );
+};
 import { Toaster, toast } from 'sonner';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
@@ -131,7 +155,30 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   }
 });
 
+
 const TournamentCommandCenterDashboard = () => {
+  // Always get tournamentSlug first so it is available for all logic below
+  const { tournamentSlug } = useParams();
+
+  // --- Move all useState declarations above useEffect to avoid TDZ ---
+  const [players, setPlayers] = useState([]);
+  const [recentResults, setRecentResults] = useState([]);
+  const [tournamentInfo, setTournamentInfo] = useState(null);
+  const [pendingResults, setPendingResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState({ isOpen: false, existingResult: null });
+  const [showAuditLog, setShowAuditLog] = useState(false);
+  const [auditLog, setAuditLog] = useState([]);
+  const [pendingScoreAction, setPendingScoreAction] = useState(null); // For confirmation dialog
+  const [activeMatchup, setActiveMatchup] = useState(null);
+  const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [showUnpairModal, setShowUnpairModal] = useState(false);
+  const navigate = useNavigate();
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  const [playerStatsMap, setPlayerStatsMap] = useState(new Map());
   // Announcements for ticker
   const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
 
@@ -189,25 +236,7 @@ const TournamentCommandCenterDashboard = () => {
       <TournamentTicker messages={tickerMessages} />
     </div>
   );
-  const { tournamentSlug } = useParams();
-  const [players, setPlayers] = useState([]);
-  const [recentResults, setRecentResults] = useState([]);
-  const [tournamentInfo, setTournamentInfo] = useState(null);
-  const [pendingResults, setPendingResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showScoreModal, setShowScoreModal] = useState({ isOpen: false, existingResult: null });
-  const [showAuditLog, setShowAuditLog] = useState(false);
-  const [auditLog, setAuditLog] = useState([]);
-  const [pendingScoreAction, setPendingScoreAction] = useState(null); // For confirmation dialog
-  const [activeMatchup, setActiveMatchup] = useState(null);
-  const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
-  const [teams, setTeams] = useState([]);
-  const [matches, setMatches] = useState([]);
-  const [showUnpairModal, setShowUnpairModal] = useState(false);
-  const navigate = useNavigate();
-  const isDesktop = useMediaQuery('(min-width: 768px)');
-  const [playerStatsMap, setPlayerStatsMap] = useState(new Map());
+  // ...existing code...
 
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentSlug) {
@@ -1140,10 +1169,20 @@ const TournamentCommandCenterDashboard = () => {
           matches={matches}
       />
       <main className="pt-20 pb-24 sm:pb-8">
+        {/* Floating Audit Log Button: always visible, subtle, only opens modal when clicked */}
         <div className="fixed bottom-4 right-4 z-40">
-          <Button variant="outline" onClick={() => setShowAuditLog(true)} aria-label="Open audit log">
-            <Icon name="ClipboardList" className="mr-2" /> Audit Log
-          </Button>
+          <motion.button
+            className="rounded-full bg-background/80 shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background/95 focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all"
+            style={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.12)' }}
+            onClick={() => setShowAuditLog(true)}
+            aria-label="Open audit log"
+            initial={{ opacity: 0.7, scale: 1 }}
+            whileHover={{ opacity: 1, scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Icon name="ClipboardList" className="mr-2" />
+            <span className="hidden sm:inline">Audit Log</span>
+          </motion.button>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
             {isDesktop ? (
