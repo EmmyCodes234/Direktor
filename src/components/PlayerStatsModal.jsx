@@ -128,13 +128,20 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                         return (
                             <div key={match.id} className="p-3 bg-muted/10 rounded-lg">
                                 <p className="font-semibold text-foreground">Round {match.round} vs {opponent?.name}</p>
-                                {matchResults.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((r, index) => (
+                                {matchResults.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((r, index) => {
+                                  // Disable edit if match is complete
+                                  const matchObj = allMatches?.find(m => m.id === r.match_id);
+                                  const isMatchComplete = matchObj && (matchObj.status === 'complete' || matchObj.winner_id);
+                                  return (
                                     <div key={r.id} className="flex justify-between items-center text-sm ml-4 mt-2 p-2 rounded-md hover:bg-muted/20">
                                         <span className="font-medium text-muted-foreground">Game {index + 1}</span>
                                         <span className="font-mono text-foreground">{r.score1} - {r.score2}</span>
-                                        <Button size="xs" variant="ghost" onClick={() => onEditResult(r)}>Edit</Button>
+                                        <Button size="xs" variant="ghost" onClick={() => onEditResult(r)} disabled={isMatchComplete} aria-disabled={isMatchComplete} aria-label={isMatchComplete ? 'Match complete' : 'Edit result'}>
+                                          Edit
+                                        </Button>
                                     </div>
-                                ))}
+                                  );
+                                })}
                             </div>
                         )
                     })

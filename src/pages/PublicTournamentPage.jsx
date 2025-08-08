@@ -61,9 +61,89 @@ const PublicTournamentPage = () => {
     const rosterRef = useRef(null);
     const prizesRef = useRef(null);
 
-    const recalculateRanks = useCallback((playerList, tournamentType) => {
+    // Always recalculate player stats from results and matches for live standings
+    const recalculateRanks = useCallback((playerList, tournamentType, resultsList, matchesList) => {
         if (!playerList) return [];
-        return [...playerList].sort((a, b) => {
+        let enrichedPlayers = playerList;
+        if (tournamentType === 'best_of_league') {
+        // Calculate match_wins by grouping results by match-up and counting majority wins
+        const bestOf = 15; // Default to 15, or get from tournament settings if available
+        const majority = Math.floor(bestOf / 2) + 1;
+        // Build a map of match-ups: key = sorted player ids, value = array of results
+        const matchupMap = {};
+        (resultsList || []).forEach(result => {
+            if (!result.player1_id || !result.player2_id) return;
+            const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
+            const key = ids.join('-');
+            if (!matchupMap[key]) matchupMap[key] = [];
+            matchupMap[key].push(result);
+        });
+        enrichedPlayers = playerList.map(player => {
+            let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
+            // Calculate per-game stats
+            (resultsList || []).forEach(result => {
+                if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                    let isP1 = result.player1_id === player.player_id;
+                    let myScore = isP1 ? result.score1 : result.score2;
+                    let oppScore = isP1 ? result.score2 : result.score1;
+                    if (myScore > oppScore) wins++;
+                    else if (myScore < oppScore) losses++;
+                    else ties++;
+                    spread += (myScore - oppScore);
+                }
+            });
+            // Calculate match_wins: for each match-up, if player has majority, count as match win
+            Object.entries(matchupMap).forEach(([key, results]) => {
+                // Only consider match-ups where this player participated
+                if (!key.split('-').includes(String(player.player_id))) return;
+                // Count games won by each player in this match-up
+                const [id1, id2] = key.split('-').map(Number);
+                let p1Wins = 0, p2Wins = 0;
+                results.forEach(r => {
+                    if (r.score1 > r.score2) {
+                        if (r.player1_id === id1) p1Wins++;
+                        else p2Wins++;
+                    } else if (r.score2 > r.score1) {
+                        if (r.player2_id === id1) p1Wins++;
+                        else p2Wins++;
+                    }
+                });
+                if (id1 === player.player_id && p1Wins >= majority) match_wins++;
+                if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+            });
+            return {
+                ...player,
+                wins,
+                losses,
+                ties,
+                spread,
+                match_wins
+            };
+        });
+        } else {
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0;
+                (resultsList || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        spread += (myScore - oppScore);
+                    }
+                });
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread
+                };
+            });
+        }
+        return [...enrichedPlayers].sort((a, b) => {
             if (tournamentType === 'best_of_league') {
                 if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
             }
@@ -72,58 +152,64 @@ const PublicTournamentPage = () => {
         }).map((player, index) => ({ ...player, rank: index + 1 }));
     }, []);
 
-    useEffect(() => {
-        const fetchPublicData = async () => {
-            if (!tournamentSlug) { setLoading(false); return; }
-            setLoading(true);
-            
-            try {
-                const { data: tournamentData, error: tErr } = await supabase
-                    .from('tournaments')
-                    .select(`*`)
-                    .eq('slug', tournamentSlug)
-                    .single();
-
-                if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
-                
-                setTournament(tournamentData);
-
-                const { data: tournamentPlayersData, error: tpError } = await supabase
-                    .from('tournament_players')
-                    .select(`*, players(id, name, rating, photo_url, slug)`)
-                    .eq('tournament_id', tournamentData.id);
-
-                if (tpError) throw tpError;
-
-                const combinedPlayers = tournamentPlayersData.map(tp => ({
-                    ...tp.players,
-                    ...tp
-                }));
-
-                setPlayers(recalculateRanks(combinedPlayers, tournamentData.type));
-
-                const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}] = await Promise.all([
-                    supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
-                    supabase.from('teams').select('id, name').eq('tournament_id', tournamentData.id),
-                    supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true }),
-                    supabase.from('matches').select('*').eq('tournament_id', tournamentData.id).order('round', { ascending: true })
-                ]);
-
-                setResults(resultsData || []);
-                setTeams(teamsData || []);
-                setPrizes(prizesData || []);
-                setMatches(matchesData || []);
-
-            } catch (error) {
-                console.error("Error fetching public data:", error);
-                toast.error("Failed to load tournament data. The link may be incorrect or the tournament was not found.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPublicData();
-        
+    // Fetch and refresh public data
+    const fetchPublicData = useCallback(async () => {
+        if (!tournamentSlug) { setLoading(false); return; }
+        setLoading(true);
+        try {
+            const { data: tournamentData, error: tErr } = await supabase
+                .from('tournaments')
+                .select(`*`)
+                .eq('slug', tournamentSlug)
+                .single();
+            if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
+            setTournament(tournamentData);
+            const { data: tournamentPlayersData, error: tpError } = await supabase
+                .from('tournament_players')
+                .select(`*, players(id, name, rating, photo_url, slug)`)
+                .eq('tournament_id', tournamentData.id);
+            if (tpError) throw tpError;
+            const combinedPlayers = tournamentPlayersData.map(tp => ({
+                ...tp.players,
+                ...tp
+            }));
+            const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}] = await Promise.all([
+                supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
+                supabase.from('teams').select('id, name').eq('tournament_id', tournamentData.id),
+                supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true }),
+                supabase.from('matches').select('*').eq('tournament_id', tournamentData.id).order('round', { ascending: true })
+            ]);
+            setPlayers(recalculateRanks(combinedPlayers, tournamentData.type, resultsData || [], matchesData || []));
+            setResults(resultsData || []);
+            setTeams(teamsData || []);
+            setPrizes(prizesData || []);
+            setMatches(matchesData || []);
+        } catch (error) {
+            console.error("Error fetching public data:", error);
+            toast.error("Failed to load tournament data. The link may be incorrect or the tournament was not found.");
+        } finally {
+            setLoading(false);
+        }
     }, [tournamentSlug, recalculateRanks]);
+
+    // Initial fetch
+    useEffect(() => {
+        fetchPublicData();
+    }, [fetchPublicData]);
+
+    // Real-time updates
+    useEffect(() => {
+        if (!tournament) return;
+        const channel = supabase.channel(`public-tournament-updates-${tournament.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchPublicData)
+            .subscribe();
+        return () => {
+            if (channel) supabase.removeChannel(channel);
+        };
+    }, [tournament, fetchPublicData]);
 
     const handlePlayerClick = (e, player) => {
         e.preventDefault();

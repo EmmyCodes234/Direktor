@@ -326,129 +326,86 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     return tournamentInfo?.type === 'best_of_league' && matches.length > 0;
   }, [tournamentInfo, matches]);
 
-  return (
-    <div className="glass-card p-6">
-      <h2 className="font-heading font-semibold text-xl text-foreground mb-4">
-        Command Deck
-      </h2>
-      <AnimatePresence mode="wait">
-        <motion.div
-            key={isPaired || isLeagueGenerated ? 'paired' : 'unpaired'}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.2 }}
-        >
-          {!isPaired && tournamentInfo?.type !== 'best_of_league' ? (
-              <div className="text-center">
-                  <Button
-                      size="lg"
-                      onClick={handlePairCurrentRound}
-                      loading={isLoading}
-                      disabled={!players || players.length < 2}
-                      className="w-full shadow-glow animate-pulse-bright mb-2"
-                  >
-                      Pair & Start Round {tournamentInfo.currentRound || 1}
-                  </Button>
-              </div>
-          ) : tournamentInfo?.type === 'best_of_league' ? (
-             isLeagueGenerated ? (
-                <div>
-                    <h3 className="font-heading font-medium text-lg text-foreground mb-4">
-                      Match Terminal - Round {tournamentInfo.currentRound}
-                    </h3>
-                    <div className="space-y-3">
-                        {matches.map(match => {
-                            const player1 = players.find(p => p.player_id === match.player1_id);
-                            const player2 = players.find(p => p.player_id === match.player2_id);
-                            return (
-                                <div key={match.id} className="glass-card p-3 rounded-md flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="text-sm">
-                                            <span className="font-medium text-foreground">{player1?.name}</span>
-                                            <span className="font-bold text-primary mx-2">{match.player1_wins}</span>
-                                            <span className="text-muted-foreground mx-2">vs</span>
-                                            <span className="font-bold text-primary mx-2">{match.player2_wins}</span>
-                                            <span className="font-medium text-foreground">{player2?.name}</span>
-                                        </div>
-                                    </div>
-                                    <Button size="sm" onClick={() => onEnterScore(match)}>
-                                        Enter Game Score
-                                    </Button>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            ) : (
-                <div className="text-center">
-                    <Button size="lg" onClick={generateFullLeagueSchedule} loading={isLoading} className="w-full shadow-glow">
-                        Generate League Matches
-                    </Button>
-                </div>
-            )
-          ) : (
-               <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-heading font-medium text-lg text-foreground">
-                      Pairings for Round {tournamentInfo.currentRound}
-                    </h3>
-                    <Button variant="destructive" size="sm" onClick={onUnpairRound}>
-                        <Icon name="Undo2" size={14} className="mr-2"/>
-                        Unpair Round
-                    </Button>
-                  </div>
-                  <div className="space-y-3">
-                      {currentPairings.map((pairing, index) => {
-                          const player1 = players.find(p => p.name === pairing.player1.name);
-                          const player2 = players.find(p => p.name === pairing.player2.name);
-                          const existingResult = recentResults.find(r => 
-                            r.round === tournamentInfo.currentRound &&
-                            ((r.player1_name === player1?.name && r.player2_name === player2?.name) ||
-                             (r.player1_name === player2?.name && r.player2_name === player1?.name))
-                          );
 
-                          return (
-                              <div key={`${pairing.table}-${index}`} className="glass-card p-3 rounded-md flex items-center justify-between">
-                                  <div className="flex items-center space-x-4">
-                                      <div className="flex items-center justify-center w-12 h-12 bg-primary/10 border border-primary/20 rounded-md shrink-0">
-                                          <span className="font-mono font-bold text-primary text-lg">{pairing.table}</span>
-                                      </div>
-                                      <div className="text-sm">
-                                          <div className="flex items-center gap-2">
-                                              {pairing.player1.starts && <Icon name="Play" size={14} className="text-primary"/>}
-                                              <span className="font-medium text-foreground">{player1?.name}</span>
-                                              <span className="text-muted-foreground">(#{player1?.rank})</span>
-                                          </div>
-                                          {pairing.division && <div className="my-1 pl-6 text-xs font-semibold text-accent">{pairing.division}</div>}
-                                          {!pairing.division && <div className="my-1 pl-6 text-xs font-semibold text-muted-foreground">vs</div>}
-                                          <div className="flex items-center gap-2">
-                                              {pairing.player2.starts && <Icon name="Play" size={14} className="text-primary"/>}
-                                              <span className="font-medium text-foreground">{player2?.name}</span>
-                                              <span className="text-muted-foreground">{player2 ? `(#${player2?.rank})` : ''}</span>
-                                          </div>
-                                      </div>
-                                  </div>
-                                  {pairing.player2.name !== 'BYE' && (
-                                    <Button 
-                                        size="sm" 
-                                        variant={existingResult ? 'outline' : 'default'} 
-                                        onClick={() => onEnterScore({ ...pairing, round: tournamentInfo.currentRound }, existingResult)}
-                                    >
-                                        <Icon name={existingResult ? 'Edit' : 'ClipboardEdit'} size={16} className="mr-2"/>
-                                        {existingResult ? 'Edit Score' : 'Enter Score'}
-                                    </Button>
-                                  )}
-                              </div>
-                          )
-                      })}
-                  </div>
-              </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
+  // Group matches by unique player pairs (to avoid duplicate entries for the same match-up)
+  const matchMap = new Map();
+  if (matches && Array.isArray(matches)) {
+    matches.forEach(match => {
+      // Create a unique key for the match-up (order-independent)
+      const key = [match.player1_id, match.player2_id].sort().join('-');
+      matchMap.set(key, match);
+    });
+  }
+
+  // For each match-up, count the number of game wins for each player
+  function getGameWins(match) {
+    let p1Wins = 0, p2Wins = 0;
+    if (recentResults && Array.isArray(recentResults)) {
+      recentResults.filter(r => r.match_id === match.id).forEach(r => {
+        if (r.score1 > r.score2 && r.player1_id === match.player1_id) p1Wins++;
+        else if (r.score2 > r.score1 && r.player2_id === match.player2_id) p2Wins++;
+        else if (r.score1 > r.score2 && r.player2_id === match.player1_id) p1Wins++;
+        else if (r.score2 > r.score1 && r.player1_id === match.player2_id) p2Wins++;
+      });
+    }
+    return { p1Wins, p2Wins };
+  }
+
+  const bestOfValue = Math.ceil(tournamentInfo.best_of_value / 2);
+  const groupedMatches = Array.from(matchMap.values());
+
+  if (tournamentInfo?.type === 'best_of_league') {
+    if (isLeagueGenerated) {
+      // Only show matches for the current round, and deduplicate by player pair (order-independent)
+      const matchPairMap = new Map();
+      groupedMatches.forEach(match => {
+        if (match.round !== tournamentInfo.currentRound) return;
+        const key = [match.player1_id, match.player2_id].sort().join('-');
+        if (!matchPairMap.has(key)) {
+          const player1 = players.find(p => p.player_id === match.player1_id);
+          const player2 = players.find(p => p.player_id === match.player2_id);
+          matchPairMap.set(key, {
+            ...match,
+            player1_name: player1 ? player1.name : 'Unknown',
+            player2_name: player2 ? player2.name : 'Unknown',
+          });
+        }
+      });
+      const dedupedMatches = Array.from(matchPairMap.values());
+      return (
+        <div className="glass-card p-4 mt-4">
+          <h3 className="font-heading font-medium text-lg text-foreground mb-4">
+            Match Terminal - Round {tournamentInfo.currentRound}
+          </h3>
+          <div className="space-y-3">
+            {dedupedMatches.map((match) => {
+              const { p1Wins, p2Wins } = getGameWins(match);
+              const matchComplete = p1Wins >= bestOfValue || p2Wins >= bestOfValue || match.status === 'complete';
+              return (
+                <div key={match.id} className="mb-4 p-2 border rounded flex items-center justify-between">
+                  <span>
+                    {match.player1_name} <b style={{ color: p1Wins > p2Wins ? '#3b82f6' : undefined }}>{p1Wins}</b> vs <b style={{ color: p2Wins > p1Wins ? '#3b82f6' : undefined }}>{p2Wins}</b> {match.player2_name}
+                  </span>
+                  <Button onClick={() => onEnterScore(match)} disabled={matchComplete}>
+                    {matchComplete ? 'Match Complete' : 'Enter Game Score'}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="glass-card p-4 mt-4 text-center">
+          <Button size="lg" onClick={generateFullLeagueSchedule} loading={isLoading} className="w-full shadow-glow">
+            Generate League Matches
+          </Button>
+        </div>
+      );
+    }
+  }
+  // ...existing code for other tournament types...
 };
 
 

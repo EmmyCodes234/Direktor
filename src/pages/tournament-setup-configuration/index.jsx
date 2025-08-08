@@ -276,6 +276,8 @@ const TournamentSetupConfiguration = () => {
                     seed: index + 1,
                     rank: index + 1,
                     division: division ? division.name : null,
+                    match_wins: 0,
+                    match_losses: 0
                 };
             });
         

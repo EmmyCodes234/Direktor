@@ -194,7 +194,9 @@ const PlayerManagementRosterControl = () => {
                 tournament_id: tournamentInfo.id,
                 player_id: playerId,
                 seed: players.length + 1,
-                rank: players.length + 1
+                rank: players.length + 1,
+                match_wins: 0,
+                match_losses: 0
             });
         
         if (joinError) {

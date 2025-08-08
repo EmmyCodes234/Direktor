@@ -5,13 +5,18 @@ import Input from '../../../components/ui/Input';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingResult, tournamentType }) => {
+
+
+const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingResult, tournamentType, currentMatchScore }) => {
   const [score1, setScore1] = useState('');
   const [score2, setScore2] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const isEditing = !!existingResult;
   const isBestOfLeague = tournamentType === 'best_of_league';
+
+  // Defensive: always use an object for currentMatchScore
+  const safeCurrentMatchScore = currentMatchScore && typeof currentMatchScore === 'object' ? currentMatchScore : {};
 
   useEffect(() => {
     if (isOpen) {
@@ -20,7 +25,14 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
     }
   }, [isOpen, isEditing, existingResult]);
 
-  if (!matchup) return null;
+  // Defensive: only render if matchup is valid and has player info (AFTER all hooks)
+  if (!matchup || (!matchup.player1 && !matchup.player1_name) || (!matchup.player2 && !matchup.player2_name)) return null;
+
+  // Prevent submission if match is complete (best-of-league)
+  const isMatchComplete = isBestOfLeague && matchup.status === 'complete';
+
+  const player1Name = isBestOfLeague ? matchup.player1_name : (matchup.player1?.name || '');
+  const player2Name = isBestOfLeague ? matchup.player2_name : (matchup.player2?.name || '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,16 +41,14 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       return;
     }
     setIsLoading(true);
-    
     const resultPayload = {
-      player1: isBestOfLeague ? matchup.player1_name : matchup.player1.name,
-      player2: isBestOfLeague ? matchup.player2_name : matchup.player2.name,
+      player1: player1Name,
+      player2: player2Name,
       score1: parseInt(score1, 10),
       score2: parseInt(score2, 10),
       id: isEditing ? existingResult.id : undefined,
       match_id: isBestOfLeague ? matchup.id : undefined,
     };
-
     try {
       await onResultSubmit(resultPayload, isEditing);
       onClose();
@@ -48,9 +58,6 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       setIsLoading(false);
     }
   };
-
-  const player1Name = isBestOfLeague ? matchup.player1_name : matchup.player1.name;
-  const player2Name = isBestOfLeague ? matchup.player2_name : matchup.player2.name;
 
   return (
     <AnimatePresence>
@@ -77,13 +84,21 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                 </h2>
                 <p className="text-sm text-muted-foreground">Round {matchup.round}</p>
                 {isBestOfLeague && (
-                    <div className="mt-2 text-center bg-muted/20 p-2 rounded-lg">
-                        <span className="font-medium text-foreground">{player1Name}</span>
-                        <span className="font-bold text-primary mx-2">{matchup.player1_wins}</span>
-                        <span className="text-muted-foreground mx-2">vs</span>
-                        <span className="font-bold text-primary mx-2">{matchup.player2_wins}</span>
-                        <span className="font-medium text-foreground">{player2Name}</span>
-                    </div>
+                  <div className="mt-2 text-center bg-muted/20 p-2 rounded-lg">
+                    <span className="font-medium text-foreground">{player1Name}</span>
+                    <span className="font-bold text-primary mx-2">
+                      {safeCurrentMatchScore[player1Name] !== undefined
+                        ? safeCurrentMatchScore[player1Name]
+                        : 0}
+                    </span>
+                    <span className="text-muted-foreground mx-2">vs</span>
+                    <span className="font-bold text-primary mx-2">
+                      {safeCurrentMatchScore[player2Name] !== undefined
+                        ? safeCurrentMatchScore[player2Name]
+                        : 0}
+                    </span>
+                    <span className="font-medium text-foreground">{player2Name}</span>
+                  </div>
                 )}
               </div>
               <div className="p-6 space-y-4">
@@ -111,7 +126,11 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
               </div>
               <div className="p-4 bg-muted/10 flex justify-end space-x-2 rounded-b-lg">
                 <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                <Button type="submit" loading={isLoading}>{isEditing ? 'Update Result' : 'Record Result'}</Button>
+                <Button type="submit" loading={isLoading} disabled={isMatchComplete} aria-disabled={isMatchComplete} aria-label={isMatchComplete ? 'Match complete' : (isEditing ? 'Update Result' : 'Record Result')}>
+                  {isMatchComplete ? (
+                    <span className="flex items-center"><Icon name="CheckCircle" size={16} className="mr-1" /> Match Complete</span>
+                  ) : isEditing ? 'Update Result' : 'Record Result'}
+                </Button>
               </div>
             </form>
           </motion.div>

@@ -9,6 +9,10 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const [viewMode, setViewMode] = useState('individual');
   const navigate = useNavigate();
   const isBestOfLeague = tournamentType === 'best_of_league';
+  
+  if (import.meta.env.DEV) {
+    console.log('StandingsTable received players:', players);
+  }
 
   const playersByDivision = useMemo(() => {
     return players.reduce((acc, player) => {
@@ -56,6 +60,12 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     onSelectPlayer(player);
   };
 
+  // Pagination for large player lists
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const totalPages = Math.ceil(sortedPlayers.length / pageSize);
+  const pagedPlayers = sortedPlayers.slice((page - 1) * pageSize, page * pageSize);
+
   const IndividualStandings = () => (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
@@ -70,30 +80,37 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
           </tr>
         </thead>
         <tbody>
-          {sortedPlayers.map((player) => {
-            // --- FIX STARTS HERE ---
-            // For 'best_of_league' formats, we calculate match wins on the fly.
-            // Assuming a "Best of 15" format where 8 game wins equal 1 match win.
-            const WINS_NEEDED_FOR_MATCH = 8;
-            const calculatedMatchWins = (player.wins || 0) >= WINS_NEEDED_FOR_MATCH ? 1 : 0;
-            // --- FIX ENDS HERE ---
-
+          {pagedPlayers.map((player) => {
+            // For best-of-league, completed if all matches are complete (match_wins + match_losses === total matches)
+            let isComplete = false;
+            let matchWins = 0;
+            let matchLosses = 0;
+            if (isBestOfLeague) {
+              const totalMatches = players.length - 1;
+              matchWins = typeof player.match_wins === 'string' ? parseInt(player.match_wins || 0, 10) : (player.match_wins || 0);
+              matchLosses = typeof player.match_losses === 'string' ? parseInt(player.match_losses || 0, 10) : (player.match_losses || 0);
+              isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
+            }
             return (
-              <tr key={player.id} className="border-b border-border/50 hover:bg-muted/5 transition-colors group">
-                <td className="p-4 font-mono font-bold text-lg text-primary">{player.rank}</td>
+              <tr key={player.id} className={`border-b border-border/50 hover:bg-muted/5 transition-colors group ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
+                aria-label={isComplete ? 'Player matches complete' : undefined}
+              >
+                <td className="p-4 font-mono font-bold text-lg text-primary flex items-center gap-2">
+                  {player.rank}
+                  {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
+                </td>
                 <td className="p-4 font-medium text-foreground">
                   <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
                     {player.name}
                   </a>
                 </td>
-                {/* Use the new calculated value instead of the raw data property */}
-                {isBestOfLeague && <td className="p-4 text-center font-mono">{calculatedMatchWins}</td>}
+                {isBestOfLeague && <td className="p-4 text-center font-mono">{matchWins}</td>}
                 <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
                 <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                   {player.spread > 0 ? '+' : ''}{player.spread || 0}
                 </td>
                 <td className="p-4 text-center">
-                  <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)}>
+                  <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)} aria-label="View player stats">
                     <Icon name="BarChartHorizontal" size={16} />
                   </Button>
                 </td>
@@ -102,6 +119,13 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
           })}
         </tbody>
       </table>
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</Button>
+          <span className="text-sm">Page {page} of {totalPages}</span>
+          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</Button>
+        </div>
+      )}
     </div>
   );
 
