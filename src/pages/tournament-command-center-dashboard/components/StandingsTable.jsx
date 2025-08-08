@@ -9,6 +9,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const [viewMode, setViewMode] = useState('individual');
   const navigate = useNavigate();
   const isBestOfLeague = tournamentType === 'best_of_league';
+  const isMobile = useMediaQuery('(max-width: 767px)');
   
   if (import.meta.env.DEV) {
     console.log('StandingsTable received players:', players);
@@ -66,22 +67,12 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const totalPages = Math.ceil(sortedPlayers.length / pageSize);
   const pagedPlayers = sortedPlayers.slice((page - 1) * pageSize, page * pageSize);
 
-  const IndividualStandings = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
-            <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
-            {isBestOfLeague && <th className="p-4 w-[15%] text-center font-semibold text-foreground">Match Wins</th>}
-            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Record (W-L-T)</th>
-            <th className="p-4 w-[15%] text-center font-semibold text-foreground">Spread</th>
-            <th className="p-4 w-[10%] text-center font-semibold text-foreground">Stats</th>
-          </tr>
-        </thead>
-        <tbody>
+  const IndividualStandings = () => {
+    if (isMobile) {
+      // Card layout for mobile
+      return (
+        <div className="flex flex-col gap-4 p-2">
           {pagedPlayers.map((player) => {
-            // For best-of-league, completed if all matches are complete (match_wins + match_losses === total matches)
             let isComplete = false;
             let matchWins = 0;
             let matchLosses = 0;
@@ -92,42 +83,102 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
             }
             return (
-              <tr key={player.id} className={`border-b border-border/50 hover:bg-muted/5 transition-colors group ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
+              <div key={player.id} className={`rounded-lg border border-border bg-background shadow-sm p-4 flex flex-col gap-2 ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
                 aria-label={isComplete ? 'Player matches complete' : undefined}
               >
-                <td className="p-4 font-mono font-bold text-lg text-primary flex items-center gap-2">
-                  {player.rank}
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-lg text-primary">{player.rank}</span>
+                  <span className="font-medium text-foreground flex-1">
+                    <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">{player.name}</a>
+                  </span>
                   {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
-                </td>
-                <td className="p-4 font-medium text-foreground">
-                  <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
-                    {player.name}
-                  </a>
-                </td>
-                {isBestOfLeague && <td className="p-4 text-center font-mono">{matchWins}</td>}
-                <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
-                <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {player.spread > 0 ? '+' : ''}{player.spread || 0}
-                </td>
-                <td className="p-4 text-center">
                   <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)} aria-label="View player stats">
                     <Icon name="BarChartHorizontal" size={16} />
                   </Button>
-                </td>
-              </tr>
+                </div>
+                <div className="flex flex-wrap gap-3 text-sm mt-1">
+                  {isBestOfLeague && (
+                    <div><span className="font-semibold">Match Wins:</span> <span className="font-mono">{matchWins}</span></div>
+                  )}
+                  <div><span className="font-semibold">Record:</span> <span className="font-mono">{getRecordDisplay(player)}</span></div>
+                  <div><span className="font-semibold">Spread:</span> <span className={`font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{player.spread > 0 ? '+' : ''}{player.spread || 0}</span></div>
+                </div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</Button>
-          <span className="text-sm">Page {page} of {totalPages}</span>
-          <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</Button>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-2">
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</Button>
+              <span className="text-sm">Page {page} of {totalPages}</span>
+              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</Button>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+      );
+    }
+    // Table layout for desktop
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
+              <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
+              {isBestOfLeague && <th className="p-4 w-[15%] text-center font-semibold text-foreground">Match Wins</th>}
+              <th className="p-4 w-[20%] text-center font-semibold text-foreground">Record (W-L-T)</th>
+              <th className="p-4 w-[15%] text-center font-semibold text-foreground">Spread</th>
+              <th className="p-4 w-[10%] text-center font-semibold text-foreground">Stats</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedPlayers.map((player) => {
+              let isComplete = false;
+              let matchWins = 0;
+              let matchLosses = 0;
+              if (isBestOfLeague) {
+                const totalMatches = players.length - 1;
+                matchWins = typeof player.match_wins === 'string' ? parseInt(player.match_wins || 0, 10) : (player.match_wins || 0);
+                matchLosses = typeof player.match_losses === 'string' ? parseInt(player.match_losses || 0, 10) : (player.match_losses || 0);
+                isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
+              }
+              return (
+                <tr key={player.id} className={`border-b border-border/50 hover:bg-muted/5 transition-colors group ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
+                  aria-label={isComplete ? 'Player matches complete' : undefined}
+                >
+                  <td className="p-4 font-mono font-bold text-lg text-primary flex items-center gap-2">
+                    {player.rank}
+                    {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
+                  </td>
+                  <td className="p-4 font-medium text-foreground">
+                    <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
+                      {player.name}
+                    </a>
+                  </td>
+                  {isBestOfLeague && <td className="p-4 text-center font-mono">{matchWins}</td>}
+                  <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
+                  <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {player.spread > 0 ? '+' : ''}{player.spread || 0}
+                  </td>
+                  <td className="p-4 text-center">
+                    <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)} aria-label="View player stats">
+                      <Icon name="BarChartHorizontal" size={16} />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-4">
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</Button>
+            <span className="text-sm">Page {page} of {totalPages}</span>
+            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</Button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const TeamStandings = () => (
     <div className="overflow-x-auto">
