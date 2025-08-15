@@ -51,14 +51,30 @@ const TournamentSetupConfiguration = () => {
     const planEndDate = query.get('end_date');
     const planType = query.get('type');
 
+    // Validate date format before setting
+    const validateDate = (dateStr) => {
+      if (!dateStr) return '';
+      // Check if it's in YYYY-MM-DD format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateStr)) {
+        // Additional validation to ensure it's a real date
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          return dateStr;
+        }
+      }
+      console.warn('Invalid date format in URL parameter:', dateStr);
+      return '';
+    };
+
     setFormData(prev => ({
         ...prev,
         name: planName || prev.name,
         rounds: planRounds ? parseInt(planRounds, 10) : prev.rounds,
         venue: planVenue || prev.venue,
-        date: planDate || prev.date,
-        start_date: planStartDate || prev.start_date,
-        end_date: planEndDate || prev.end_date,
+        date: validateDate(planDate) || prev.date,
+        start_date: validateDate(planStartDate) || prev.start_date,
+        end_date: validateDate(planEndDate) || prev.end_date,
         type: planType || prev.type,
     }));
   }, [query]);
@@ -192,7 +208,15 @@ const TournamentSetupConfiguration = () => {
       }
     }
 
-    setFormData(prev => ({ ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length }));
+    setFormData(prev => {
+      const arePlayerIdsSame = prev.player_ids.length === finalPlayerIds.length &&
+                               prev.player_ids.every((id, index) => id === finalPlayerIds[index]);
+
+      if (arePlayerIdsSame) {
+          return prev; // No change, return previous state to prevent re-render
+      }
+      return { ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length };
+    });
     setIsReconciling(false);
     setIsLoading(false);
     toast.success("Roster finalized successfully!");
@@ -235,12 +259,56 @@ const TournamentSetupConfiguration = () => {
         
         const rounds = formData.type === 'best_of_league' ? formData.playerCount - 1 : formData.rounds;
 
+        // Sanitize all date fields to null if empty string or not a valid date
+        const sanitizeDate = (val) => {
+            if (typeof val !== 'string' || val.trim() === '') {
+                return null;
+            }
+            
+            // Check if the date string is in a valid format (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(val)) {
+                console.warn('Invalid date format:', val);
+                return null;
+            }
+            
+            // Additional validation to ensure it's a real date
+            const date = new Date(val);
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date value:', val);
+                return null;
+            }
+            
+            // Check if date is not in the past (allow today)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (date < today) {
+                console.warn('Date is in the past:', val);
+                // Don't return null here, just warn - some tournaments might be historical
+            }
+            
+            return val;
+        };
+        // Additional validation for league tournaments
+        if (formData.type === 'best_of_league') {
+            const startDate = sanitizeDate(formData.start_date);
+            const endDate = sanitizeDate(formData.end_date);
+            
+            if (startDate && endDate) {
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                if (end < start) {
+                    throw new Error('End date cannot be before start date for league tournaments.');
+                }
+            }
+        }
+
         const tournamentData = {
             name: formData.name,
             venue: formData.venue,
-            date: (formData.date && typeof formData.date === 'string' && formData.date.trim() !== '' ? formData.date : null),
-            start_date: (formData.start_date && typeof formData.start_date === 'string' && formData.start_date.trim() !== '' ? formData.start_date : null),
-            end_date: (formData.end_date && typeof formData.end_date === 'string' && formData.end_date.trim() !== '' ? formData.end_date : null),
+            date: sanitizeDate(formData.date),
+            start_date: sanitizeDate(formData.start_date),
+            end_date: sanitizeDate(formData.end_date),
             rounds: rounds,
             status: 'setup',
             playerCount: formData.playerCount,
@@ -251,8 +319,21 @@ const TournamentSetupConfiguration = () => {
             user_id: user.id, // Assign ownership
         };
         
-        console.log("GET request slug:", uniqueSlug);
-        console.log("POST request tournamentData:", tournamentData);
+        // Debug logging to help identify date issues
+        console.log('Tournament data being sent:', {
+            originalDates: {
+                date: formData.date,
+                start_date: formData.start_date,
+                end_date: formData.end_date
+            },
+            sanitizedDates: {
+                date: tournamentData.date,
+                start_date: tournamentData.start_date,
+                end_date: tournamentData.end_date
+            }
+        });
+        
+        // Tournament data prepared for submission
 
         const { data: newTournament, error: tournamentError } = await supabase
             .from('tournaments')
@@ -260,7 +341,14 @@ const TournamentSetupConfiguration = () => {
             .select('id, slug')
             .single();
 
-        if (tournamentError) throw tournamentError;
+        if (tournamentError) {
+            console.error('Tournament creation error:', tournamentError);
+            // Check if it's a date-related error
+            if (tournamentError.message && tournamentError.message.includes('date')) {
+                throw new Error(`Date format error: Please ensure all dates are in YYYY-MM-DD format. Error: ${tournamentError.message}`);
+            }
+            throw tournamentError;
+        }
 
         const { data: fetchedPlayerDetails, error: playerError } = await supabase
             .from('players')
@@ -286,8 +374,7 @@ const TournamentSetupConfiguration = () => {
         
         const { error: joinTableError } = await supabase
             .from('tournament_players')
-      .select('*')
-            .insert(seededPlayers);
+      .insert(seededPlayers);
             
         if (joinTableError) throw joinTableError;
         
