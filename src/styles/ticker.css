@@ -3,13 +3,13 @@
   width: 100%;
   overflow: hidden;
   height: 2.5rem; /* 40px */
-  background-color: rgba(17, 17, 17, 0.8); /* --color-background with opacity */
+  background-color: rgba(17, 17, 17, 0.6); /* --color-background with opacity */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   padding-left: 100%;
   box-sizing: content-box;
   z-index: 1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* --color-border */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* --color-border */
 }
 
 .ticker {

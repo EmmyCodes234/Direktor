@@ -14,7 +14,7 @@ const LandingPage = () => {
             opacity: 1,
             transition: {
                 staggerChildren: 0.2,
-                delayChildren: 0.3 // Delay child animations slightly after container appears
+                delayChildren: 0.3
             },
         },
     };
@@ -36,62 +36,92 @@ const LandingPage = () => {
             <ParticleBackground />
 
             <div className="relative z-10 flex flex-col flex-1">
-                {/* Header - Added backdrop-blur for glassmorphism effect */}
-                <header className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-md border-b border-primary/10 shadow-sm">
-                    <div className="flex items-center justify-between h-20 px-6 md:px-12 max-w-7xl mx-auto">
-                        <motion.h1
+                {/* Header */}
+                <header className="fixed top-0 left-0 right-0 z-50 glass-morphism safe-area-inset-top">
+                    <div className="flex items-center justify-between h-16 sm:h-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
+                        <motion.button
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.8 }}
-                            // Adjusted delay for header animation
-                            className="text-2xl md:text-3xl font-heading font-extrabold text-gradient cursor-pointer hover:scale-105 transition-transform"
+                            transition={{ duration: 0.4, delay: 0.2 }}
+                            className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold text-primary hover:scale-105 transition-transform focus-ring rounded-lg p-2"
                             onClick={() => navigate('/')}
+                            aria-label="Direktor home"
                         >
                             Direktor
-                        </motion.h1>
+                        </motion.button>
+                        
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5, delay: 0.8 }}
-                            // Adjusted delay for header animation
-                            className="flex items-center space-x-2"
+                            transition={{ duration: 0.4, delay: 0.2 }}
+                            className="flex items-center gap-2 sm:gap-3"
                         >
-                            <Button variant="ghost" onClick={() => navigate('/login')} className="hover:text-primary transition-colors">Login</Button>
-                            <Button onClick={() => navigate('/signup')} className="shadow-sm hover:shadow-md transition-shadow">Sign Up</Button>
+                            <Button 
+                                variant="ghost" 
+                                onClick={() => navigate('/login')} 
+                                className="hover:text-primary transition-colors focus-ring"
+                                size="sm"
+                            >
+                                Login
+                            </Button>
+                            <Button 
+                                onClick={() => navigate('/signup')} 
+                                className="shadow-glow hover:shadow-glow-hover transition-shadow"
+                                size="sm"
+                            >
+                                Sign Up
+                            </Button>
                         </motion.div>
                     </div>
                 </header>
 
-                {/* Main Hero Section */}
-                <main className="flex-1 flex items-center justify-center text-center px-6 pt-24 pb-12"> {/* Added pt for header offset */}
+                {/* Main Content */}
+                <main className="flex-1 flex items-center justify-center text-center px-4 sm:px-6 pt-20 sm:pt-24 pb-12 safe-area-inset-bottom">
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
                         className="max-w-4xl mx-auto"
                     >
-                        <motion.h2
+                        {/* Main Headline */}
+                        <motion.h1
                             variants={itemVariants}
-                            className="text-4xl md:text-6xl lg:text-7xl font-heading font-bold text-gradient leading-tight md:leading-tight"
+                            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-primary leading-tight mb-6"
                         >
-                            The Future of <br className="hidden sm:inline" /> Tournament Management
-                        </motion.h2>
+                            The Future of{' '}
+                            <br className="hidden sm:inline" />
+                            Tournament Management
+                        </motion.h1>
+
+                        {/* Description */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-lg md:text-xl text-muted-foreground mt-6 max-w-2xl mx-auto leading-relaxed"
+                            className="text-lg sm:text-xl md:text-2xl text-foreground max-w-3xl mx-auto leading-relaxed mb-8"
                         >
-                            Run Scrabble tournaments anywhere, anytime—without complex setup or downloads.
+                            Run Scrabble tournaments anywhere, anytime—without complex setup or downloads. 
                             Streamline your events with intuitive pairing, scoring, and ranking.
                         </motion.p>
+
+                        {/* CTA Buttons */}
                         <motion.div
                             variants={itemVariants}
-                            className="mt-10 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4"
+                            className="flex flex-col sm:flex-row items-center justify-center gap-4"
                         >
-                            <Button size="xl" className="w-full sm:w-auto shadow-glow animate-pulse-bright" onClick={() => navigate('/signup')}>
+                            <Button 
+                                size="xl" 
+                                className="w-full sm:w-auto shadow-glow hover:shadow-glow-hover min-w-[200px]" 
+                                onClick={() => navigate('/signup')}
+                            >
                                 Get Started for Free
                             </Button>
-                            <Button size="xl" variant="outline" className="w-full sm:w-auto border-primary/30 text-primary hover:bg-primary/10 transition-colors" onClick={() => navigate('/documentation')}>
-                                <Icon name="BookOpen" className="mr-2" />
+                            <Button 
+                                size="xl" 
+                                variant="ghost" 
+                                className="w-full sm:w-auto hover:bg-muted/10 transition-colors min-w-[200px]" 
+                                onClick={() => navigate('/documentation')}
+                                iconName="BookOpen"
+                                iconPosition="left"
+                            >
                                 Read the Docs
                             </Button>
                         </motion.div>
@@ -100,7 +130,7 @@ const LandingPage = () => {
 
                 {/* Footer */}
                 <footer className="py-8 text-center text-muted-foreground text-sm">
-                    <p>&copy; {new Date().getFullYear()} Direktor. All rights reserved.</p>
+                    <p>&copy; 2025 Direktor. All rights reserved.</p>
                 </footer>
             </div>
         </div>

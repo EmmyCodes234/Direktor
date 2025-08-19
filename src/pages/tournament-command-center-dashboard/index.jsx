@@ -76,12 +76,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   const { tournamentSlug } = useParams();
   
   if (import.meta.env.DEV) {
-    console.log('MainContent rendering with players:', players.map(p => ({
-      player_id: p.player_id,
-      name: p.name,
-      rank: p.rank,
-      match_wins: p.match_wins
-    })));
+    // MainContent rendering with players
   }
   
   const {
@@ -97,71 +92,158 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   } = handlers;
 
   return (
-    <div className="space-y-6">
-      <AnnouncementsManager />
-      <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="space-y-4">
+        <AnnouncementsManager />
+        <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
+      </div>
+      
+      {/* Pending Results Section */}
       {tournamentInfo?.is_remote_submission_enabled && (
-        <PendingResults pending={pendingResults} onApprove={handleApproveResult} onReject={handleRejectResult} />
+        <div className="mb-6">
+          <PendingResults pending={pendingResults} onApprove={handleApproveResult} onReject={handleRejectResult} />
+        </div>
       )}
+      {/* Tournament Control Section */}
       <AnimatePresence mode="wait">
-        <motion.div key={tournamentState} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
-          {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && <TournamentControl tournamentInfo={tournamentInfo} onRoundPaired={handleRoundPaired} players={players} onEnterScore={handleEnterScore} recentResults={recentResults} onUnpairRound={handleUnpairRound} matches={matches} />}
-          {tournamentState === 'ROUND_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="CheckCircle" size={48} className="mx-auto text-success mb-4" /> <h2 className="text-xl font-bold">Round {tournamentInfo.currentRound} Complete!</h2> <Button size="lg" className="shadow-glow mt-4" onClick={handleCompleteRound} loading={isSubmitting}> {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`} </Button> </div> )}
-          {tournamentState === 'TOURNAMENT_COMPLETE' && ( <div className="glass-card p-8 text-center"> <Icon name="Trophy" size={48} className="mx-auto text-warning mb-4" /> <h2 className="text-xl font-bold">Tournament Finished!</h2> <p className="text-muted-foreground mb-4">View the final reports on the reports page.</p> <Button size="lg" onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}>View Final Reports</Button> </div> )}
+        <motion.div 
+          key={tournamentState} 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          exit={{ opacity: 0, y: -20 }} 
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="space-y-6"
+        >
+          {(tournamentState === 'ROSTER_READY' || tournamentState === 'ROUND_IN_PROGRESS') && (
+            <TournamentControl 
+              tournamentInfo={tournamentInfo} 
+              onRoundPaired={handleRoundPaired} 
+              players={players} 
+              onEnterScore={handleEnterScore} 
+              recentResults={recentResults} 
+              onUnpairRound={handleUnpairRound} 
+              matches={matches} 
+            />
+          )}
+          
+          {tournamentState === 'ROUND_COMPLETE' && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="bg-card/90 backdrop-blur-sm p-12 text-center border border-success/20 bg-success/5 rounded-lg"
+            >
+              <Icon name="CheckCircle" size={64} className="mx-auto text-success mb-6" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">Round {tournamentInfo.currentRound} Complete!</h2>
+              <p className="text-muted-foreground mb-6">All matches have been played and results recorded.</p>
+              <Button 
+                size="lg" 
+                className="shadow-glow hover:shadow-glow-hover transition-all duration-200" 
+                onClick={handleCompleteRound} 
+                loading={isSubmitting}
+              >
+                {tournamentInfo.currentRound >= tournamentInfo.rounds ? 'Finish Tournament' : `Proceed to Round ${tournamentInfo.currentRound + 1}`}
+              </Button>
+            </motion.div>
+          )}
+          
+          {tournamentState === 'TOURNAMENT_COMPLETE' && (
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="bg-card/90 backdrop-blur-sm p-12 text-center border border-warning/20 bg-warning/5 rounded-lg"
+            >
+              <Icon name="Trophy" size={64} className="mx-auto text-warning mb-6" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">Tournament Finished!</h2>
+              <p className="text-muted-foreground mb-6">Congratulations! The tournament has been completed successfully.</p>
+              <Button 
+                size="lg" 
+                className="shadow-glow hover:shadow-glow-hover transition-all duration-200"
+                onClick={() => navigate(`/tournament/${tournamentSlug}/reports`)}
+              >
+                View Final Reports
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </AnimatePresence>
+            {/* Standings Section */}
       {(tournamentState === 'ROUND_IN_PROGRESS' || tournamentState === 'ROUND_COMPLETE' || tournamentState === 'TOURNAMENT_COMPLETE') && (
-        <>
-          {console.log('Rendering StandingsTable with players:', players)}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-heading font-bold text-foreground">
+              {tournamentInfo?.type === 'team' ? 'Team Standings' : 'Player Standings'}
+            </h2>
+            {tournamentInfo?.type === 'team' && (
+              <Button 
+                variant="outline" 
+                onClick={() => setShowTeamManager(true)}
+                className="shadow-sm hover:shadow-md transition-shadow"
+              >
+                <Icon name="Users" className="mr-2" />
+                Manage Teams
+              </Button>
+            )}
+          </div>
+          
           {tournamentInfo?.type === 'team' ? (
-            <>
-              <div className="flex justify-end mb-2">
-                <Button variant="outline" onClick={() => setShowTeamManager(true)}>
-                  Manage Teams
-                </Button>
-              </div>
-              <div className="overflow-x-auto my-6">
-                <table className="min-w-full border rounded-lg bg-white/80 shadow-lg">
-                  <thead className="bg-primary/10">
-                    <tr>
-                      <th className="px-3 py-2">Rank</th>
-                      <th className="px-3 py-2">Team</th>
-                      <th className="px-3 py-2">W</th>
-                      <th className="px-3 py-2">L</th>
-                      <th className="px-3 py-2">T</th>
-                      <th className="px-3 py-2">Ind. Wins</th>
-                      <th className="px-3 py-2">Spread</th>
-                      <th className="px-3 py-2">Players</th>
-                      <th className="px-3 py-2">Per Round</th>
+            <div className="bg-card/90 backdrop-blur-sm p-6 rounded-lg border border-border/20">
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="px-4 py-3 text-left font-semibold text-foreground">Rank</th>
+                      <th className="px-4 py-3 text-left font-semibold text-foreground">Team</th>
+                      <th className="px-4 py-3 text-center font-semibold text-foreground">W</th>
+                      <th className="px-4 py-3 text-center font-semibold text-foreground">L</th>
+                      <th className="px-4 py-3 text-center font-semibold text-foreground">T</th>
+                      <th className="px-4 py-3 text-center font-semibold text-foreground">Ind. Wins</th>
+                      <th className="px-4 py-3 text-center font-semibold text-foreground">Spread</th>
+                      <th className="px-4 py-3 text-left font-semibold text-foreground">Players</th>
+                      <th className="px-4 py-3 text-left font-semibold text-foreground">Per Round</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border/30">
                     {teamStandings.map(team => (
-                      <tr key={team.id} className="border-b last:border-0">
-                        <td className="px-3 py-2 font-bold text-center">{team.rank}</td>
-                        <td className="px-3 py-2 font-semibold flex items-center gap-2">
-                          {team.branding ? <img src={team.branding.logo} alt="logo" className="w-6 h-6 rounded-full" style={{ background: team.branding.color || '#eee' }} /> : <span className="inline-block w-6 h-6 rounded-full bg-gray-300" />}
-                          {team.name}
+                      <tr key={team.id} className="hover:bg-muted/5 transition-colors">
+                        <td className="px-4 py-3 font-bold text-center text-primary">{team.rank}</td>
+                        <td className="px-4 py-3 font-semibold flex items-center gap-3">
+                          {team.branding ? (
+                            <img src={team.branding.logo} alt="logo" className="w-8 h-8 rounded-full" style={{ background: team.branding.color || '#eee' }} />
+                          ) : (
+                            <span className="inline-block w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center">
+                              <Icon name="Users" size={16} className="text-muted-foreground" />
+                            </span>
+                          )}
+                          <span className="text-foreground">{team.name}</span>
                         </td>
-                        <td className="px-3 py-2 text-center">{team.teamWins}</td>
-                        <td className="px-3 py-2 text-center">{team.teamLosses}</td>
-                        <td className="px-3 py-2 text-center">{team.teamTies}</td>
-                        <td className="px-3 py-2 text-center">{team.individualWins}</td>
-                        <td className="px-3 py-2 text-center">{team.totalSpread}</td>
-                        <td className="px-3 py-2">
-                          <ul className="text-xs">
+                        <td className="px-4 py-3 text-center font-mono font-semibold">{team.teamWins}</td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold">{team.teamLosses}</td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold">{team.teamTies}</td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold">{team.individualWins}</td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold">{team.totalSpread > 0 ? `+${team.totalSpread}` : team.totalSpread}</td>
+                        <td className="px-4 py-3">
+                          <ul className="space-y-1">
                             {team.players.map(p => (
-                              <li key={p.player_id} className="flex items-center gap-1">
-                                <span className="font-mono">{p.name}</span>
-                                <span className="text-muted-foreground">({p.wins || 0}-{p.losses || 0}-{p.ties || 0}, {p.spread || 0})</span>
+                              <li key={p.player_id} className="flex items-center gap-2 text-sm">
+                                <span className="font-medium text-foreground">{p.name}</span>
+                                <span className="text-muted-foreground text-xs">({p.wins || 0}-{p.losses || 0}-{p.ties || 0}, {p.spread > 0 ? '+' : ''}{p.spread || 0})</span>
                               </li>
                             ))}
                           </ul>
                         </td>
-                        <td className="px-3 py-2">
-                          <ul className="flex flex-wrap gap-1 text-xs">
+                        <td className="px-4 py-3">
+                          <ul className="flex flex-wrap gap-1">
                             {team.perRound.map((r, i) => (
-                              <li key={i} className={`px-2 py-1 rounded ${r.result === 'Win' ? 'bg-green-100 text-green-800' : r.result === 'Loss' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>{`R${r.round}: ${r.result} (${r.score})`}</li>
+                              <li key={i} className={`px-2 py-1 rounded text-xs font-medium ${
+                                r.result === 'Win' ? 'bg-success/20 text-success' : 
+                                r.result === 'Loss' ? 'bg-destructive/20 text-destructive' : 
+                                'bg-warning/20 text-warning'
+                              }`}>
+                                R{r.round}: {r.result} ({r.score})
+                              </li>
                             ))}
                           </ul>
                         </td>
@@ -170,14 +252,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
                   </tbody>
                 </table>
               </div>
-              <TeamManagerModal
-                isOpen={showTeamManager}
-                onClose={() => setShowTeamManager(false)}
-                teams={teams}
-                players={players}
-                onSave={handleSaveTeams}
-              />
-            </>
+            </div>
           ) : (
             <StandingsTable 
               players={players} 
@@ -188,7 +263,17 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
               isLoading={isLoading}
             />
           )}
-        </>
+          
+          {tournamentInfo?.type === 'team' && (
+            <TeamManagerModal
+              isOpen={showTeamManager}
+              onClose={() => setShowTeamManager(false)}
+              teams={teams}
+              players={players}
+              onSave={handleSaveTeams}
+            />
+          )}
+        </div>
       )}
     </div>
   );
@@ -310,14 +395,18 @@ const TournamentCommandCenterDashboard = () => {
     setIsLoading(true);
 
     try {
-      console.log("Fetching tournament data for slug:", tournamentSlug);
+      // Fetching tournament data for slug
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
       };
-      console.log('GET Request Headers:', headers);
-      console.log('GET Request Query:', { slug: tournamentSlug });
+              // GET request prepared
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to access this page.");
+      }
 
       const { data: tournamentData, error: tErr } = await supabase
         .from('tournaments')
@@ -330,7 +419,12 @@ const TournamentCommandCenterDashboard = () => {
         throw tErr || new Error("Tournament not found");
       }
 
-      console.log("Tournament data fetched successfully:", tournamentData);
+      // Security check: Ensure user owns this tournament
+      if (tournamentData.user_id !== user.id) {
+        throw new Error("You don't have permission to access this tournament's admin dashboard.");
+      }
+
+              // Tournament data fetched successfully
 
       const combinedPlayers = tournamentData.tournament_players.map(tp => ({
         ...tp.players,
@@ -354,10 +448,7 @@ const TournamentCommandCenterDashboard = () => {
       if (teamsError) console.error("Error fetching teams:", teamsError);
       if (matchesError) console.error("Error fetching matches:", matchesError);
 
-      console.log("Results data:", resultsData);
-      console.log("Pending results data:", pendingData);
-      console.log("Teams data:", teamsData);
-      console.log("Matches data:", matchesData);
+              // Data fetched successfully
 
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
@@ -375,12 +466,12 @@ const TournamentCommandCenterDashboard = () => {
 
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('Setting up real-time channel for tournament:', tournamentInfo?.id);
+              // Setting up real-time channel for tournament
     }
     const channel = supabase.channel(`dashboard-updates-for-tournament-${tournamentInfo?.id}`)
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
         const { table, eventType, new: newRecord, old: oldRecord } = payload;
-        console.log('Real-time update received:', { table, eventType });
+        // Real-time update received
         
         switch (table) {
           case 'results':
@@ -406,78 +497,24 @@ const TournamentCommandCenterDashboard = () => {
             break;
           case 'tournament_players':
             if (eventType === 'UPDATE') {
-              if (import.meta.env.DEV) {
-                console.log('Real-time update received for tournament_players:', {
-                  eventType,
-                  player_id: newRecord.player_id,
-                  match_wins: newRecord.match_wins,
-                  match_losses: newRecord.match_losses,
-                  full_record: newRecord
-                });
-              }
+              // Real-time update received for tournament_players
               // Force a re-render by creating a new array reference
               // Update players state
               setPlayers(prev => {
-                if (import.meta.env.DEV) {
-                  console.log('Current players state before update:', prev.map(p => ({
-                    player_id: p.player_id,
-                    name: p.name,
-                    match_wins: p.match_wins,
-                    match_losses: p.match_losses
-                  })));
-                }
+                // Current players state before update
                 // Create a completely new array to ensure React detects the change
                 const updatedPlayers = [...prev.map(p => {
                   if (p.player_id === newRecord.player_id) {
                     const updatedPlayer = { ...p, ...newRecord };
-                    if (import.meta.env.DEV) {
-                      console.log('Updating player in state:', {
-                        before: {
-                          name: p.name,
-                          match_wins: p.match_wins,
-                          match_losses: p.match_losses,
-                          type: typeof p.match_wins
-                        },
-                        after: {
-                          name: p.name,
-                          match_wins: updatedPlayer.match_wins,
-                          match_losses: updatedPlayer.match_losses,
-                          type: typeof updatedPlayer.match_wins
-                        }
-                      });
-                    }
+                    // Updating player in state
                     return updatedPlayer;
                   }
                   return { ...p }; // Create a new object for each player to ensure reference changes
                 })];
-                if (import.meta.env.DEV) {
-                  console.log('Updated players state:', updatedPlayers.map(p => ({
-                    player_id: p.player_id,
-                    name: p.name,
-                    match_wins: p.match_wins,
-                    match_losses: p.match_losses
-                  })));
-                  // Log the difference to verify the update
-                  const changedPlayer = updatedPlayers.find(p => p.player_id === newRecord.player_id);
-                  const originalPlayer = prev.find(p => p.player_id === newRecord.player_id);
-                  console.log('Player change verification:', {
-                    playerFound: !!changedPlayer,
-                    originalValues: originalPlayer ? {
-                      match_wins: originalPlayer.match_wins,
-                      match_losses: originalPlayer.match_losses
-                    } : 'Player not found in original state',
-                    newValues: changedPlayer ? {
-                      match_wins: changedPlayer.match_wins,
-                      match_losses: changedPlayer.match_losses
-                    } : 'Player not found in updated state'
-                  });
-                }
+                // Updated players state
                 return updatedPlayers;
               });
               // Force re-ranking after updating players
-              if (import.meta.env.DEV) {
-                console.log('Players state updated, forcing re-ranking');
-              }
               forceReranking();
             }
             break;
@@ -586,7 +623,7 @@ const TournamentCommandCenterDashboard = () => {
   
   // Force re-ranking when tournament_players are updated
   const forceReranking = useCallback(() => {
-    console.log('Forcing re-ranking of players');
+    // Forcing re-ranking of players
     setRankingUpdateCounter(prev => prev + 1);
   }, []);
   
@@ -866,18 +903,7 @@ const TournamentCommandCenterDashboard = () => {
         toast.success(`All matches for round ${resultData.round || tournamentInfo.currentRound} are complete!`);
       }
 
-      console.log('Updating match stats:', {
-        player1: {
-          name: player1.name,
-          match_wins: p1NewStats.match_wins,
-          match_losses: p1NewStats.match_losses
-        },
-        player2: {
-          name: player2.name,
-          match_wins: p2NewStats.match_wins,
-          match_losses: p2NewStats.match_losses
-        }
-      });
+      // Updating match stats
 
       toast.success(`${player1.name} vs ${player2.name} match is complete. Winner: ${winnerId === player1.player_id ? player1.name : player2.name}.`);
       return { winnerId, loserId };
@@ -977,7 +1003,7 @@ const TournamentCommandCenterDashboard = () => {
         delete updateFields.existingResult;
         const { error: updateError, data: updateData } = await supabase.from('results').update(updateFields).eq('id', resultId);
         if (updateError) {
-          console.error('Supabase update error:', updateError, updateFields, resultId);
+          console.error('Supabase update error:', updateError);
           throw updateError;
         }
         toast.success("Result updated successfully!");
@@ -1213,7 +1239,8 @@ const TournamentCommandCenterDashboard = () => {
           return 'ROUND_IN_PROGRESS';
         }
       }
-      return (players || []).length >= 2 ? 'ROSTER_READY' : 'EMPTY_ROSTER';
+      const state = (players || []).length >= 2 ? 'ROSTER_READY' : 'EMPTY_ROSTER';
+      return state;
   };
 
   const tournamentState = getTournamentState();
@@ -1236,6 +1263,7 @@ const TournamentCommandCenterDashboard = () => {
   if (isLoading) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading Dashboard...</p></div>; }
   if (!tournamentInfo) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Tournament not found.</p></div>; }
 
+  // Tournament state calculated successfully
   return (
     <div className="min-h-screen bg-background">
       <TickerBar />
@@ -1281,10 +1309,10 @@ const TournamentCommandCenterDashboard = () => {
       />
       <main className="pt-20 pb-24 sm:pb-8">
         {/* Floating Audit Log Button: always visible, subtle, only opens modal when clicked */}
-        <div className="fixed bottom-4 right-4 z-40">
+        <div className="fixed bottom-20 sm:bottom-4 right-4 z-40">
           <motion.button
-            className="rounded-full bg-background/80 shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background/95 focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all"
-            style={{ boxShadow: '0 2px 12px 0 rgba(0,0,0,0.12)' }}
+            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
+            style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
             onClick={() => setShowAuditLog(true)}
             aria-label="Open audit log"
             initial={{ opacity: 0.7, scale: 1 }}
@@ -1302,7 +1330,9 @@ const TournamentCommandCenterDashboard = () => {
                     <div className="md:col-span-3"><MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} /></div>
                 </div>
             ) : ( 
-                <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
+                <div className="space-y-6">
+                    <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
+                </div>
             )}
         </div>
       </main>

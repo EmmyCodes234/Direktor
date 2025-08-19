@@ -10,7 +10,7 @@ import 'styles/ticker.css';
 import { Toaster, toast } from 'sonner';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import useMediaQuery from '../hooks/useMediaQuery';
+import useMediaQuery from '../hooks/useMediaQuery.js';
 import TournamentTicker from '../components/TournamentTicker';
 import AnnouncementsDisplay from 'components/AnnouncementsDisplay';
 import StandingsTable from 'pages/tournament-command-center-dashboard/components/StandingsTable';
@@ -328,44 +328,87 @@ const PublicTournamentPage = () => {
         : tournament.date ? format(new Date(tournament.date), "MMMM do, yyyy") : "Date not set";
 
     const SidebarContent = () => (
-        <div className="glass-card p-4 space-y-1">
-            <h3 className="font-semibold px-3 pt-2 pb-1 text-muted-foreground text-sm">Live Index</h3>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => scrollToRef(standingsRef)}>
-                <Icon name="Trophy" size={16} className="mr-3"/>Live Standings
-            </Button>
-            {prizes.length > 0 && (
-                <Button variant="ghost" className="w-full justify-start" onClick={() => scrollToRef(prizesRef)}>
-                    <Icon name="Gift" size={16} className="mr-3"/>Prizes
-                </Button>
-            )}
-            <div>
-                <button onClick={() => setShowPairingsDropdown(!showPairingsDropdown)} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/10 transition-colors w-full text-left">
-                    <div className="flex items-center space-x-3">
-                        <Icon name="Swords" size={16} />
-                        <span>Pairings</span>
-                    </div>
-                    <Icon name="ChevronDown" size={16} className={cn('transition-transform', showPairingsDropdown && 'rotate-180')} />
-                </button>
-                {showPairingsDropdown && (
-                    <div className="pl-6 pt-1 pb-2 border-l border-border ml-5">
-                        {Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
-                            <a key={roundNum} href={`#round-${roundNum}`} onClick={(e) => { e.preventDefault(); scrollToRef({ current: document.getElementById(`round-${roundNum}`) }) }} className="flex p-2 rounded-lg hover:bg-muted/10 text-sm">
-                                Round {roundNum}
-                            </a>
-                        ))}
-                    </div>
-                )}
+        <div className="glass-card p-6 space-y-3">
+            <div className="pb-3 border-b border-border/10">
+                <h3 className="font-semibold text-foreground text-lg">Live Index</h3>
+                <p className="text-xs text-muted-foreground mt-1">Navigate tournament sections</p>
             </div>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => scrollToRef(statsRef)}>
-                <Icon name="BarChart2" size={16} className="mr-3"/>Stats
-            </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => scrollToRef(rosterRef)}>
-                <Icon name="Users" size={16} className="mr-3"/>Roster
-            </Button>
+            
+            <div className="space-y-2">
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-11 hover:bg-primary/10 hover:text-primary transition-all duration-200" 
+                    onClick={() => scrollToRef(standingsRef)}
+                >
+                    <Icon name="Trophy" size={18} className="mr-3 text-primary"/>Live Standings
+                </Button>
+                
+                {prizes.length > 0 && (
+                    <Button 
+                        variant="ghost" 
+                        className="w-full justify-start h-11 hover:bg-primary/10 hover:text-primary transition-all duration-200" 
+                        onClick={() => scrollToRef(prizesRef)}
+                    >
+                        <Icon name="Gift" size={18} className="mr-3 text-primary"/>Prizes
+                    </Button>
+                )}
+                
+                <div className="space-y-1">
+                    <button 
+                        onClick={() => setShowPairingsDropdown(!showPairingsDropdown)} 
+                        className="flex items-center justify-between w-full p-3 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 text-left h-11"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <Icon name="Swords" size={18} className="text-primary" />
+                            <span>Pairings</span>
+                        </div>
+                        <Icon 
+                            name="ChevronDown" 
+                            size={16} 
+                            className={cn('transition-transform duration-200 text-muted-foreground', showPairingsDropdown && 'rotate-180')} 
+                        />
+                    </button>
+                    {showPairingsDropdown && (
+                        <div className="pl-6 pt-1 pb-2 border-l border-border/20 ml-5 space-y-1">
+                            {Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
+                                <a 
+                                    key={roundNum} 
+                                    href={`#round-${roundNum}`} 
+                                    onClick={(e) => { e.preventDefault(); scrollToRef({ current: document.getElementById(`round-${roundNum}`) }) }} 
+                                    className="flex p-2 rounded-lg hover:bg-primary/10 hover:text-primary transition-all duration-200 text-sm"
+                                >
+                                    Round {roundNum}
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-11 hover:bg-primary/10 hover:text-primary transition-all duration-200" 
+                    onClick={() => scrollToRef(statsRef)}
+                >
+                    <Icon name="BarChart2" size={18} className="mr-3 text-primary"/>Stats
+                </Button>
+                
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-11 hover:bg-primary/10 hover:text-primary transition-all duration-200" 
+                    onClick={() => scrollToRef(rosterRef)}
+                >
+                    <Icon name="Users" size={18} className="mr-3 text-primary"/>Roster
+                </Button>
+            </div>
+            
             {tournament.is_remote_submission_enabled && (
-                <div className="pt-2">
-                    <Button onClick={() => setShowSubmissionModal(true)} className="w-full shadow-glow">
-                        <Icon name="Send" className="mr-2" size={16}/>Submit Result
+                <div className="pt-4 border-t border-border/10">
+                    <Button 
+                        onClick={() => setShowSubmissionModal(true)} 
+                        className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                    >
+                        <Icon name="Send" className="mr-2" size={18}/>
+                        Submit Result
                     </Button>
                 </div>
             )}
@@ -373,10 +416,14 @@ const PublicTournamentPage = () => {
     );
 
     const MobileActionBar = () => (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border p-2 z-40">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/10 p-4 z-40">
             {tournament.is_remote_submission_enabled && (
-                <Button onClick={() => setShowSubmissionModal(true)} className="w-full shadow-glow">
-                    <Icon name="Send" className="mr-2" size={16}/>Submit Result
+                <Button 
+                    onClick={() => setShowSubmissionModal(true)} 
+                    className="w-full h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                >
+                    <Icon name="Send" className="mr-2" size={18}/>
+                    Submit Result
                 </Button>
             )}
         </div>
@@ -384,19 +431,20 @@ const PublicTournamentPage = () => {
 
     return (
         <div className="min-h-screen bg-background text-foreground">
+
             <Toaster position="top-center" richColors />
             <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} players={players} />
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
-            <header className="sticky top-0 left-0 right-0 z-[100] border-b border-border bg-background/90 backdrop-blur-lg py-4" style={{ '--header-height': '4rem' }}>
+            <header className="fixed top-0 left-0 right-0 z-[9999] bg-background py-8 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-                    <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gradient">{tournament.name}</h1>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-1">{tournament.venue} • {formattedDate}</p>
+                    <h1 className="text-4xl sm:text-5xl font-bold mb-3 text-blue-400">{tournament.name}</h1>
+                    <p className="text-lg sm:text-xl text-muted-foreground">{tournament.venue} • {formattedDate}</p>
                 </div>
             </header>
             {/* Ticker sits below header, sticky, always visible, never overlaps header */}
-            <div className="sticky z-[90] w-full" style={{ top: 'var(--header-height, 4rem)' }}>
+            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: '7rem' }}>
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
@@ -443,16 +491,20 @@ const PublicTournamentPage = () => {
                                                     const player2 = players.find(p => p.player_id === pairing.player2_id);
                                                     
                                                     return (
-                                                        <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg flex flex-col sm:flex-row items-center justify-between font-mono text-sm sm:text-base">
-                                                            <div className="flex items-center space-x-3 w-full sm:w-auto mb-2 sm:mb-0">
-                                                                <span className="font-bold text-primary w-4 text-center">{pairing.round || pairing.table}</span>
-                                                                <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="hover:underline text-left truncate">
+                                                        <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg grid grid-cols-12 gap-2 items-center font-mono text-sm sm:text-base">
+                                                            <div className="col-span-1 flex justify-center">
+                                                                <span className="font-bold text-primary">{pairing.round || pairing.table}</span>
+                                                            </div>
+                                                            <div className="col-span-5 flex justify-end items-center">
+                                                                <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="hover:underline text-right">
                                                                     <span>{player1?.name}</span> <span className="text-muted-foreground">(#{player1?.seed})</span>
                                                                 </a>
                                                             </div>
-                                                            <div className="font-semibold text-muted-foreground mx-2">vs.</div>
-                                                            <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
-                                                                <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="hover:underline text-left truncate">
+                                                            <div className="col-span-2 flex justify-center">
+                                                                <span className="font-semibold text-muted-foreground">vs.</span>
+                                                            </div>
+                                                            <div className="col-span-4 flex justify-start items-center">
+                                                                <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="hover:underline text-left">
                                                                     <span>{player2?.name}</span> {player2 && <span className="text-muted-foreground">(#{player2?.seed})</span>}
                                                                 </a>
                                                             </div>

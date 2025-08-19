@@ -54,6 +54,15 @@ const TournamentSettingsAdministration = () => {
     useEffect(() => {
         const fetchTournament = async () => {
             setLoading(true);
+            
+            // Check if user is logged in
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                toast.error("You must be logged in to access this page.");
+                navigate('/login');
+                return;
+            }
+            
             const { data, error } = await supabase
                 .from('tournaments')
                 .select('*')
@@ -62,12 +71,18 @@ const TournamentSettingsAdministration = () => {
             if (error) {
                 toast.error("Failed to load tournament settings.");
             } else {
+                // Security check: Ensure user owns this tournament
+                if (data.user_id !== user.id) {
+                    toast.error("You don't have permission to access this tournament's settings.");
+                    navigate('/lobby');
+                    return;
+                }
                 setSettings(data);
             }
             setLoading(false);
         };
         fetchTournament();
-    }, [tournamentSlug]);
+    }, [tournamentSlug, navigate]);
 
     const handleSettingsChange = (field, value) => {
         setSettings(prev => ({ ...prev, [field]: value }));
@@ -80,6 +95,12 @@ const TournamentSettingsAdministration = () => {
     }
 
     const handleSaveSettings = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || settings.user_id !== user.id) {
+            toast.error("You don't have permission to modify this tournament.");
+            return;
+        }
+        
         let updateData = { ...settings };
 
         if (bannerFile) {
@@ -108,7 +129,8 @@ const TournamentSettingsAdministration = () => {
         const { error } = await supabase
             .from('tournaments')
             .update(finalUpdateData)
-            .eq('id', settings.id);
+            .eq('id', settings.id)
+            .eq('user_id', user.id);
         
         if (error) {
             toast.error(`Failed to save settings: ${error.message}`);
@@ -121,7 +143,13 @@ const TournamentSettingsAdministration = () => {
     };
     
     const handleDeleteTournament = async () => {
-        const { error } = await supabase.from('tournaments').delete().eq('id', settings.id);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || settings.user_id !== user.id) {
+            toast.error("You don't have permission to delete this tournament.");
+            return;
+        }
+        
+        const { error } = await supabase.from('tournaments').delete().eq('id', settings.id).eq('user_id', user.id);
         if (error) {
             toast.error(`Failed to delete tournament: ${error.message}`);
         } else {
@@ -133,6 +161,12 @@ const TournamentSettingsAdministration = () => {
 
     const handleResetTournament = async (resetType) => {
         if (!settings) return;
+        
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || settings.user_id !== user.id) {
+            toast.error("You don't have permission to reset this tournament.");
+            return;
+        }
         
         toast.info("Resetting tournament...");
         setShowResetModal(false);
@@ -148,7 +182,7 @@ const TournamentSettingsAdministration = () => {
                 const { error: matchesError } = await supabase.from('matches').delete().eq('tournament_id', settings.id);
                 if (resultsError || matchesError) throw new Error("Failed to clear old data.");
                 
-                await supabase.from('tournaments').update({ pairing_schedule: null, status: 'setup', currentRound: 1 }).eq('id', settings.id);
+                await supabase.from('tournaments').update({ pairing_schedule: null, status: 'setup', currentRound: 1 }).eq('id', settings.id).eq('user_id', user.id);
                 await supabase.from('tournament_players').update({ wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }).eq('tournament_id', settings.id);
             }
             toast.success("Tournament has been successfully reset.");

@@ -66,7 +66,7 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={onClose}
         >
           <motion.div
@@ -74,62 +74,111 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="glass-card w-full max-w-md mx-4"
+            className="glass-card w-full max-w-md mx-auto rounded-t-xl sm:rounded-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <form onSubmit={handleSubmit}>
               <div className="p-6 border-b border-border">
-                <h2 className="text-xl font-heading font-semibold text-foreground">
-                  {isEditing ? 'Edit Score' : 'Enter Score'} for {isBestOfLeague ? 'Match' : `Table ${matchup.table}`}
-                </h2>
-                <p className="text-sm text-muted-foreground">Round {matchup.round}</p>
-                {isBestOfLeague && (
-                  <div className="mt-2 text-center bg-muted/20 p-2 rounded-lg">
-                    <span className="font-medium text-foreground">{player1Name}</span>
-                    <span className="font-bold text-primary mx-2">
-                      {safeCurrentMatchScore[player1Name] !== undefined
-                        ? safeCurrentMatchScore[player1Name]
-                        : 0}
-                    </span>
-                    <span className="text-muted-foreground mx-2">vs</span>
-                    <span className="font-bold text-primary mx-2">
-                      {safeCurrentMatchScore[player2Name] !== undefined
-                        ? safeCurrentMatchScore[player2Name]
-                        : 0}
-                    </span>
-                    <span className="font-medium text-foreground">{player2Name}</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-heading font-semibold text-foreground">
+                    {isEditing ? 'Edit Score' : 'Enter Score'}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="touch-target p-2 rounded-lg hover:bg-muted/20 transition-colors"
+                    aria-label="Close modal"
+                  >
+                    <Icon name="X" size={20} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {isBestOfLeague ? 'Match' : `Table ${matchup.table}`} • Round {matchup.round}
+                    </p>
+                    
+                    {isBestOfLeague && (
+                      <div className="bg-muted/20 p-4 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{player1Name}</span>
+                          <span className="font-bold text-primary text-lg">
+                            {safeCurrentMatchScore[player1Name] !== undefined
+                              ? safeCurrentMatchScore[player1Name]
+                              : 0}
+                          </span>
+                        </div>
+                        <div className="text-center text-muted-foreground my-2">
+                          <Icon name="Minus" size={16} />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">{player2Name}</span>
+                          <span className="font-bold text-primary text-lg">
+                            {safeCurrentMatchScore[player2Name] !== undefined
+                              ? safeCurrentMatchScore[player2Name]
+                              : 0}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-lg font-medium text-foreground">{player1Name}</label>
-                  <Input
-                    type="number"
-                    value={score1}
-                    onChange={(e) => setScore1(e.target.value)}
-                    placeholder="Score"
-                    className="w-24 text-center"
-                    autoFocus
-                  />
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        {player1Name} Score
+                      </label>
+                      <Input
+                        type="number"
+                        value={score1}
+                        onChange={(e) => setScore1(e.target.value)}
+                        placeholder="0"
+                        className="text-center text-lg font-mono touch-target-mobile"
+                        disabled={isMatchComplete}
+                        min="0"
+                      />
+                    </div>
+
+                    <div className="text-center text-muted-foreground">
+                      <Icon name="Minus" size={20} />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        {player2Name} Score
+                      </label>
+                      <Input
+                        type="number"
+                        value={score2}
+                        onChange={(e) => setScore2(e.target.value)}
+                        placeholder="0"
+                        className="text-center text-lg font-mono touch-target-mobile"
+                        disabled={isMatchComplete}
+                        min="0"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <label className="text-lg font-medium text-foreground">{player2Name}</label>
-                  <Input
-                    type="number"
-                    value={score2}
-                    onChange={(e) => setScore2(e.target.value)}
-                    placeholder="Score"
-                    className="w-24 text-center"
-                  />
-                </div>
               </div>
-              <div className="p-4 bg-muted/10 flex justify-end space-x-2 rounded-b-lg">
-                <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                <Button type="submit" loading={isLoading} disabled={isMatchComplete} aria-disabled={isMatchComplete} aria-label={isMatchComplete ? 'Match complete' : (isEditing ? 'Update Result' : 'Record Result')}>
-                  {isMatchComplete ? (
-                    <span className="flex items-center"><Icon name="CheckCircle" size={16} className="mr-1" /> Match Complete</span>
-                  ) : isEditing ? 'Update Result' : 'Record Result'}
+
+              <div className="p-6 flex flex-col sm:flex-row gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="touch-target-mobile flex-1"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  loading={isLoading}
+                  className="touch-target-mobile flex-1"
+                  disabled={isMatchComplete}
+                >
+                  {isEditing ? 'Update Score' : 'Submit Score'}
                 </Button>
               </div>
             </form>

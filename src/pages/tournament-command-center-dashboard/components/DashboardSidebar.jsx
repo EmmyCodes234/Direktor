@@ -20,27 +20,41 @@ const DashboardSidebar = () => {
 
   return (
     <aside className="md:col-span-1 md:sticky top-24 self-start">
-      <div className="glass-card p-4 space-y-2">
-        <h3 className="font-semibold px-2 text-muted-foreground text-sm">Manage Tournament</h3>
+      <div className="bg-muted/10 backdrop-blur-sm border border-border/20 rounded-lg p-3">
+        <h3 className="font-semibold text-muted-foreground text-sm mb-4 px-1">Manage Tournament</h3>
         
-        {navItems.map((item) => (
-          <Button
-            key={item.label}
-            variant="ghost"
-            className={cn(
-                "w-full justify-start",
-                location.pathname === item.path && "bg-primary/10 text-primary"
-            )}
-            onClick={() => navigate(item.path)}
+        <div className="space-y-1">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              className={cn(
+                "w-full flex items-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                location.pathname === item.path 
+                  ? "bg-primary text-white shadow-sm" 
+                  : "text-foreground hover:bg-muted/20"
+              )}
+              onClick={() => navigate(item.path)}
+            >
+              <Icon 
+                name={item.icon} 
+                className={cn(
+                  "mr-3 transition-colors duration-200",
+                  location.pathname === item.path ? "text-white" : "text-foreground"
+                )}
+              />
+              {item.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="border-t border-border/20 mt-3 pt-3">
+          <button 
+            className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-muted/20 transition-all duration-200" 
+            onClick={() => navigate('/lobby')}
           >
-            <Icon name={item.icon} className="mr-2"/>
-            {item.label}
-          </Button>
-        ))}
-         <div className="border-t border-border pt-2 mt-2">
-            <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/lobby')}>
-              <Icon name="Home" className="mr-2"/>Lobby
-            </Button>
+            <Icon name="Home" className="mr-3 text-foreground"/>
+            Lobby
+          </button>
         </div>
       </div>
     </aside>

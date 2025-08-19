@@ -4,6 +4,7 @@ import Button from '../../../components/ui/Button';
 import useMediaQuery from '../../../hooks/useMediaQuery';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings }) => {
   const [viewMode, setViewMode] = useState('individual');
@@ -11,9 +12,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const isBestOfLeague = tournamentType === 'best_of_league';
   const isMobile = useMediaQuery('(max-width: 767px)');
   
-  if (import.meta.env.DEV) {
-    console.log('StandingsTable received players:', players);
-  }
+  // StandingsTable received players
 
   const playersByDivision = useMemo(() => {
     return players.reduce((acc, player) => {
@@ -69,10 +68,10 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
 
   const IndividualStandings = () => {
     if (isMobile) {
-      // Card layout for mobile
+      // Enhanced card layout for mobile
       return (
-        <div className="flex flex-col gap-4 p-2">
-          {pagedPlayers.map((player) => {
+        <div className="flex flex-col gap-3 p-4">
+          {pagedPlayers.map((player, index) => {
             let isComplete = false;
             let matchWins = 0;
             let matchLosses = 0;
@@ -83,34 +82,110 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
             }
             return (
-              <div key={player.id} className={`rounded-lg border border-border bg-background shadow-sm p-4 flex flex-col gap-2 ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
+              <motion.div 
+                key={player.id} 
+                className={cn(
+                  "rounded-xl border border-border bg-background shadow-sm p-4 flex flex-col gap-3 transition-all duration-200",
+                  isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/50'
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
                 aria-label={isComplete ? 'Player matches complete' : undefined}
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-lg text-primary">{player.rank}</span>
-                  <span className="font-medium text-foreground flex-1">
-                    <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">{player.name}</a>
-                  </span>
-                  {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
-                  <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)} aria-label="View player stats">
-                    <Icon name="BarChartHorizontal" size={16} />
-                  </Button>
+                {/* Header Row */}
+                <div className="flex items-center gap-3">
+                  {/* Rank Badge */}
+                  <div className={cn(
+                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
+                    player.rank <= 3 
+                      ? "bg-primary/20 text-primary border-2 border-primary/30" 
+                      : "bg-muted/20 text-muted-foreground border border-border"
+                  )}>
+                    {player.rank}
+                  </div>
+                  
+                  {/* Player Name */}
+                  <div className="flex-1 min-w-0">
+                    <a 
+                      href={`/players/${player.slug}`} 
+                      onClick={(e) => handlePlayerClick(e, player)} 
+                      className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate"
+                    >
+                      {player.name}
+                    </a>
+                    {isBestOfLeague && isComplete && (
+                      <div className="flex items-center gap-1 mt-1">
+                        <Icon name="CheckCircle" size={14} className="text-success" aria-label="All matches complete" />
+                        <span className="text-xs text-success font-medium">Complete</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Stats Button */}
+                  <button 
+                    onClick={(e) => handleModalClick(e, player)} 
+                    aria-label="View player stats"
+                    className="touch-target p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+                  >
+                    <Icon name="BarChartHorizontal" size={18} className="text-muted-foreground" />
+                  </button>
                 </div>
-                <div className="flex flex-wrap gap-3 text-sm mt-1">
+                
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   {isBestOfLeague && (
-                    <div><span className="font-semibold">Match Wins:</span> <span className="font-mono">{matchWins}</span></div>
+                    <div className="bg-muted/10 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground font-medium mb-1">Match Wins</div>
+                      <div className="font-mono font-bold text-lg text-foreground">{matchWins}</div>
+                    </div>
                   )}
-                  <div><span className="font-semibold">Record:</span> <span className="font-mono">{getRecordDisplay(player)}</span></div>
-                  <div><span className="font-semibold">Spread:</span> <span className={`font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{player.spread > 0 ? '+' : ''}{player.spread || 0}</span></div>
+                  <div className="bg-muted/10 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground font-medium mb-1">Record</div>
+                    <div className="font-mono font-bold text-lg text-foreground">{getRecordDisplay(player)}</div>
+                  </div>
+                  <div className="bg-muted/10 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground font-medium mb-1">Spread</div>
+                    <div className={cn(
+                      "font-mono font-bold text-lg",
+                      player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'
+                    )}>
+                      {player.spread > 0 ? '+' : ''}{player.spread || 0}
+                    </div>
+                  </div>
+                  <div className="bg-muted/10 rounded-lg p-3">
+                    <div className="text-xs text-muted-foreground font-medium mb-1">Points</div>
+                    <div className="font-mono font-bold text-lg text-foreground">{player.points || 0}</div>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
+          
+          {/* Enhanced Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-2">
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} aria-label="Previous page">Prev</Button>
-              <span className="text-sm">Page {page} of {totalPages}</span>
-              <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} aria-label="Next page">Next</Button>
+            <div className="flex justify-center items-center gap-3 mt-6 p-4 bg-muted/10 rounded-xl">
+              <button 
+                onClick={() => setPage(p => Math.max(1, p - 1))} 
+                disabled={page === 1} 
+                aria-label="Previous page"
+                className="touch-target px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <Icon name="ChevronLeft" size={16} />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Page</span>
+                <span className="font-mono font-bold text-lg text-foreground">{page}</span>
+                <span className="text-sm font-medium text-muted-foreground">of {totalPages}</span>
+              </div>
+              <button 
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
+                disabled={page === totalPages} 
+                aria-label="Next page"
+                className="touch-target px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              >
+                <Icon name="ChevronRight" size={16} />
+              </button>
             </div>
           )}
         </div>

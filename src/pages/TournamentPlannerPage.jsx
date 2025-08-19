@@ -54,11 +54,18 @@ const TournamentPlannerPage = () => {
             name: plan.name,
             rounds: plan.rounds,
             venue: plan.venue || '',
-            date: plan.date || '',
-            start_date: plan.start_date || '',
-            end_date: plan.end_date || '',
             type: plan.type || 'individual'
         });
+
+        if (plan.date) {
+            params.append('date', plan.date);
+        }
+        if (plan.start_date) {
+            params.append('start_date', plan.start_date);
+        }
+        if (plan.end_date) {
+            params.append('end_date', plan.end_date);
+        }
 
         setTimeout(() => {
             navigate(`/tournament-setup-configuration?${params.toString()}`);

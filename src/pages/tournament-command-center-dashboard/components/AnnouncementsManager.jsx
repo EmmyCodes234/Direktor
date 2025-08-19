@@ -4,6 +4,7 @@ import { supabase } from '../../../supabaseClient';
 import { toast } from 'sonner';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import { motion } from 'framer-motion';
 
 const AnnouncementsManager = () => {
   const { tournamentSlug } = useParams();
@@ -94,45 +95,66 @@ const AnnouncementsManager = () => {
   };
 
   return (
-    <div className="glass-card">
-      <div className="p-4 border-b border-border">
+    <div className="bg-card/90 backdrop-blur-sm border border-border/20 rounded-lg">
+      <div className="p-4 border-b border-border/20">
         <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
           <Icon name="Megaphone" size={18} className="text-primary" />
           <span>Director's Announcements</span>
         </h3>
       </div>
       <div className="p-4 space-y-4">
-        <form onSubmit={handlePostAnnouncement} className="space-y-2">
+        <form onSubmit={handlePostAnnouncement} className="space-y-3">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your announcement here..."
-            className="w-full h-24 p-3 bg-input border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary"
+            className="w-full h-24 p-4 bg-input border border-border rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target-mobile"
             disabled={loading}
           />
-          <Button type="submit" loading={loading} className="w-full">
+          <Button 
+            type="submit" 
+            loading={loading} 
+            className="w-full touch-target-mobile"
+            size="lg"
+          >
+            <Icon name="Send" size={16} className="mr-2" />
             Post Announcement
           </Button>
         </form>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {announcements.map((ann) => (
-            <div key={ann.id} className="bg-muted/10 p-3 rounded-lg flex justify-between items-start group">
-              <div>
-                <p className="text-sm text-foreground">{ann.message}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {new Date(ann.created_at).toLocaleString()}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(ann.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Icon name="Trash2" size={14} className="text-destructive" />
-              </Button>
+        
+        <div className="space-y-3 max-h-64 overflow-y-auto">
+          {announcements.length === 0 ? (
+            <div className="text-center py-8">
+              <Icon name="Megaphone" size={48} className="text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">No announcements yet.</p>
             </div>
-          ))}
+          ) : (
+            announcements.map((ann, index) => (
+              <motion.div 
+                key={ann.id} 
+                className="bg-muted/10 p-4 rounded-xl border border-border/50 group"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm text-foreground leading-relaxed">{ann.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(ann.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(ann.id)}
+                    className="touch-target p-2 rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Delete announcement"
+                  >
+                    <Icon name="Trash2" size={16} className="text-destructive" />
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -1,17 +1,25 @@
 import React, { useMemo } from 'react';
 import Icon from './AppIcon';
+import { motion } from 'framer-motion';
 
-const StatItem = ({ icon, label, value, subtext }) => (
-    <div className="glass-card p-4">
-        <div className="flex items-center space-x-3">
-            <Icon name={icon} size={24} className="text-primary" />
-            <div>
-                <p className="text-xl font-bold font-mono">{value}</p>
+const StatItem = ({ icon, label, value, subtext, index }) => (
+    <motion.div 
+        className="glass-card p-4 touch-target hover:shadow-md transition-all duration-200"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+    >
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/20 mx-auto sm:mx-0">
+                <Icon name={icon} size={24} className="text-primary" />
+            </div>
+            <div className="text-center sm:text-left">
+                <p className="text-xl sm:text-2xl font-bold font-mono text-foreground">{value}</p>
                 <p className="text-sm text-foreground font-medium">{label}</p>
-                {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+                {subtext && <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{subtext}</p>}
             </div>
         </div>
-    </div>
+    </motion.div>
 );
 
 const AdvancedStatsDisplay = ({ results, players }) => {
@@ -71,11 +79,11 @@ const AdvancedStatsDisplay = ({ results, players }) => {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatItem icon="Flame" label="High Game Score" value={stats.highGame.value} subtext={stats.highGame.player && `${stats.highGame.player} vs ${stats.highGame.opponent} (${stats.highGame.score})`} />
-            <StatItem icon="IceCream" label="Low Game Score" value={stats.lowGame.value === Infinity ? 'N/A' : stats.lowGame.value} subtext={stats.lowGame.player && `${stats.lowGame.player} vs ${stats.lowGame.opponent} (${stats.lowGame.score})`} />
-            <StatItem icon="Users" label="High Combined Score" value={stats.highCombined.value} subtext={stats.highCombined.player1 && `${stats.highCombined.player1} & ${stats.highCombined.player2} (${stats.highCombined.score})`} />
-            <StatItem icon="Zap" label="Largest Blowout" value={`+${stats.largestBlowout.value}`} subtext={stats.largestBlowout.winner && `${stats.largestBlowout.winner} over ${stats.largestBlowout.loser}`} />
-            <StatItem icon="TrendingUp" label="Biggest Upset" value={`+${stats.biggestUpset.value} pts`} subtext={stats.biggestUpset.winner && `${stats.biggestUpset.winner} over ${stats.biggestUpset.loser} (${stats.biggestUpset.ratings})`} />
+            <StatItem icon="Flame" label="High Game Score" value={stats.highGame.value} subtext={stats.highGame.player && `${stats.highGame.player} vs ${stats.highGame.opponent} (${stats.highGame.score})`} index={0} />
+            <StatItem icon="IceCream" label="Low Game Score" value={stats.lowGame.value === Infinity ? 'N/A' : stats.lowGame.value} subtext={stats.lowGame.player && `${stats.lowGame.player} vs ${stats.lowGame.opponent} (${stats.lowGame.score})`} index={1} />
+            <StatItem icon="Users" label="High Combined Score" value={stats.highCombined.value} subtext={stats.highCombined.player1 && `${stats.highCombined.player1} & ${stats.highCombined.player2} (${stats.highCombined.score})`} index={2} />
+            <StatItem icon="Zap" label="Largest Blowout" value={`+${stats.largestBlowout.value}`} subtext={stats.largestBlowout.winner && `${stats.largestBlowout.winner} over ${stats.largestBlowout.loser}`} index={3} />
+            <StatItem icon="TrendingUp" label="Biggest Upset" value={`+${stats.biggestUpset.value} pts`} subtext={stats.biggestUpset.winner && `${stats.biggestUpset.winner} over ${stats.biggestUpset.loser} (${stats.biggestUpset.ratings})`} index={4} />
         </div>
     );
 };

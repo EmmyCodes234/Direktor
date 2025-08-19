@@ -17,53 +17,62 @@ export default {
       },
     },
     extend: {
+      screens: {
+        'xs': '475px',
+        '3xl': '1600px',
+      },
       colors: {
-        border: "var(--color-border)", /* white-10 */
-        input: "var(--color-input)", /* gray-900-60 */
-        ring: "var(--color-ring)", /* blue-500 */
-        background: "var(--color-background)", /* near-black */
-        foreground: "var(--color-foreground)", /* white */
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "var(--color-primary)", /* blue-500 */
-          foreground: "var(--color-primary-foreground)", /* white */
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "var(--color-secondary)", /* blue-700 */
-          foreground: "var(--color-secondary-foreground)", /* white */
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "var(--color-destructive)", /* red-500 */
-          foreground: "var(--color-destructive-foreground)", /* white */
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "var(--color-muted)", /* gray-900-40 */
-          foreground: "var(--color-muted-foreground)", /* gray-400 */
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "var(--color-accent)", /* blue-400 */
-          foreground: "var(--color-accent-foreground)", /* white */
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          DEFAULT: "var(--color-popover)", /* gray-900-90 */
-          foreground: "var(--color-popover-foreground)", /* white */
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: "var(--color-card)", /* gray-900-60 */
-          foreground: "var(--color-card-foreground)", /* white */
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
         success: {
-          DEFAULT: "var(--color-success)", /* emerald-500 */
-          foreground: "var(--color-success-foreground)", /* white */
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
         },
         warning: {
-          DEFAULT: "var(--color-warning)", /* amber-500 */
-          foreground: "var(--color-warning-foreground)", /* black */
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
         error: {
-          DEFAULT: "var(--color-error)", /* red-500 */
-          foreground: "var(--color-error-foreground)", /* white */
+          DEFAULT: "hsl(var(--error))",
+          foreground: "hsl(var(--error-foreground))",
         },
-        surface: "var(--color-surface)", /* gray-900-60 */
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          foreground: "hsl(var(--surface-foreground))",
+        },
+        interactive: "hsl(var(--interactive))",
+        overlay: "hsl(var(--overlay))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -91,6 +100,8 @@ export default {
         'scale-in': 'scaleIn 0.2s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
+        'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
+        'shimmer': 'shimmer 1.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {

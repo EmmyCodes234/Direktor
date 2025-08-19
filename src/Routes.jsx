@@ -14,6 +14,9 @@ import TournamentLobby from "pages/TournamentLobby";
 import TournamentSetupConfiguration from "pages/tournament-setup-configuration";
 import TournamentCommandCenterDashboard from "pages/tournament-command-center-dashboard";
 import PublicTournamentPage from "pages/PublicTournamentPage";
+import PublicTournamentStandings from "pages/PublicTournamentStandings";
+import PublicTournamentRoster from "pages/PublicTournamentRoster";
+import PublicTournamentPairings from "pages/PublicTournamentPairings";
 import RegistrationPage from "./pages/RegistrationPage";
 import NotFound from "pages/NotFound";
 import PlayerManagementRosterControl from "./pages/PlayerManagementRosterControl";
@@ -44,6 +47,9 @@ const Routes = () => {
         {/* Public Tournament & Player Routes */}
         <Route path="/tournaments/:tournamentSlug/register" element={<RegistrationPage />} />
         <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPage />} />
+        <Route path="/tournament/:tournamentSlug/standings" element={<PublicTournamentStandings />} />
+        <Route path="/tournament/:tournamentSlug/roster" element={<PublicTournamentRoster />} />
+        <Route path="/tournament/:tournamentSlug/pairings" element={<PublicTournamentPairings />} />
         <Route path="/players/:playerSlug" element={<PlayerProfilePage />} />
         
         {/* Admin/Dashboard Routes */}

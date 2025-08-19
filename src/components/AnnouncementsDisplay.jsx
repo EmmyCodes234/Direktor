@@ -85,7 +85,7 @@ const AnnouncementsDisplay = () => {
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-6 lg:mb-8">
       <AnimatePresence>
         {announcements.map((ann, index) => {
           const style = getAnnouncementStyle(ann.message);
@@ -95,13 +95,15 @@ const AnnouncementsDisplay = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={cn("glass-card p-4 mb-3 border-l-4", style.borderColor)}
+              className={cn("glass-card p-4 mb-3 border-l-4 touch-target hover:shadow-md transition-all duration-200", style.borderColor)}
             >
               <div className="flex items-start space-x-3">
-                <Icon name={style.icon} className={cn("mt-1", style.iconColor)} size={20} />
-                <div>
-                  <p className="text-foreground">{ann.message}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-${style.iconColor.replace('text-', '')}/20 flex items-center justify-center`}>
+                  <Icon name={style.icon} className={cn("", style.iconColor)} size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground leading-relaxed">{ann.message}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
                     Posted {new Date(ann.created_at).toLocaleString()}
                   </p>
                 </div>
