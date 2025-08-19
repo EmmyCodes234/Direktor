@@ -21,9 +21,9 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
           aValue = a.name?.toLowerCase() || '';
           bValue = b.name?.toLowerCase() || '';
           break;
-        case 'points':
-          aValue = tournamentType === 'best-of-league' ? (a.wins || 0) : (a.points || 0);
-          bValue = tournamentType === 'best-of-league' ? (b.wins || 0) : (b.points || 0);
+        case 'matchWins':
+          aValue = a.match_wins || 0;
+          bValue = b.match_wins || 0;
           break;
         case 'wins':
           aValue = a.wins || 0;
@@ -160,10 +160,10 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
           </div>
           <div className="col-span-1 text-center">
             <button
-              onClick={() => handleSort('points')}
+              onClick={() => handleSort('matchWins')}
               className="flex items-center gap-1 hover:text-foreground transition-colors"
             >
-              {tournamentType === 'best-of-league' ? 'Wins' : 'Points'} {getSortIcon('points')}
+              Match Wins {getSortIcon('matchWins')}
             </button>
           </div>
           <div className="col-span-1 text-center">
@@ -249,10 +249,10 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
                   </div>
                 </div>
 
-                {/* Points/Wins */}
+                {/* Match Wins */}
                 <div className="col-span-1 text-center">
                   <span className="font-bold text-primary">
-                    {tournamentType === 'best-of-league' ? (player.wins || 0) : (player.points || 0)}
+                    {player.match_wins || 0}
                   </span>
                 </div>
 

@@ -87,10 +87,11 @@ export const socialSharing = {
 // Tournament-specific sharing functions
 export const tournamentSharing = {
   // Share tournament overview
-  shareTournament: (tournament, url) => {
-    const text = `🏆 Check out ${tournament.name} - Live tournament with ${tournament.player_count || 0} players! Follow the action live:`;
+  shareTournament: (tournament, url, players = []) => {
+    const playerCount = players.length || tournament.player_count || 0;
+    const text = `🏆 Check out ${tournament.name} - Live tournament with ${playerCount} players! Follow the action live:`;
     const title = `${tournament.name} - Live Tournament`;
-    const summary = `Live tournament with ${tournament.player_count || 0} players. Follow the action in real-time!`;
+    const summary = `Live tournament with ${playerCount} players. Follow the action in real-time!`;
 
     return {
       twitter: () => socialSharing.shareToTwitter(text, url),

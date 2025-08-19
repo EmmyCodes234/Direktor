@@ -85,34 +85,63 @@ const AnnouncementsDisplay = () => {
   };
 
   return (
-    <div className="mb-6 lg:mb-8">
-      <AnimatePresence>
-        {announcements.map((ann, index) => {
-          const style = getAnnouncementStyle(ann.message);
-          return (
-            <motion.div
-              key={ann.id}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={cn("glass-card p-4 mb-3 border-l-4 touch-target hover:shadow-md transition-all duration-200", style.borderColor)}
-            >
-              <div className="flex items-start space-x-3">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-${style.iconColor.replace('text-', '')}/20 flex items-center justify-center`}>
-                  <Icon name={style.icon} className={cn("", style.iconColor)} size={20} />
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-heading text-xl font-semibold flex items-center">
+          <Icon name="Megaphone" className="mr-2 text-primary" size={20} />
+          Tournament Announcements
+        </h2>
+        <span className="text-sm text-muted-foreground">
+          {announcements.length} announcement{announcements.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      
+      <div className="space-y-3">
+        <AnimatePresence>
+          {announcements.map((ann, index) => {
+            const style = getAnnouncementStyle(ann.message);
+            return (
+              <motion.div
+                key={ann.id}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.3 }}
+                className={cn(
+                  "glass-card p-5 border-l-4 hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer",
+                  style.borderColor
+                )}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className={cn(
+                    "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
+                    style.iconColor === 'text-primary' && "bg-primary/10",
+                    style.iconColor === 'text-amber-500' && "bg-amber-500/10",
+                    style.iconColor === 'text-emerald-500' && "bg-emerald-500/10"
+                  )}>
+                    <Icon name={style.icon} className={cn("", style.iconColor)} size={24} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-foreground leading-relaxed font-medium text-base">
+                      {ann.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-3 font-mono">
+                      Posted {new Date(ann.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-foreground leading-relaxed">{ann.message}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Posted {new Date(ann.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </section>
   );
 };
 
