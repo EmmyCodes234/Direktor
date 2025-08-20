@@ -233,5 +233,70 @@ export const InlineLoading = ({ text = 'Loading...' }) => {
   );
 };
 
+// Enhanced Loading Components
+const LoadingCard = ({ className = "", lines = 3, showIcon = true }) => (
+    <div className={cn("glass-card p-6", className)}>
+        {showIcon && (
+            <div className="flex items-center space-x-3 mb-4">
+                <div className="w-8 h-8 bg-muted/20 rounded-lg animate-pulse" />
+                <div className="h-4 bg-muted/20 rounded w-24 animate-pulse" />
+            </div>
+        )}
+        <div className="space-y-2">
+            {Array.from({ length: lines }).map((_, i) => (
+                <div
+                    key={i}
+                    className="h-4 bg-muted/20 rounded animate-pulse"
+                />
+            ))}
+        </div>
+    </div>
+);
+
+const LoadingTable = ({ rows = 5, columns = 4 }) => (
+    <div className="glass-card overflow-hidden">
+        <div className="p-4 border-b border-border/10">
+            <div className="flex space-x-4">
+                {Array.from({ length: columns }).map((_, i) => (
+                    <div key={i} className="h-4 bg-muted/20 rounded w-20 animate-pulse" />
+                ))}
+            </div>
+        </div>
+        <div className="divide-y divide-border/10">
+            {Array.from({ length: rows }).map((_, i) => (
+                <div key={i} className="p-4">
+                    <div className="flex space-x-4">
+                        {Array.from({ length: columns }).map((_, j) => (
+                            <div key={j} className="h-4 bg-muted/20 rounded w-16 animate-pulse" />
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+
+const LoadingButton = ({ className = "" }) => (
+    <div className={cn("h-10 bg-muted/20 rounded-lg animate-pulse", className)} />
+);
+
+const EmptyState = ({ icon, title, description, action, className = "" }) => (
+    <div className={cn("text-center py-12", className)}>
+        <Icon name={icon} size={48} className="mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        <p className="text-muted-foreground mb-4">{description}</p>
+        {action && action}
+    </div>
+);
+
 export default Loading;
-export { Spinner, Dots, Pulse, Bar }; 
+export { 
+    Spinner, 
+    Dots, 
+    Pulse, 
+    Bar, 
+    LoadingCard, 
+    LoadingTable, 
+    LoadingButton, 
+    EmptyState 
+}; 

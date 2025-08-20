@@ -86,7 +86,7 @@ const LandingPage = () => {
                         {/* Main Headline */}
                         <motion.h1
                             variants={itemVariants}
-                            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-bold text-primary leading-tight mb-6"
+                            className="text-display font-bold text-primary leading-tight mb-6"
                         >
                             The Future of{' '}
                             <br className="hidden sm:inline" />
@@ -96,7 +96,7 @@ const LandingPage = () => {
                         {/* Description */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-lg sm:text-xl md:text-2xl text-foreground max-w-3xl mx-auto leading-relaxed mb-8"
+                            className="text-subtitle text-foreground max-w-3xl mx-auto leading-relaxed mb-8"
                         >
                             Run Scrabble tournaments anywhere, anytime—without complex setup or downloads. 
                             Streamline your events with intuitive pairing, scoring, and ranking.

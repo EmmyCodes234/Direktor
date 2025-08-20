@@ -52,6 +52,11 @@ const Button = React.forwardRef(({
     disabled = false,
     tooltip = null,
     'aria-label': ariaLabel,
+    pressed = false,
+    expanded = false,
+    hasPopup = false,
+    controls = null,
+    describedBy = null,
     ...props
 }, ref) => {
     const Comp = asChild ? Slot : "button";
@@ -125,6 +130,11 @@ const Button = React.forwardRef(({
             ref={ref}
             disabled={disabled || loading}
             aria-label={buttonAriaLabel}
+            aria-pressed={pressed}
+            aria-expanded={expanded}
+            aria-haspopup={hasPopup}
+            aria-controls={controls}
+            aria-describedby={describedBy}
             title={tooltip}
             type={props.type || "button"}
             {...props}

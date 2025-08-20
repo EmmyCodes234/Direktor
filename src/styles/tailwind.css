@@ -24,7 +24,17 @@
     --muted: 0 0% 12% / 0.6;
     --muted-foreground: 240 5% 65%;
 
-    /* Enhanced Primary Colors */
+    /* Enhanced Primary Colors - Full Scale */
+    --primary-50: 217 91% 95%;
+    --primary-100: 217 91% 90%;
+    --primary-200: 217 91% 80%;
+    --primary-300: 217 91% 70%;
+    --primary-400: 217 91% 60%;
+    --primary-500: 217 91% 50%;
+    --primary-600: 217 91% 40%;
+    --primary-700: 217 91% 30%;
+    --primary-800: 217 91% 20%;
+    --primary-900: 217 91% 10%;
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
@@ -36,13 +46,45 @@
     --accent: 217 91% 70%;
     --accent-foreground: 220 13% 18%;
 
-    /* Enhanced Status Colors */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* Enhanced Status Colors - Full Scale */
+    --success-50: 142 76% 95%;
+    --success-100: 142 76% 90%;
+    --success-200: 142 76% 80%;
+    --success-300: 142 76% 70%;
+    --success-400: 142 76% 60%;
+    --success-500: 142 76% 50%;
+    --success-600: 142 76% 40%;
+    --success-700: 142 76% 30%;
+    --success-800: 142 76% 20%;
+    --success-900: 142 76% 10%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
+
+    --warning-50: 38 92% 95%;
+    --warning-100: 38 92% 90%;
+    --warning-200: 38 92% 80%;
+    --warning-300: 38 92% 70%;
+    --warning-400: 38 92% 60%;
+    --warning-500: 38 92% 50%;
+    --warning-600: 38 92% 40%;
+    --warning-700: 38 92% 30%;
+    --warning-800: 38 92% 20%;
+    --warning-900: 38 92% 10%;
     --warning: 38 92% 50%;
     --warning-foreground: 220 13% 18%;
+
+    --error-50: 0 84% 95%;
+    --error-100: 0 84% 90%;
+    --error-200: 0 84% 80%;
+    --error-300: 0 84% 70%;
+    --error-400: 0 84% 60%;
+    --error-500: 0 84% 50%;
+    --error-600: 0 84% 40%;
+    --error-700: 0 84% 30%;
+    --error-800: 0 84% 20%;
+    --error-900: 0 84% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
     --error: 0 84% 60%;
     --error-foreground: 0 0% 100%;
 
@@ -54,7 +96,54 @@
     --interactive: 217 91% 60%;
     --overlay: 0 0% 0% / 0.8;
 
-    /* Spacing Scale */
+    /* Enhanced Typography Scale */
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+    --font-size-4xl: 2.25rem;   /* 36px */
+    --font-size-5xl: 3rem;      /* 48px */
+    --font-size-6xl: 3.75rem;   /* 60px */
+    --font-size-7xl: 4.5rem;    /* 72px */
+    --font-size-8xl: 6rem;      /* 96px */
+    --font-size-9xl: 8rem;      /* 128px */
+
+    /* Enhanced Spacing Scale */
+    --space-0: 0;
+    --space-1: 0.25rem;   /* 4px */
+    --space-2: 0.5rem;    /* 8px */
+    --space-3: 0.75rem;   /* 12px */
+    --space-4: 1rem;      /* 16px */
+    --space-5: 1.25rem;   /* 20px */
+    --space-6: 1.5rem;    /* 24px */
+    --space-7: 1.75rem;   /* 28px */
+    --space-8: 2rem;      /* 32px */
+    --space-9: 2.25rem;   /* 36px */
+    --space-10: 2.5rem;   /* 40px */
+    --space-11: 2.75rem;  /* 44px */
+    --space-12: 3rem;     /* 48px */
+    --space-14: 3.5rem;   /* 56px */
+    --space-16: 4rem;     /* 64px */
+    --space-20: 5rem;     /* 80px */
+    --space-24: 6rem;     /* 96px */
+    --space-28: 7rem;     /* 112px */
+    --space-32: 8rem;     /* 128px */
+    --space-36: 9rem;     /* 144px */
+    --space-40: 10rem;    /* 160px */
+    --space-44: 11rem;    /* 176px */
+    --space-48: 12rem;    /* 192px */
+    --space-52: 13rem;    /* 208px */
+    --space-56: 14rem;    /* 224px */
+    --space-60: 15rem;    /* 240px */
+    --space-64: 16rem;    /* 256px */
+    --space-72: 18rem;    /* 288px */
+    --space-80: 20rem;    /* 320px */
+    --space-96: 24rem;    /* 384px */
+
+    /* Legacy spacing for backward compatibility */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -62,7 +151,18 @@
     --spacing-xl: 2rem;
     --spacing-2xl: 3rem;
 
-    /* Border Radius Scale */
+    /* Enhanced Border Radius Scale */
+    --radius-none: 0;
+    --radius-sm: 0.125rem;   /* 2px */
+    --radius-base: 0.25rem;  /* 4px */
+    --radius-md: 0.375rem;   /* 6px */
+    --radius-lg: 0.5rem;     /* 8px */
+    --radius-xl: 0.75rem;    /* 12px */
+    --radius-2xl: 1rem;      /* 16px */
+    --radius-3xl: 1.5rem;    /* 24px */
+    --radius-full: 9999px;
+
+    /* Legacy border radius for backward compatibility */
     --radius-sm: 0.375rem;
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
@@ -72,6 +172,18 @@
     --duration-fast: 150ms;
     --duration-normal: 200ms;
     --duration-slow: 300ms;
+    --duration-slower: 500ms;
+    --duration-slowest: 700ms;
+
+    /* Z-Index Scale */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
   }
 
   * {
@@ -94,10 +206,155 @@
     outline: none;
   }
 
+  /* Enhanced Typography System */
   h1,
   h2,
   h3,
   h4,
+  h5,
+  h6 {
+    @apply font-heading font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+
+  h1 {
+    @apply text-4xl sm:text-5xl lg:text-6xl;
+    font-weight: 700;
+  }
+
+  h2 {
+    @apply text-3xl sm:text-4xl lg:text-5xl;
+    font-weight: 600;
+  }
+
+  h3 {
+    @apply text-2xl sm:text-3xl lg:text-4xl;
+    font-weight: 600;
+  }
+
+  h4 {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+    font-weight: 600;
+  }
+
+  h5 {
+    @apply text-lg sm:text-xl lg:text-2xl;
+    font-weight: 500;
+  }
+
+  h6 {
+    @apply text-base sm:text-lg lg:text-xl;
+    font-weight: 500;
+  }
+
+  /* Enhanced Text Utilities */
+  .text-display {
+    @apply text-6xl sm:text-7xl lg:text-8xl font-heading font-bold tracking-tight;
+    line-height: 0.9;
+  }
+
+  .text-headline {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-heading font-semibold;
+    line-height: 1.1;
+  }
+
+  .text-title {
+    @apply text-2xl sm:text-3xl lg:text-4xl font-heading font-semibold;
+    line-height: 1.2;
+  }
+
+  .text-subtitle {
+    @apply text-lg sm:text-xl lg:text-2xl font-heading font-medium;
+    line-height: 1.3;
+  }
+
+  .text-body {
+    @apply text-base sm:text-lg leading-relaxed;
+  }
+
+  .text-caption {
+    @apply text-sm sm:text-base text-muted-foreground;
+  }
+
+  .text-mono {
+    @apply font-mono;
+  }
+
+  /* Enhanced Line Heights */
+  .leading-tight {
+    line-height: 1.1;
+  }
+
+  .leading-snug {
+    line-height: 1.2;
+  }
+
+  .leading-normal {
+    line-height: 1.4;
+  }
+
+  .leading-relaxed {
+    line-height: 1.6;
+  }
+
+  .leading-loose {
+    line-height: 1.8;
+  }
+
+  /* Mobile-specific utilities */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Mobile-first spacing */
+  .mobile-padding {
+    @apply px-3 sm:px-4 lg:px-6;
+  }
+
+  .mobile-margin {
+    @apply mx-3 sm:mx-4 lg:mx-6;
+  }
+
+  /* Mobile-optimized touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile card styles */
+  .mobile-card {
+    @apply glass-card p-3 sm:p-4 rounded-lg;
+  }
+
+  /* Mobile text sizes */
+  .mobile-text-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  .mobile-text-base {
+    @apply text-sm sm:text-base;
+  }
+
+  .mobile-text-lg {
+    @apply text-base sm:text-lg;
+  }
+
+  /* Mobile spacing */
+  .mobile-space-y {
+    @apply space-y-3 sm:space-y-4 lg:space-y-6;
+  }
+
+  .mobile-gap {
+    @apply gap-2 sm:gap-3 lg:gap-4;
+  }
   h5,
   h6 {
     font-family: 'Figtree', sans-serif;
