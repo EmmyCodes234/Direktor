@@ -355,6 +355,53 @@
   .mobile-gap {
     @apply gap-2 sm:gap-3 lg:gap-4;
   }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 640px) {
+    .glass-card {
+      @apply p-2;
+    }
+    
+    .mobile-compact {
+      @apply space-y-2;
+    }
+    
+    .mobile-text-tiny {
+      @apply text-xs;
+    }
+    
+    .mobile-padding-tight {
+      @apply px-2 py-1;
+    }
+    
+    .mobile-margin-tight {
+      @apply mx-2 my-1;
+    }
+    
+    /* Ensure content fits mobile screens */
+    .mobile-fit {
+      @apply w-full max-w-full overflow-hidden;
+    }
+    
+    /* Mobile-optimized cards */
+    .mobile-card-compact {
+      @apply glass-card p-2 rounded-lg;
+    }
+    
+    /* Mobile-optimized buttons */
+    .mobile-button-compact {
+      @apply h-8 px-2 text-xs;
+    }
+    
+    /* Mobile-optimized spacing */
+    .mobile-space-tight {
+      @apply space-y-1.5;
+    }
+    
+    .mobile-gap-tight {
+      @apply gap-1;
+    }
+  }
   h5,
   h6 {
     font-family: 'Figtree', sans-serif;

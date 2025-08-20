@@ -315,7 +315,7 @@ const PublicTournamentPage = () => {
     const scrollToRef = (ref) => {
         const element = ref.current || (typeof ref === 'object' && ref.current);
         if (element) {
-            const headerHeight = isMobile ? 80 : 120; // Account for header height
+            const headerHeight = isMobile ? 60 : 120; // Reduced header height for mobile
             const elementPosition = element.getBoundingClientRect().top + window.pageYOffset - headerHeight;
             window.scrollTo({
                 top: elementPosition,
@@ -453,44 +453,44 @@ const PublicTournamentPage = () => {
             </AnimatePresence>
             {/* Mobile-Optimized Header */}
             <header className="fixed top-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-sm shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 lg:py-6">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
                     <div className="text-center">
-                        <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold mb-1 sm:mb-2 text-blue-400 leading-tight truncate">{tournament.name}</h1>
-                        <p className="text-xs sm:text-sm lg:text-base text-muted-foreground leading-relaxed truncate">{tournament.venue} • {formattedDate}</p>
+                        <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold mb-1 text-blue-400 leading-tight truncate">{tournament.name}</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed truncate">{tournament.venue} • {formattedDate}</p>
                     </div>
                 </div>
             </header>
             
             {/* Mobile Bottom Navigation - Fixed at bottom */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-xl border-t border-border/10 pb-safe">
-                <div className="px-2 py-2">
-                    <div className="grid grid-cols-4 gap-1">
+                <div className="px-1 py-1">
+                    <div className="grid grid-cols-4 gap-0.5">
                         <button 
                             onClick={() => scrollToRef(standingsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
                         >
-                            <Icon name="Trophy" size={20} className="text-primary mb-1"/>
+                            <Icon name="Trophy" size={18} className="text-primary mb-0.5"/>
                             <span className="text-xs font-medium text-foreground">Standings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(pairingsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
                         >
-                            <Icon name="Swords" size={20} className="text-primary mb-1"/>
+                            <Icon name="Swords" size={18} className="text-primary mb-0.5"/>
                             <span className="text-xs font-medium text-foreground">Pairings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(rosterRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
                         >
-                            <Icon name="Users" size={20} className="text-primary mb-1"/>
+                            <Icon name="Users" size={18} className="text-primary mb-0.5"/>
                             <span className="text-xs font-medium text-foreground">Roster</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(statsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
                         >
-                            <Icon name="BarChart2" size={20} className="text-primary mb-1"/>
+                            <Icon name="BarChart2" size={18} className="text-primary mb-0.5"/>
                             <span className="text-xs font-medium text-foreground">Stats</span>
                         </button>
                     </div>
@@ -498,22 +498,22 @@ const PublicTournamentPage = () => {
             </nav>
             
             {/* Ticker - Sticky below header */}
-            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: 'calc(3.5rem + 1px)' }}>
+            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: 'calc(3rem + 1px)' }}>
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
-            <main className="pt-16 sm:pt-20 lg:pt-24 pb-24 lg:pb-10">
-                <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
+            <main className="pt-12 sm:pt-16 lg:pt-20 pb-20 lg:pb-10">
+                <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 lg:gap-8">
                         <aside className="hidden lg:block lg:col-span-1 lg:sticky top-32 self-start">
                             <SidebarContent />
                         </aside>
-                        <div className="lg:col-span-3 space-y-8 lg:space-y-16">
+                        <div className="lg:col-span-3 space-y-6 lg:space-y-12">
                             <AnnouncementsDisplay />
                             <section id="standings" ref={standingsRef}>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 lg:mb-6">
-                                    <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold flex items-center">
-                                        <Icon name="Trophy" className="mr-2 sm:mr-3 text-primary" size={18} />
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-4">
+                                    <h2 className="font-heading text-base sm:text-lg lg:text-xl font-semibold flex items-center">
+                                        <Icon name="Trophy" className="mr-2 text-primary" size={16} />
                                         Live Standings
                                     </h2>
                                     <div className="flex justify-end">
@@ -544,16 +544,16 @@ const PublicTournamentPage = () => {
                             </section>
                             
                             <section id="stats" ref={statsRef}>
-                                <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold mb-4 lg:mb-6 flex items-center">
-                                    <Icon name="BarChart2" className="mr-2 sm:mr-3 text-primary" size={18}/>Advanced Statistics
+                                <h2 className="font-heading text-base sm:text-lg lg:text-xl font-semibold mb-3 lg:mb-4 flex items-center">
+                                    <Icon name="BarChart2" className="mr-2 text-primary" size={16}/>Advanced Statistics
                                 </h2>
                                 <AdvancedStatsDisplay results={results} players={players} />
                             </section>
 
                             <section id="pairings" ref={pairingsRef}>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 lg:mb-6">
-                                    <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold flex items-center">
-                                        <Icon name="Swords" className="mr-2 sm:mr-3 text-primary" size={18}/>Pairings by Round
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-4">
+                                    <h2 className="font-heading text-base sm:text-lg lg:text-xl font-semibold flex items-center">
+                                        <Icon name="Swords" className="mr-2 text-primary" size={16}/>Pairings by Round
                                     </h2>
                                     <div className="flex justify-end">
                                         <ShareButton
@@ -575,31 +575,31 @@ const PublicTournamentPage = () => {
                                         </ShareButton>
                                     </div>
                                 </div>
-                                <div className="space-y-4 lg:space-y-6">
+                                <div className="space-y-3 lg:space-y-4">
                                     {Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
                                         <div key={roundNum} id={`round-${roundNum}`} className="glass-card">
-                                            <h3 className="p-3 sm:p-4 border-b border-border font-semibold text-sm sm:text-base lg:text-lg">Round {roundNum}</h3>
-                                            <div className="p-3 sm:p-4 space-y-2">
+                                            <h3 className="p-2 sm:p-3 border-b border-border font-semibold text-sm sm:text-base">Round {roundNum}</h3>
+                                            <div className="p-2 sm:p-3 space-y-1.5">
                                                 {pairingsByRound[roundNum].map(pairing => {
                                                     const player1 = players.find(p => p.player_id === pairing.player1_id);
                                                     const player2 = players.find(p => p.player_id === pairing.player2_id);
                                                     
                                                     return (
-                                                        <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg">
+                                                        <div key={pairing.id || pairing.table} className="p-2 bg-muted/20 rounded-lg">
                                                             {/* Mobile Layout */}
-                                                            <div className="sm:hidden space-y-2">
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">Table {pairing.round || pairing.table}</span>
+                                                            <div className="sm:hidden">
+                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                    <span className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">Table {pairing.round || pairing.table}</span>
                                                                 </div>
-                                                                <div className="space-y-2">
-                                                                    <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
+                                                                <div className="space-y-1.5">
+                                                                    <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="block p-1.5 bg-background/50 rounded hover:bg-background/70 transition-colors">
                                                                         <div className="font-medium text-sm">{player1?.name}</div>
                                                                         <div className="text-xs text-muted-foreground">Seed #{player1?.seed}</div>
                                                                     </a>
-                                                                    <div className="flex justify-center py-1">
-                                                                        <span className="text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded">vs</span>
+                                                                    <div className="flex justify-center py-0.5">
+                                                                        <span className="text-xs font-semibold text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded">vs</span>
                                                                     </div>
-                                                                    <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
+                                                                    <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="block p-1.5 bg-background/50 rounded hover:bg-background/70 transition-colors">
                                                                         <div className="font-medium text-sm">{player2?.name}</div>
                                                                         <div className="text-xs text-muted-foreground">Seed #{player2?.seed}</div>
                                                                     </a>
@@ -637,25 +637,25 @@ const PublicTournamentPage = () => {
                             </section>
 
                             <section id="roster" ref={rosterRef}>
-                                <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold mb-4 lg:mb-6 flex items-center">
-                                    <Icon name="Users" className="mr-2 sm:mr-3 text-primary" size={18}/>Player Roster
+                                <h2 className="font-heading text-base sm:text-lg lg:text-xl font-semibold mb-3 lg:mb-4 flex items-center">
+                                    <Icon name="Users" className="mr-2 text-primary" size={16}/>Player Roster
                                 </h2>
-                                <div className="glass-card p-3 sm:p-4">
+                                <div className="glass-card p-2 sm:p-3">
                                     <div className="divide-y divide-border">
                                         {sortedRoster.map((p, index) => (
-                                            <div key={p.id} className="p-3">
+                                            <div key={p.id} className="p-2 sm:p-3">
                                                 {/* Mobile Layout */}
                                                 <div className="sm:hidden">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center space-x-3">
-                                                            <span className="font-mono text-muted-foreground text-sm bg-muted/20 px-2 py-1 rounded">{index + 1}</span>
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="font-mono text-muted-foreground text-xs bg-muted/20 px-1.5 py-0.5 rounded">{index + 1}</span>
                                                             <a href={`/players/${p.slug}`} onClick={(e) => handlePlayerClick(e, p)} className="font-medium hover:underline text-sm truncate">{p.name}</a>
                                                         </div>
-                                                        <span className="text-muted-foreground text-xs font-mono bg-primary/10 px-2 py-1 rounded">{p.rating}</span>
+                                                        <span className="text-muted-foreground text-xs font-mono bg-primary/10 px-1.5 py-0.5 rounded">{p.rating}</span>
                                                     </div>
                                                     {tournament.type === 'team' && p.team_id && (
-                                                        <div className="ml-8">
-                                                            <span className="text-xs text-accent bg-accent/10 px-2 py-1 rounded">{teamMap.get(p.team_id) || 'Unknown Team'}</span>
+                                                        <div className="ml-6">
+                                                            <span className="text-xs text-accent bg-accent/10 px-1.5 py-0.5 rounded">{teamMap.get(p.team_id) || 'Unknown Team'}</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -703,7 +703,7 @@ const PublicTournamentPage = () => {
 
             {/* Mobile Floating Action Button */}
             {isMobile && (
-                <div className="lg:hidden fixed bottom-28 right-4 z-50">
+                <div className="lg:hidden fixed bottom-24 right-3 z-50">
                     <ShareButton
                         variant="default"
                         size="default"
@@ -715,23 +715,23 @@ const PublicTournamentPage = () => {
                         }}
                         platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                         position="top-left"
-                        className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300"
+                        className="w-10 h-10 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300"
                     >
-                        <Icon name="Share2" size={20} />
+                        <Icon name="Share2" size={18} />
                     </ShareButton>
                 </div>
             )}
             
             {/* Mobile Action Bar - Fixed above bottom navigation */}
             {isMobile && tournament.is_remote_submission_enabled && (
-                <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
-                    <div className="glass-card p-3 shadow-lg">
-                        <div className="flex items-center justify-between gap-3">
+                <div className="lg:hidden fixed bottom-16 left-3 right-3 z-40">
+                    <div className="glass-card p-2 shadow-lg">
+                        <div className="flex items-center justify-between gap-2">
                             <Button 
                                 onClick={() => setShowSubmissionModal(true)} 
-                                className="flex-1 h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                                className="flex-1 h-10 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] text-sm"
                             >
-                                <Icon name="Send" className="mr-2" size={18}/>
+                                <Icon name="Send" className="mr-1.5" size={16}/>
                                 Submit Result
                             </Button>
                             <ShareButton
@@ -745,9 +745,9 @@ const PublicTournamentPage = () => {
                                 }}
                                 platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                                 position="top-left"
-                                className="h-12 px-4"
+                                className="h-10 px-3 text-sm"
                             >
-                                <Icon name="Share2" size={18} className="mr-2" />
+                                <Icon name="Share2" size={16} className="mr-1.5" />
                                 Share
                             </ShareButton>
                         </div>
