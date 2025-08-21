@@ -467,9 +467,9 @@ const PublicTournamentPage = () => {
             </AnimatePresence>
             {/* Mobile-Optimized Header */}
             <header className="fixed top-0 left-0 right-0 z-[9999] bg-background/95 backdrop-blur-sm shadow-sm">
-                <div className="w-full px-1 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4">
+                <div className="w-full px-2 sm:px-4 lg:px-6 py-3 sm:py-3 lg:py-4">
                     <div className="text-center">
-                        <h1 className="text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold mb-1 text-blue-400 leading-tight truncate">{tournament.name}</h1>
+                        <h1 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold mb-1 text-blue-400 leading-tight truncate">{tournament.name}</h1>
                         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed truncate">{tournament.venue} • {formattedDate}</p>
                     </div>
                 </div>
@@ -477,61 +477,61 @@ const PublicTournamentPage = () => {
             
             {/* Mobile Bottom Navigation - Fixed at bottom */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-xl border-t border-border/10 pb-safe">
-                <div className="px-1 py-2">
-                    <div className="grid grid-cols-4 gap-0.5">
+                <div className="px-2 py-3">
+                    <div className="grid grid-cols-4 gap-1">
                         <button 
                             onClick={() => scrollToRef(standingsRef)}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[48px]"
+                            className="flex flex-col items-center justify-center py-3 px-2 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[56px]"
                             aria-label="Navigate to standings section"
                         >
-                            <Icon name="Trophy" size={18} className="text-primary mb-0.5"/>
-                            <span className="text-[10px] font-semibold text-foreground">Standings</span>
+                            <Icon name="Trophy" size={20} className="text-primary mb-1"/>
+                            <span className="text-xs font-semibold text-foreground">Standings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(pairingsRef)}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[48px]"
+                            className="flex flex-col items-center justify-center py-3 px-2 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[56px]"
                             aria-label="Navigate to pairings section"
                         >
-                            <Icon name="Swords" size={18} className="text-primary mb-0.5"/>
-                            <span className="text-[10px] font-semibold text-foreground">Pairings</span>
+                            <Icon name="Swords" size={20} className="text-primary mb-1"/>
+                            <span className="text-xs font-semibold text-foreground">Pairings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(rosterRef)}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[48px]"
+                            className="flex flex-col items-center justify-center py-3 px-2 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[56px]"
                             aria-label="Navigate to roster section"
                         >
-                            <Icon name="Users" size={18} className="text-primary mb-0.5"/>
-                            <span className="text-[10px] font-semibold text-foreground">Roster</span>
+                            <Icon name="Users" size={20} className="text-primary mb-1"/>
+                            <span className="text-xs font-semibold text-foreground">Roster</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(statsRef)}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[48px]"
+                            className="flex flex-col items-center justify-center py-3 px-2 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[56px]"
                             aria-label="Navigate to statistics section"
                         >
-                            <Icon name="BarChart2" size={18} className="text-primary mb-0.5"/>
-                            <span className="text-[10px] font-semibold text-foreground">Stats</span>
+                            <Icon name="BarChart2" size={20} className="text-primary mb-1"/>
+                            <span className="text-xs font-semibold text-foreground">Stats</span>
                         </button>
                     </div>
                 </div>
             </nav>
             
             {/* Ticker - Sticky below header */}
-            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: '3.5rem' }}>
+            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: '4.5rem' }}>
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
-            <main className="pt-16 sm:pt-24 lg:pt-28 pb-24 lg:pb-10">
-                <div className="w-full px-0.5 sm:px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-1 lg:gap-8">
+            <main className="pt-24 sm:pt-24 lg:pt-28 pb-32 lg:pb-10">
+                <div className="w-full px-2 sm:px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 lg:gap-8">
                         <aside className="hidden lg:block lg:col-span-1 lg:sticky top-32 self-start">
                             <SidebarContent />
                         </aside>
-                        <div className="lg:col-span-3 space-y-3 lg:space-y-12">
+                        <div className="lg:col-span-3 space-y-4 lg:space-y-12">
                             <AnnouncementsDisplay />
                             <section id="standings" ref={standingsRef}>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2 lg:mb-6">
-                                    <h2 className="font-heading text-base sm:text-xl lg:text-2xl font-semibold flex items-center justify-center sm:justify-start">
-                                        <Icon name="Trophy" className="mr-1 sm:mr-3 text-primary" size={16} />
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-6">
+                                    <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold flex items-center justify-center sm:justify-start">
+                                        <Icon name="Trophy" className="mr-2 sm:mr-3 text-primary" size={18} />
                                         Live Standings
                                     </h2>
                                     <div className="flex justify-center sm:justify-end">
@@ -562,16 +562,16 @@ const PublicTournamentPage = () => {
                             </section>
                             
                             <section id="stats" ref={statsRef}>
-                                <h2 className="font-heading text-base sm:text-xl lg:text-2xl font-semibold mb-2 lg:mb-6 flex items-center justify-center sm:justify-start">
-                                    <Icon name="BarChart2" className="mr-1 sm:mr-3 text-primary" size={16}/>Advanced Statistics
+                                <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold mb-3 lg:mb-6 flex items-center justify-center sm:justify-start">
+                                    <Icon name="BarChart2" className="mr-2 sm:mr-3 text-primary" size={18}/>Advanced Statistics
                                 </h2>
                                 <AdvancedStatsDisplay results={results} players={players} />
                             </section>
 
                             <section id="pairings" ref={pairingsRef}>
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-2 lg:mb-6">
-                                    <h2 className="font-heading text-base sm:text-xl lg:text-2xl font-semibold flex items-center justify-center sm:justify-start">
-                                        <Icon name="Swords" className="mr-1 sm:mr-3 text-primary" size={16}/>Pairings by Round
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-6">
+                                    <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold flex items-center justify-center sm:justify-start">
+                                        <Icon name="Swords" className="mr-2 sm:mr-3 text-primary" size={18}/>Pairings by Round
                                     </h2>
                                     <div className="flex justify-center sm:justify-end">
                                         <ShareButton
@@ -594,14 +594,14 @@ const PublicTournamentPage = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="space-y-1 lg:space-y-6">
+                                <div className="space-y-2 lg:space-y-6">
                                     {Object.keys(pairingsByRound).length > 0 ? (
                                         Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
                                             <div key={roundNum} id={`round-${roundNum}`} className="glass-card">
-                                                <h3 className="p-1.5 sm:p-4 border-b border-border font-semibold text-sm sm:text-base lg:text-lg text-center sm:text-left">Round {roundNum}</h3>
-                                                <div className="p-0.5 sm:p-4">
+                                                <h3 className="p-2 sm:p-4 border-b border-border font-semibold text-sm sm:text-base lg:text-lg text-center sm:text-left">Round {roundNum}</h3>
+                                                <div className="p-1 sm:p-4">
                                                     {/* Mobile Leaderboard Layout */}
-                                                    <div className="sm:hidden space-y-0.5">
+                                                    <div className="sm:hidden space-y-1">
                                                         {pairingsByRound[roundNum].map(match => {
                                                             const player1Data = match.player1_id || match.player1;
                                                             const player2Data = match.player2_id || match.player2;
@@ -628,31 +628,31 @@ const PublicTournamentPage = () => {
                                                             );
                                                             
                                                             return (
-                                                                <div key={match.id || match.table || `${roundNum}-${tableNumber}`} className="bg-muted/10 rounded-lg p-1.5">
-                                                                    <div className="grid grid-cols-12 gap-0.5 items-center text-[10px]">
+                                                                <div key={match.id || match.table || `${roundNum}-${tableNumber}`} className="bg-muted/10 rounded-lg p-2">
+                                                                    <div className="grid grid-cols-12 gap-1 items-center text-xs">
                                                                         {/* Table Number */}
                                                                         <div className="col-span-2 flex justify-center">
-                                                                            <span className="font-mono font-bold text-primary bg-primary/10 px-1 py-0.5 rounded text-[9px]">#{tableNumber}</span>
+                                                                            <span className="font-mono font-bold text-primary bg-primary/10 px-1 py-0.5 rounded text-[10px]">#{tableNumber}</span>
                                                                         </div>
                                                                         
                                                                         {/* Player 1 */}
                                                                         <div className="col-span-4 flex justify-center">
                                                                             <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="text-center hover:underline">
                                                                                 <div className="font-medium truncate">{player1?.name || player1Name || 'TBD'}</div>
-                                                                                <div className="text-muted-foreground text-[8px]">#{player1?.seed || 'TBD'}</div>
+                                                                                <div className="text-muted-foreground text-[9px]">#{player1?.seed || 'TBD'}</div>
                                                                             </a>
                                                                         </div>
                                                                         
                                                                         {/* VS */}
                                                                         <div className="col-span-2 flex justify-center">
-                                                                            <span className="font-bold text-muted-foreground text-[9px] bg-muted/20 px-1 py-0.5 rounded">VS</span>
+                                                                            <span className="font-bold text-muted-foreground text-[10px] bg-muted/20 px-1 py-0.5 rounded">VS</span>
                                                                         </div>
                                                                         
                                                                         {/* Player 2 */}
                                                                         <div className="col-span-4 flex justify-center">
                                                                             <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="text-center hover:underline">
                                                                                 <div className="font-medium truncate">{player2?.name || player2Name || 'TBD'}</div>
-                                                                                <div className="text-muted-foreground text-[8px]">#{player2?.seed || 'TBD'}</div>
+                                                                                <div className="text-muted-foreground text-[9px]">#{player2?.seed || 'TBD'}</div>
                                                                             </a>
                                                                         </div>
                                                                     </div>
@@ -718,7 +718,7 @@ const PublicTournamentPage = () => {
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="glass-card p-4 sm:p-8 text-center">
+                                        <div className="glass-card p-6 sm:p-8 text-center">
                                             <Icon name="Swords" size={48} className="mx-auto text-muted-foreground mb-4" />
                                             <h3 className="text-lg font-semibold text-foreground mb-2">No Pairings Available</h3>
                                             <p className="text-muted-foreground">
@@ -733,19 +733,19 @@ const PublicTournamentPage = () => {
                             </section>
 
                             <section id="roster" ref={rosterRef}>
-                                <h2 className="font-heading text-base sm:text-xl lg:text-2xl font-semibold mb-2 lg:mb-6 flex items-center justify-center sm:justify-start">
-                                    <Icon name="Users" className="mr-1 sm:mr-3 text-primary" size={16}/>Player Roster
+                                <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold mb-3 lg:mb-6 flex items-center justify-center sm:justify-start">
+                                    <Icon name="Users" className="mr-2 sm:mr-3 text-primary" size={18}/>Player Roster
                                 </h2>
-                                <div className="glass-card p-0.5 sm:p-4">
+                                <div className="glass-card p-1 sm:p-4">
                                     {/* Mobile Leaderboard Layout */}
                                     <div className="sm:hidden">
-                                        <div className="space-y-0.5">
+                                        <div className="space-y-1">
                                             {sortedRoster.map((p, index) => (
-                                                <div key={p.id} className="bg-muted/10 rounded-lg p-1.5">
-                                                    <div className="grid grid-cols-12 gap-0.5 items-center text-[10px]">
+                                                <div key={p.id} className="bg-muted/10 rounded-lg p-2">
+                                                    <div className="grid grid-cols-12 gap-1 items-center text-xs">
                                                         {/* Rank */}
                                                         <div className="col-span-1 flex justify-center">
-                                                            <span className="font-mono font-bold text-muted-foreground bg-muted/20 px-1 py-0.5 rounded text-[9px]">{index + 1}</span>
+                                                            <span className="font-mono font-bold text-muted-foreground bg-muted/20 px-1 py-0.5 rounded text-[10px]">{index + 1}</span>
                                                         </div>
                                                         
                                                         {/* Player Name */}
@@ -753,14 +753,14 @@ const PublicTournamentPage = () => {
                                                             <a href={`/players/${p.slug}`} onClick={(e) => handlePlayerClick(e, p)} className="text-center hover:underline">
                                                                 <div className="font-medium truncate">{p.name}</div>
                                                                 {tournament.type === 'team' && p.team_id && (
-                                                                    <div className="text-accent text-[8px]">{teamMap.get(p.team_id) || 'Unknown Team'}</div>
+                                                                    <div className="text-accent text-[9px]">{teamMap.get(p.team_id) || 'Unknown Team'}</div>
                                                                 )}
                                                             </a>
                                                         </div>
                                                         
                                                         {/* Rating */}
                                                         <div className="col-span-3 flex justify-center">
-                                                            <span className="font-mono text-muted-foreground bg-primary/10 px-1 py-0.5 rounded text-[9px]">{p.rating}</span>
+                                                            <span className="font-mono text-muted-foreground bg-primary/10 px-1 py-0.5 rounded text-[10px]">{p.rating}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -816,7 +816,7 @@ const PublicTournamentPage = () => {
 
             {/* Mobile Floating Action Button */}
             {isMobile && (
-                <div className="lg:hidden fixed bottom-20 right-2 z-50">
+                <div className="lg:hidden fixed bottom-28 right-4 z-50">
                     <ShareButton
                         variant="default"
                         size="default"
@@ -828,25 +828,38 @@ const PublicTournamentPage = () => {
                         }}
                         platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                         position="top-left"
-                        className="w-10 h-10 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary text-white"
+                        className="w-12 h-12 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary text-white"
                         aria-label="Quick share tournament"
                     >
-                        <Icon name="Share2" size={16} />
+                        <Icon name="Share2" size={20} />
                     </ShareButton>
+                </div>
+            )}
+            
+            {/* Mobile Floating Submit Result Button */}
+            {isMobile && tournament.is_remote_submission_enabled && (
+                <div className="lg:hidden fixed bottom-28 left-4 z-50">
+                    <Button 
+                        onClick={() => setShowSubmissionModal(true)} 
+                        className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+                        aria-label="Submit tournament result"
+                    >
+                        <Icon name="Send" size={18} />
+                    </Button>
                 </div>
             )}
             
             {/* Mobile Action Bar - Fixed above bottom navigation */}
             {isMobile && tournament.is_remote_submission_enabled && (
-                <div className="lg:hidden fixed bottom-16 left-2 right-2 z-40">
-                    <div className="glass-card p-2 shadow-xl rounded-lg">
-                        <div className="flex items-center justify-between gap-2">
+                <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
+                    <div className="glass-card p-3 shadow-xl rounded-xl">
+                        <div className="flex items-center justify-between gap-3">
                             <Button 
                                 onClick={() => setShowSubmissionModal(true)} 
-                                className="flex-1 h-10 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] rounded-lg text-xs"
+                                className="flex-1 h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] rounded-xl text-sm"
                                 aria-label="Submit tournament result"
                             >
-                                <Icon name="Send" className="mr-1" size={14}/>
+                                <Icon name="Send" className="mr-2" size={18}/>
                                 Submit Result
                             </Button>
                             <ShareButton
@@ -860,10 +873,10 @@ const PublicTournamentPage = () => {
                                 }}
                                 platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                                 position="top-left"
-                                className="h-10 px-3 rounded-lg text-xs"
+                                className="h-12 px-4 rounded-xl text-sm"
                                 aria-label="Share tournament"
                             >
-                                <Icon name="Share2" size={14} className="mr-1" />
+                                <Icon name="Share2" size={18} className="mr-2" />
                                 Share
                             </ShareButton>
                         </div>
