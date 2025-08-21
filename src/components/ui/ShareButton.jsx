@@ -96,12 +96,12 @@ const ShareButton = ({
   };
 
   const positionClasses = {
-    'bottom-right': 'bottom-full right-0 mb-2',
-    'bottom-left': 'bottom-full left-0 mb-2',
-    'top-right': 'top-full right-0 mt-2',
-    'top-left': 'top-full left-0 mt-2',
-    'right': 'left-full top-0 ml-2',
-    'left': 'right-full top-0 mr-2'
+    'bottom-right': 'bottom-full right-0 mb-3',
+    'bottom-left': 'bottom-full left-0 mb-3',
+    'top-right': 'top-full right-0 mt-3',
+    'top-left': 'top-full left-0 mt-3',
+    'right': 'left-full top-0 ml-3',
+    'left': 'right-full top-0 mr-3'
   };
 
   return (
@@ -136,7 +136,7 @@ const ShareButton = ({
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
               className={cn(
-                "absolute z-50 glass-card border border-border shadow-glass-xl rounded-xl p-2 min-w-[200px]",
+                "absolute z-50 glass-card border border-border/10 shadow-glass-xl rounded-xl p-3 min-w-[220px]",
                 positionClasses[position]
               )}
             >

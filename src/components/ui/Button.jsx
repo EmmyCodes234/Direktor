@@ -21,14 +21,14 @@ const buttonVariants = cva(
                 glass: "glass-card hover:bg-card/95 hover:shadow-glow border-border/30",
             },
             size: {
-                xs: "h-8 px-3 text-xs min-w-[2rem]",
-                sm: "h-9 px-4 text-sm min-w-[2.25rem]",
-                default: "h-10 px-6 text-sm min-w-[2.5rem]",
-                lg: "h-11 px-8 text-base min-w-[2.75rem]",
-                xl: "h-12 px-10 text-base min-w-[3rem]",
-                icon: "h-10 w-10 p-0",
-                "icon-sm": "h-8 w-8 p-0",
-                "icon-lg": "h-12 w-12 p-0",
+                xs: "h-10 px-3 text-xs min-w-[2.5rem]",
+                sm: "h-11 px-4 text-sm min-w-[2.75rem]",
+                default: "h-12 px-6 text-sm min-w-[3rem]",
+                lg: "h-14 px-8 text-base min-w-[3.5rem]",
+                xl: "h-16 px-10 text-base min-w-[4rem]",
+                icon: "h-12 w-12 p-0",
+                "icon-sm": "h-10 w-10 p-0",
+                "icon-lg": "h-16 w-16 p-0",
             },
         },
         defaultVariants: {
@@ -113,6 +113,18 @@ const Button = React.forwardRef(({
                 aria-hidden="true"
             />
         );
+    };
+
+    // Enhanced accessibility attributes
+    const accessibilityProps = {
+        'aria-label': ariaLabel,
+        'aria-pressed': pressed,
+        'aria-expanded': expanded,
+        'aria-haspopup': hasPopup,
+        'aria-controls': controls,
+        'aria-describedby': describedBy,
+        'role': asChild ? undefined : 'button',
+        'tabIndex': disabled ? -1 : 0,
     };
 
     // Determine if this is an icon-only button for accessibility

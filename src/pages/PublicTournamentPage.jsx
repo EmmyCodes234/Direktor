@@ -20,13 +20,13 @@ import ShareButton from 'components/ui/ShareButton';
 import { tournamentSharing } from 'utils/socialSharing';
 
 const StatCard = ({ icon, label, value, subtext, color = 'text-primary' }) => (
-    <div className="glass-card p-3 sm:p-4">
-        <div className="flex items-center space-x-2 sm:space-x-3">
-            <Icon name={icon} size={20} className={cn(color, "sm:w-6 sm:h-6")} />
+    <div className="glass-card p-4 lg:p-6">
+        <div className="flex items-center space-x-3 lg:space-x-4">
+            <Icon name={icon} size={22} className={cn(color, "lg:w-6 lg:h-6")} />
             <div className="min-w-0 flex-1">
-                <p className="text-lg sm:text-xl font-bold font-mono">{value}</p>
-                <p className="text-xs sm:text-sm text-foreground font-medium truncate">{label}</p>
-                {subtext && <p className="text-xs text-muted-foreground truncate">{subtext}</p>}
+                <p className="text-lg lg:text-xl font-bold font-mono">{value}</p>
+                <p className="text-sm lg:text-base text-foreground font-medium truncate">{label}</p>
+                {subtext && <p className="text-xs lg:text-sm text-muted-foreground truncate">{subtext}</p>}
             </div>
         </div>
     </div>
@@ -282,7 +282,21 @@ const PublicTournamentPage = () => {
 
     const pairingsByRound = useMemo(() => {
         if (tournament?.type !== 'best_of_league') {
-            return tournament?.pairing_schedule || {};
+            // For individual tournaments, try to get pairings from tournament pairing_schedule first
+            if (tournament?.pairing_schedule && Object.keys(tournament.pairing_schedule).length > 0) {
+                return tournament.pairing_schedule;
+            }
+            // Fallback to matches if pairing_schedule is not available
+            if (matches && matches.length > 0) {
+                return matches.reduce((acc, match) => {
+                    if (!acc[match.round]) {
+                        acc[match.round] = [];
+                    }
+                    acc[match.round].push(match);
+                    return acc;
+                }, {});
+            }
+            return {};
         }
         return matches.reduce((acc, match) => {
             if (!acc[match.round]) {
@@ -463,46 +477,50 @@ const PublicTournamentPage = () => {
             
             {/* Mobile Bottom Navigation - Fixed at bottom */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background/95 backdrop-blur-xl border-t border-border/10 pb-safe">
-                <div className="px-2 py-2">
-                    <div className="grid grid-cols-4 gap-1">
+                <div className="px-3 py-3">
+                    <div className="grid grid-cols-4 gap-2">
                         <button 
                             onClick={() => scrollToRef(standingsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-4 px-3 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[60px]"
+                            aria-label="Navigate to standings section"
                         >
-                            <Icon name="Trophy" size={20} className="text-primary mb-1"/>
-                            <span className="text-xs font-medium text-foreground">Standings</span>
+                            <Icon name="Trophy" size={22} className="text-primary mb-1.5"/>
+                            <span className="text-xs font-semibold text-foreground">Standings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(pairingsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-4 px-3 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[60px]"
+                            aria-label="Navigate to pairings section"
                         >
-                            <Icon name="Swords" size={20} className="text-primary mb-1"/>
-                            <span className="text-xs font-medium text-foreground">Pairings</span>
+                            <Icon name="Swords" size={22} className="text-primary mb-1.5"/>
+                            <span className="text-xs font-semibold text-foreground">Pairings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(rosterRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-4 px-3 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[60px]"
+                            aria-label="Navigate to roster section"
                         >
-                            <Icon name="Users" size={20} className="text-primary mb-1"/>
-                            <span className="text-xs font-medium text-foreground">Roster</span>
+                            <Icon name="Users" size={22} className="text-primary mb-1.5"/>
+                            <span className="text-xs font-semibold text-foreground">Roster</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef(statsRef)}
-                            className="flex flex-col items-center justify-center py-3 px-2 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-4 px-3 rounded-xl hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation min-h-[60px]"
+                            aria-label="Navigate to statistics section"
                         >
-                            <Icon name="BarChart2" size={20} className="text-primary mb-1"/>
-                            <span className="text-xs font-medium text-foreground">Stats</span>
+                            <Icon name="BarChart2" size={22} className="text-primary mb-1.5"/>
+                            <span className="text-xs font-semibold text-foreground">Stats</span>
                         </button>
                     </div>
                 </div>
             </nav>
             
             {/* Ticker - Sticky below header */}
-            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: 'calc(3rem + 1px)' }}>
+            <div className="sticky z-[90] w-full bg-background/95 backdrop-blur-sm border-b border-border/10" style={{ top: '4rem' }}>
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
-            <main className="pt-12 sm:pt-16 lg:pt-20 pb-24 lg:pb-10">
+            <main className="pt-20 sm:pt-24 lg:pt-28 pb-32 lg:pb-10">
                 <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
                         <aside className="hidden lg:block lg:col-span-1 lg:sticky top-32 self-start">
@@ -575,64 +593,102 @@ const PublicTournamentPage = () => {
                                         </ShareButton>
                                     </div>
                                 </div>
+                                
                                 <div className="space-y-4 lg:space-y-6">
-                                    {Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
-                                        <div key={roundNum} id={`round-${roundNum}`} className="glass-card">
-                                            <h3 className="p-3 sm:p-4 border-b border-border font-semibold text-sm sm:text-base lg:text-lg">Round {roundNum}</h3>
-                                            <div className="p-3 sm:p-4 space-y-2">
-                                                {pairingsByRound[roundNum].map(pairing => {
-                                                    const player1 = players.find(p => p.player_id === pairing.player1_id);
-                                                    const player2 = players.find(p => p.player_id === pairing.player2_id);
-                                                    
-                                                    return (
-                                                        <div key={pairing.id || pairing.table} className="p-3 bg-muted/20 rounded-lg">
-                                                            {/* Mobile Layout */}
-                                                            <div className="sm:hidden">
-                                                                <div className="flex justify-between items-center mb-2">
-                                                                    <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">Table {pairing.round || pairing.table}</span>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
-                                                                        <div className="font-medium text-sm">{player1?.name}</div>
-                                                                        <div className="text-xs text-muted-foreground">Seed #{player1?.seed}</div>
-                                                                    </a>
-                                                                    <div className="flex justify-center py-1">
-                                                                        <span className="text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded">vs</span>
+                                    {Object.keys(pairingsByRound).length > 0 ? (
+                                        Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
+                                            <div key={roundNum} id={`round-${roundNum}`} className="glass-card">
+                                                <h3 className="p-3 sm:p-4 border-b border-border font-semibold text-sm sm:text-base lg:text-lg">Round {roundNum}</h3>
+                                                <div className="p-3 sm:p-4 space-y-2">
+                                                    {pairingsByRound[roundNum].map(match => {
+                                                        // Handle different data structures for pairings/matches
+                                                        const player1Data = match.player1_id || match.player1;
+                                                        const player2Data = match.player2_id || match.player2;
+                                                        const tableNumber = match.table || match.table_number || match.round;
+                                                        
+                                                        // Extract player names from the data structure
+                                                        const player1Name = typeof player1Data === 'object' ? player1Data.name : player1Data;
+                                                        const player2Name = typeof player2Data === 'object' ? player2Data.name : player2Data;
+                                                        
+                                                        // Try multiple ways to find players
+                                                        const player1 = players.find(p => 
+                                                            p.player_id === player1Data || 
+                                                            p.id === player1Data || 
+                                                            p.player_id === parseInt(player1Data) ||
+                                                            p.id === parseInt(player1Data) ||
+                                                            p.name === player1Data ||
+                                                            p.name === player1Name
+                                                        );
+                                                        const player2 = players.find(p => 
+                                                            p.player_id === player2Data || 
+                                                            p.id === player2Data || 
+                                                            p.player_id === parseInt(player2Data) ||
+                                                            p.id === parseInt(player2Data) ||
+                                                            p.name === player2Data ||
+                                                            p.name === player2Name
+                                                        );
+                                                        
+                                                        return (
+                                                            <div key={match.id || match.table || `${roundNum}-${tableNumber}`} className="p-3 bg-muted/20 rounded-lg">
+                                                                {/* Mobile Layout */}
+                                                                <div className="sm:hidden">
+                                                                    <div className="flex justify-between items-center mb-2">
+                                                                        <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">Table {tableNumber}</span>
                                                                     </div>
-                                                                    <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
-                                                                        <div className="font-medium text-sm">{player2?.name}</div>
-                                                                        <div className="text-xs text-muted-foreground">Seed #{player2?.seed}</div>
-                                                                    </a>
+                                                                    <div className="space-y-2">
+                                                                        <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
+                                                                            <div className="font-medium text-sm">{player1?.name || player1Name || 'TBD'}</div>
+                                                                            <div className="text-xs text-muted-foreground">Seed #{player1?.seed || 'TBD'}</div>
+                                                                        </a>
+                                                                        <div className="flex justify-center py-1">
+                                                                            <span className="text-xs font-semibold text-muted-foreground bg-muted/30 px-2 py-1 rounded">vs</span>
+                                                                        </div>
+                                                                        <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="block p-2 bg-background/50 rounded hover:bg-background/70 transition-colors">
+                                                                            <div className="font-medium text-sm">{player2?.name || player2Name || 'TBD'}</div>
+                                                                            <div className="text-xs text-muted-foreground">Seed #{player2?.seed || 'TBD'}</div>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                {/* Desktop Layout */}
+                                                                <div className="hidden sm:grid sm:grid-cols-12 gap-2 items-center font-mono text-sm lg:text-base">
+                                                                    <div className="col-span-1 flex justify-center">
+                                                                        <span className="font-bold text-primary">{tableNumber}</span>
+                                                                    </div>
+                                                                    <div className="col-span-5 flex justify-end items-center">
+                                                                        <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="hover:underline text-right">
+                                                                            <span className="font-medium">{player1?.name || player1Name || 'TBD'}</span>
+                                                                            <span className="text-muted-foreground ml-1">(#{player1?.seed || 'TBD'})</span>
+                                                                        </a>
+                                                                    </div>
+                                                                    <div className="col-span-2 flex justify-center">
+                                                                        <span className="font-semibold text-muted-foreground">vs.</span>
+                                                                    </div>
+                                                                    <div className="col-span-4 flex justify-start items-center">
+                                                                        <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="hover:underline text-left">
+                                                                            <span className="font-medium">{player2?.name || player2Name || 'TBD'}</span>
+                                                                            {player2 && <span className="text-muted-foreground ml-1">(#{player2?.seed || 'TBD'})</span>}
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                            
-                                                            {/* Desktop Layout */}
-                                                            <div className="hidden sm:grid sm:grid-cols-12 gap-2 items-center font-mono text-sm lg:text-base">
-                                                                <div className="col-span-1 flex justify-center">
-                                                                    <span className="font-bold text-primary">{pairing.round || pairing.table}</span>
-                                                                </div>
-                                                                <div className="col-span-5 flex justify-end items-center">
-                                                                    <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="hover:underline text-right">
-                                                                        <span className="font-medium">{player1?.name}</span>
-                                                                        <span className="text-muted-foreground ml-1">(#{player1?.seed})</span>
-                                                                    </a>
-                                                                </div>
-                                                                <div className="col-span-2 flex justify-center">
-                                                                    <span className="font-semibold text-muted-foreground">vs.</span>
-                                                                </div>
-                                                                <div className="col-span-4 flex justify-start items-center">
-                                                                    <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="hover:underline text-left">
-                                                                        <span className="font-medium">{player2?.name}</span>
-                                                                        {player2 && <span className="text-muted-foreground ml-1">(#{player2?.seed})</span>}
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
+                                                        );
+                                                    })}
+                                                </div>
                                             </div>
+                                        ))
+                                    ) : (
+                                        <div className="glass-card p-8 text-center">
+                                            <Icon name="Swords" size={48} className="mx-auto text-muted-foreground mb-4" />
+                                            <h3 className="text-lg font-semibold text-foreground mb-2">No Pairings Available</h3>
+                                            <p className="text-muted-foreground">
+                                                {tournament?.type === 'best_of_league' 
+                                                    ? 'Pairings will be displayed here once the tournament begins.'
+                                                    : 'Pairings will be displayed here once they are generated by the tournament director.'
+                                                }
+                                            </p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </section>
 
@@ -703,7 +759,7 @@ const PublicTournamentPage = () => {
 
             {/* Mobile Floating Action Button */}
             {isMobile && (
-                <div className="lg:hidden fixed bottom-28 right-4 z-50">
+                <div className="lg:hidden fixed bottom-32 right-4 z-50">
                     <ShareButton
                         variant="default"
                         size="default"
@@ -715,23 +771,25 @@ const PublicTournamentPage = () => {
                         }}
                         platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                         position="top-left"
-                        className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300"
+                        className="w-14 h-14 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary text-white"
+                        aria-label="Quick share tournament"
                     >
-                        <Icon name="Share2" size={20} />
+                        <Icon name="Share2" size={22} />
                     </ShareButton>
                 </div>
             )}
             
             {/* Mobile Action Bar - Fixed above bottom navigation */}
             {isMobile && tournament.is_remote_submission_enabled && (
-                <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
-                    <div className="glass-card p-3 shadow-lg">
-                        <div className="flex items-center justify-between gap-3">
+                <div className="lg:hidden fixed bottom-24 left-4 right-4 z-40">
+                    <div className="glass-card p-4 shadow-xl rounded-xl">
+                        <div className="flex items-center justify-between gap-4">
                             <Button 
                                 onClick={() => setShowSubmissionModal(true)} 
-                                className="flex-1 h-12 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                                className="flex-1 h-14 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] rounded-xl text-base"
+                                aria-label="Submit tournament result"
                             >
-                                <Icon name="Send" className="mr-2" size={18}/>
+                                <Icon name="Send" className="mr-2" size={20}/>
                                 Submit Result
                             </Button>
                             <ShareButton
@@ -745,9 +803,10 @@ const PublicTournamentPage = () => {
                                 }}
                                 platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                                 position="top-left"
-                                className="h-12 px-4"
+                                className="h-14 px-6 rounded-xl text-base"
+                                aria-label="Share tournament"
                             >
-                                <Icon name="Share2" size={18} className="mr-2" />
+                                <Icon name="Share2" size={20} className="mr-2" />
                                 Share
                             </ShareButton>
                         </div>

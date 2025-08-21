@@ -76,7 +76,7 @@ const LandingPage = () => {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 flex items-center justify-center text-center px-4 sm:px-6 pt-20 sm:pt-24 pb-12 safe-area-inset-bottom">
+                <main className="flex-1 flex items-center justify-center text-center px-4 lg:px-6 pt-20 lg:pt-24 pb-12 safe-area-inset-bottom">
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -86,7 +86,7 @@ const LandingPage = () => {
                         {/* Main Headline */}
                         <motion.h1
                             variants={itemVariants}
-                            className="text-display font-bold text-primary leading-tight mb-6"
+                            className="text-display font-bold text-primary leading-tight mb-6 lg:mb-8"
                         >
                             The Future of{' '}
                             <br className="hidden sm:inline" />
@@ -96,7 +96,7 @@ const LandingPage = () => {
                         {/* Description */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-subtitle text-foreground max-w-3xl mx-auto leading-relaxed mb-8"
+                            className="text-subtitle text-foreground max-w-3xl mx-auto leading-relaxed mb-8 lg:mb-12"
                         >
                             Run Scrabble tournaments anywhere, anytime—without complex setup or downloads. 
                             Streamline your events with intuitive pairing, scoring, and ranking.
@@ -105,11 +105,11 @@ const LandingPage = () => {
                         {/* CTA Buttons */}
                         <motion.div
                             variants={itemVariants}
-                            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                            className="flex flex-col sm:flex-row items-center justify-center gap-4 lg:gap-6"
                         >
                             <Button 
                                 size="xl" 
-                                className="w-full sm:w-auto shadow-glow hover:shadow-glow-hover min-w-[200px]" 
+                                className="w-full sm:w-auto shadow-glow hover:shadow-glow-hover min-w-[200px] lg:min-w-[240px]" 
                                 onClick={() => navigate('/signup')}
                             >
                                 Get Started for Free
@@ -117,7 +117,7 @@ const LandingPage = () => {
                             <Button 
                                 size="xl" 
                                 variant="ghost" 
-                                className="w-full sm:w-auto hover:bg-muted/10 transition-colors min-w-[200px]" 
+                                className="w-full sm:w-auto hover:bg-muted/10 transition-colors min-w-[200px] lg:min-w-[240px]" 
                                 onClick={() => navigate('/documentation')}
                                 iconName="BookOpen"
                                 iconPosition="left"

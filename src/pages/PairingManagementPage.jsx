@@ -110,8 +110,8 @@ const PairingManagementPage = () => {
             <Toaster position="top-center" richColors />
             <Header />
             <main className="pt-20 pb-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="max-w-7xl mx-auto px-4 lg:px-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
                         <DashboardSidebar tournamentSlug={tournamentSlug} />
                         <div className="md:col-span-3">
                             <div className="flex justify-between items-center mb-8">
@@ -122,7 +122,7 @@ const PairingManagementPage = () => {
                                 <Button onClick={handleSave} iconName="Save" iconPosition="left">Save Changes</Button>
                             </div>
 
-                            <Accordion type="multiple" defaultValue={['advanced']} className="w-full glass-card p-6 space-y-4">
+                            <Accordion type="multiple" defaultValue={['advanced']} className="w-full glass-card p-6 lg:p-8 space-y-4">
                                 <AccordionItem value="default">
                                     <AccordionTrigger>Default Pairing System</AccordionTrigger>
                                     <AccordionContent>

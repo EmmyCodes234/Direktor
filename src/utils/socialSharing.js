@@ -160,8 +160,13 @@ export const tournamentSharing = {
 
   // Share pairings
   sharePairings: (tournament, round, pairings, url) => {
-    const topMatchups = pairings.slice(0, 3).map(p => `${p.player1_name} vs ${p.player2_name}`).join(', ');
-    const text = `⚔️ Round ${round} Pairings in ${tournament.name}: ${topMatchups}. Watch live:`;
+    const topMatchups = pairings.slice(0, 3).map(p => {
+      // Handle different pairing data structures
+      const player1Name = p.player1_name || (p.player1 && p.player1.name) || 'TBD';
+      const player2Name = p.player2_name || (p.player2 && p.player2.name) || 'TBD';
+      return `${player1Name} vs ${player2Name}`;
+    }).join(', ');
+    const text = `⚔️ Round ${round} Pairings in ${tournament.name}: ${topMatchups}. Follow live:`;
     const title = `${tournament.name} - Round ${round} Pairings`;
 
     return {

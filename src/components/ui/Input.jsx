@@ -22,7 +22,7 @@ const Input = React.forwardRef(({
 
     // Enhanced base input classes with better focus states
     const baseInputClasses = cn(
-        "flex h-11 w-full rounded-lg border bg-background px-4 py-2 text-sm transition-all duration-200",
+        "flex h-12 w-full rounded-lg border bg-background px-4 py-3 text-sm transition-all duration-200",
         "placeholder:text-muted-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/10",

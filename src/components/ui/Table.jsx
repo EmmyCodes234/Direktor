@@ -84,8 +84,8 @@ const Table = ({
 
   if (loading) {
     return (
-      <div className={cn("glass-card overflow-hidden", className)}>
-        <div className="p-4 border-b border-border/10">
+      <div className={cn("glass-card overflow-hidden rounded-xl", className)}>
+        <div className="p-4 lg:p-6 border-b border-border/10">
           <div className="flex space-x-4">
             {columns.map((_, i) => (
               <div key={i} className="h-4 bg-muted/20 rounded w-20 animate-pulse" />
@@ -94,7 +94,7 @@ const Table = ({
         </div>
         <div className="divide-y divide-border/10">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="p-4">
+            <div key={i} className="p-4 lg:p-6">
               <div className="flex space-x-4">
                 {columns.map((_, j) => (
                   <div key={j} className="h-4 bg-muted/20 rounded w-16 animate-pulse" />
@@ -120,13 +120,13 @@ const Table = ({
   return (
     <div className={cn("space-y-4", className)}>
       {/* Desktop Table */}
-      <div className="hidden md:block glass-card overflow-hidden">
+      <div className="hidden md:block glass-card overflow-hidden rounded-xl">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead className="bg-muted/20">
               <tr>
                 {selectable && (
-                  <th className="p-4 text-left">
+                  <th className="p-4 lg:p-6 text-left">
                     <input
                       type="checkbox"
                       className="rounded border-border/40"
@@ -145,7 +145,7 @@ const Table = ({
                   <th
                     key={column.key}
                     className={cn(
-                      "p-4 text-left font-semibold text-sm",
+                      "p-4 lg:p-6 text-left font-semibold text-sm",
                       sortable && "cursor-pointer hover:bg-muted/30 transition-colors"
                     )}
                     onClick={() => handleSort(column.key)}
@@ -172,10 +172,10 @@ const Table = ({
                   onClick={() => handleRowClick(row, index)}
                 >
                   {selectable && (
-                    <td className="p-4">
+                    <td className="p-4 lg:p-6">
                       <input
                         type="checkbox"
-                        className="rounded border-border/40"
+                        className="rounded border-border/10"
                         checked={selectedRows.includes(row.id || row.key)}
                         onChange={() => handleRowSelection(row.id || row.key)}
                         onClick={(e) => e.stopPropagation()}
@@ -183,7 +183,7 @@ const Table = ({
                     </td>
                   )}
                   {columns.map((column) => (
-                    <td key={column.key} className="p-4">
+                    <td key={column.key} className="p-4 lg:p-6">
                       {column.render ? column.render(row[column.key], row) : row[column.key]}
                     </td>
                   ))}

@@ -46,7 +46,7 @@ const RecentActivity = ({ recentResults, players }) => {
 
   return (
     <div className="glass-card h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="flex items-center justify-between p-4 lg:p-6 border-b border-border/10">
         <div className="flex items-center space-x-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-md bg-accent/20">
             <Icon name="Clock" size={16} className="text-accent" />
@@ -77,7 +77,7 @@ const RecentActivity = ({ recentResults, players }) => {
               return (
                 <div
                   key={index}
-                  className="flex items-center space-x-3 p-3 rounded-lg border border-border/50 hover:bg-muted/5 transition-colors group"
+                  className="flex items-center space-x-3 p-3 lg:p-4 rounded-lg border border-border/10 hover:bg-muted/5 transition-colors group"
                 >
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full ${activity.color.replace('text-', 'bg-')}/20`}>
                     <Icon name={activity.icon} size={16} className={activity.color} />

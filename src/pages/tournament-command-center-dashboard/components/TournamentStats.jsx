@@ -68,26 +68,26 @@ const TournamentStats = ({ players, recentResults, tournamentInfo }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6">
       {stats.map((stat, index) => (
         <motion.div
           key={index}
-          className="bg-card/90 backdrop-blur-sm p-4 border border-border/20 hover:border-primary/30 transition-all duration-200 group touch-target rounded-lg"
+          className="glass-card p-4 lg:p-6 hover:border-primary/30 transition-all duration-200 group touch-target"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <div className="flex flex-col items-center text-center space-y-3">
-            <div className={`flex items-center justify-center w-12 h-12 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
+          <div className="flex flex-col items-center text-center space-y-3 lg:space-y-4">
+            <div className={`flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
               <Icon name={stat.icon} size={24} className={stat.color} />
             </div>
-            <div className="space-y-1">
-              <div className="font-mono font-bold text-xl text-foreground">
+            <div className="space-y-1 lg:space-y-2">
+              <div className="font-mono font-bold text-xl lg:text-2xl text-foreground">
                 {stat.value}
               </div>
-              <div className="text-xs text-muted-foreground font-medium">
+              <div className="text-xs lg:text-sm text-muted-foreground font-medium">
                 {stat.label}
               </div>
             </div>

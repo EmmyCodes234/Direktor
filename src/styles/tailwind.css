@@ -10,7 +10,7 @@
     /* Enhanced Color System with Better Contrast - HSL Format */
     --background: 0 0% 4%;
     --foreground: 0 0% 98%;
-    --border: 0 0% 100% / 0.08;
+    --border: 0 0% 100% / 0.12;
     --input: 0 0% 12% / 0.8;
     --ring: 217 91% 60%;
 
@@ -22,7 +22,7 @@
 
     /* Improved Muted Colors */
     --muted: 0 0% 12% / 0.6;
-    --muted-foreground: 240 5% 65%;
+    --muted-foreground: 240 5% 75%;
 
     /* Enhanced Primary Colors - Full Scale */
     --primary-50: 217 91% 95%;
@@ -314,42 +314,76 @@
     touch-action: manipulation;
   }
 
-  /* Mobile-first spacing */
+  /* Enhanced Mobile-first spacing */
   .mobile-padding {
-    @apply px-3 sm:px-4 lg:px-6;
+    @apply px-4 sm:px-6 lg:px-8;
   }
 
   .mobile-margin {
-    @apply mx-3 sm:mx-4 lg:mx-6;
+    @apply mx-4 sm:mx-6 lg:mx-8;
   }
 
-  /* Mobile-optimized touch targets */
+  /* Enhanced Mobile-optimized touch targets */
   .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
   }
 
-  /* Mobile card styles */
+  .touch-target-large {
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  /* Enhanced Mobile card styles */
   .mobile-card {
+    @apply glass-card p-4 sm:p-6 rounded-xl;
+  }
+
+  .mobile-card-compact {
     @apply glass-card p-3 sm:p-4 rounded-lg;
   }
 
-  /* Mobile text sizes */
+  /* Enhanced Mobile text sizes */
   .mobile-text-sm {
-    @apply text-xs sm:text-sm;
-  }
-
-  .mobile-text-base {
     @apply text-sm sm:text-base;
   }
 
-  .mobile-text-lg {
+  .mobile-text-base {
     @apply text-base sm:text-lg;
   }
 
-  /* Mobile spacing */
+  .mobile-text-lg {
+    @apply text-lg sm:text-xl;
+  }
+
+  .mobile-text-xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  /* Enhanced Mobile spacing */
   .mobile-space-y {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  .mobile-space-y-compact {
     @apply space-y-3 sm:space-y-4 lg:space-y-6;
+  }
+
+  /* Mobile typography improvements */
+  .mobile-heading {
+    @apply text-xl sm:text-2xl lg:text-3xl font-semibold leading-tight;
+  }
+
+  .mobile-subheading {
+    @apply text-lg sm:text-xl lg:text-2xl font-medium leading-snug;
+  }
+
+  .mobile-body {
+    @apply text-base sm:text-lg leading-relaxed;
+  }
+
+  .mobile-caption {
+    @apply text-sm sm:text-base text-muted-foreground leading-normal;
   }
 
   .mobile-gap {
@@ -359,7 +393,7 @@
   /* Mobile-specific optimizations */
   @media (max-width: 640px) {
     .glass-card {
-      @apply p-2;
+      @apply p-3;
     }
     
     .mobile-compact {
@@ -385,7 +419,7 @@
     
     /* Mobile-optimized cards */
     .mobile-card-compact {
-      @apply glass-card p-2 rounded-lg;
+      @apply glass-card p-3 rounded-lg;
     }
     
     /* Mobile-optimized buttons */
@@ -398,10 +432,51 @@
       @apply space-y-1.5;
     }
     
-    .mobile-gap-tight {
-      @apply gap-1;
-    }
+      .mobile-gap-tight {
+    @apply gap-1;
   }
+
+  /* Mobile-optimized loading states */
+  .mobile-skeleton {
+    @apply animate-pulse bg-muted/20 rounded-lg;
+  }
+
+  .mobile-skeleton-card {
+    @apply mobile-skeleton p-4 sm:p-6 rounded-xl;
+  }
+
+  .mobile-skeleton-avatar {
+    @apply mobile-skeleton w-14 h-14 sm:w-12 sm:h-12 rounded-full;
+  }
+
+  .mobile-skeleton-text {
+    @apply mobile-skeleton h-4 sm:h-3 rounded;
+  }
+
+  .mobile-skeleton-text-lg {
+    @apply mobile-skeleton h-6 sm:h-5 rounded;
+  }
+
+  .mobile-skeleton-button {
+    @apply mobile-skeleton h-14 sm:h-12 rounded-xl;
+  }
+
+  /* Enhanced loading animations */
+  .loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .loading-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+}
   h5,
   h6 {
     font-family: 'Figtree', sans-serif;
@@ -448,12 +523,12 @@
   }
 
   .glass-card {
-    @apply backdrop-blur-xl bg-card/90 border border-border/30 rounded-xl shadow-glass-lg;
+    @apply backdrop-blur-xl bg-card/90 border border-border/10 rounded-xl shadow-glass-lg;
     backdrop-filter: blur(16px) saturate(150%);
   }
 
   .glass-card-interactive {
-    @apply glass-card hover:bg-card/95 hover:border-border/50 hover:shadow-glass-xl transition-all duration-200;
+    @apply glass-card hover:bg-card/95 hover:border-border/20 hover:shadow-glass-xl transition-all duration-200;
   }
 
   /* Enhanced Focus States */

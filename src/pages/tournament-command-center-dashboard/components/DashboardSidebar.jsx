@@ -20,15 +20,15 @@ const DashboardSidebar = () => {
 
   return (
     <aside className="md:col-span-1 md:sticky top-24 self-start">
-      <div className="bg-muted/10 backdrop-blur-sm border border-border/20 rounded-lg p-3">
+      <div className="bg-muted/10 backdrop-blur-sm border border-border/10 rounded-xl p-4">
         <h3 className="font-semibold text-muted-foreground text-sm mb-4 px-1">Manage Tournament</h3>
         
-        <div className="space-y-1">
+        <div className="space-y-2">
           {navItems.map((item) => (
             <button
               key={item.label}
               className={cn(
-                "w-full flex items-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                "w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 touch-target",
                 location.pathname === item.path 
                   ? "bg-primary text-white shadow-sm" 
                   : "text-foreground hover:bg-muted/20"
@@ -47,9 +47,9 @@ const DashboardSidebar = () => {
           ))}
         </div>
         
-        <div className="border-t border-border/20 mt-3 pt-3">
+        <div className="border-t border-border/10 mt-4 pt-4">
           <button 
-            className="w-full flex items-center px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-muted/20 transition-all duration-200" 
+            className="w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium text-foreground hover:bg-muted/20 transition-all duration-200 touch-target" 
             onClick={() => navigate('/lobby')}
           >
             <Icon name="Home" className="mr-3 text-foreground"/>

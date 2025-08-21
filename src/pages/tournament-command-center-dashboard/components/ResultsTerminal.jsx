@@ -44,7 +44,7 @@ const ResultsTerminal = ({ players, onResultSubmit }) => {
 
   return (
     <div className="glass-card">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 lg:p-6 border-b border-border/10">
         <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
             <Icon name="ClipboardEdit" size={18} className="text-primary" />
             <span>Quick Score Entry</span>

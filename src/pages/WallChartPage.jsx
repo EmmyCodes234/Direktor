@@ -82,8 +82,8 @@ const WallChartPage = () => {
             <Toaster position="top-center" richColors />
             <Header />
             <main className="pt-20 pb-8">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="max-w-7xl mx-auto px-4 lg:px-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
                         <DashboardSidebar tournamentSlug={tournamentSlug} />
                         <div className="md:col-span-3">
                             <div className="mb-8">

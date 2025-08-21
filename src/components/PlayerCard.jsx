@@ -37,28 +37,28 @@ const PlayerCard = ({ player, index, tournamentType }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg p-4 hover:bg-card/95 hover:border-border/20 transition-all duration-200 group"
+      className="glass-card p-4 lg:p-6 hover:border-border/20 transition-all duration-200 group"
     >
       <div className="flex items-start justify-between mb-3">
         {/* Player Info */}
         <div className="flex items-center gap-3 flex-1">
           {/* Avatar */}
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+          <div className="w-14 h-14 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center">
             {player?.avatar_url ? (
               <img 
                 src={player.avatar_url} 
                 alt={player.name}
-                className="w-12 h-12 rounded-full object-cover"
+                className="w-14 h-14 sm:w-12 sm:h-12 rounded-full object-cover"
               />
             ) : (
-              <User className="w-6 h-6 text-primary" />
+              <User className="w-7 h-7 sm:w-6 sm:h-6 text-primary" />
             )}
           </div>
 
           {/* Name and Rank */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-foreground truncate">
+              <h3 className="font-semibold text-foreground truncate text-base sm:text-sm">
                 {player?.name || 'Unknown Player'}
               </h3>
               {player?.rank && (
@@ -83,7 +83,7 @@ const PlayerCard = ({ player, index, tournamentType }) => {
 
         {/* Points/Score */}
         <div className="text-right">
-          <div className="text-lg font-bold text-primary">
+          <div className="text-xl sm:text-lg font-bold text-primary">
             {tournamentType === 'best-of-league' ? stats.wins : stats.points}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -94,8 +94,8 @@ const PlayerCard = ({ player, index, tournamentType }) => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-3 text-center">
-        <div className="bg-surface/50 rounded-lg p-2">
-          <div className="text-lg font-semibold text-green-500">
+        <div className="bg-surface/50 rounded-lg p-3 sm:p-2">
+          <div className="text-xl sm:text-lg font-semibold text-green-500">
             {stats.wins}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -103,8 +103,8 @@ const PlayerCard = ({ player, index, tournamentType }) => {
           </div>
         </div>
         
-        <div className="bg-surface/50 rounded-lg p-2">
-          <div className="text-lg font-semibold text-red-500">
+        <div className="bg-surface/50 rounded-lg p-3 sm:p-2">
+          <div className="text-xl sm:text-lg font-semibold text-red-500">
             {stats.losses}
           </div>
           <div className="text-xs text-muted-foreground">
@@ -112,8 +112,8 @@ const PlayerCard = ({ player, index, tournamentType }) => {
           </div>
         </div>
         
-        <div className="bg-surface/50 rounded-lg p-2">
-          <div className="text-lg font-semibold text-blue-500">
+        <div className="bg-surface/50 rounded-lg p-3 sm:p-2">
+          <div className="text-xl sm:text-lg font-semibold text-blue-500">
             {stats.draws}
           </div>
           <div className="text-xs text-muted-foreground">

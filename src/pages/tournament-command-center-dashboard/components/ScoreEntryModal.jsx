@@ -74,11 +74,11 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="glass-card w-full max-w-md mx-auto rounded-t-xl sm:rounded-xl"
+            className="glass-card w-full max-w-md mx-auto rounded-t-xl sm:rounded-xl shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <form onSubmit={handleSubmit}>
-              <div className="p-6 border-b border-border">
+              <div className="p-6 lg:p-8 border-b border-border/10">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-heading font-semibold text-foreground">
                     {isEditing ? 'Edit Score' : 'Enter Score'}

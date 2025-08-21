@@ -122,28 +122,28 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex flex-wrap gap-2 justify-between items-center">
+      <div className="flex flex-wrap gap-3 justify-between items-center">
         <div className="text-sm text-muted-foreground">
           {Object.keys(groupedPairings).length} rounds • {pairings.length} total matches
         </div>
         <div className="flex gap-2">
           <button
             onClick={expandAll}
-            className="px-3 py-1.5 text-xs bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+            className="px-4 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors touch-target"
           >
             Expand All
           </button>
           <button
             onClick={collapseAll}
-            className="px-3 py-1.5 text-xs bg-border/20 hover:bg-border/30 text-foreground rounded-md transition-colors"
+            className="px-4 py-2 text-sm bg-border/20 hover:bg-border/30 text-foreground rounded-lg transition-colors touch-target"
           >
             Collapse All
           </button>
         </div>
       </div>
 
-      {/* Pairings by Round */}
-      <div className="space-y-4">
+      {/* Desktop Pairings */}
+      <div className="hidden md:block space-y-4">
         {Object.entries(groupedPairings).map(([round, roundPairings], roundIndex) => (
           <motion.div
             key={round}
@@ -225,6 +225,103 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
                             <span className="text-sm font-medium text-muted-foreground">
                               Pending
                             </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Mobile Pairings */}
+      <div className="md:hidden space-y-4">
+        {Object.entries(groupedPairings).map(([round, roundPairings], roundIndex) => (
+          <motion.div
+            key={round}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: roundIndex * 0.1 }}
+            className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl overflow-hidden"
+          >
+            {/* Round Header */}
+            <button
+              onClick={() => toggleRound(round)}
+              className="w-full px-4 py-4 flex items-center justify-between hover:bg-border/5 transition-colors touch-target"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center text-base font-semibold">
+                  {round}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground text-base">Round {round}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {roundPairings.length} match{roundPairings.length !== 1 ? 'es' : ''}
+                  </p>
+                </div>
+              </div>
+              {expandedRounds.has(round) ? (
+                <ChevronUp className="w-6 h-6 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-6 h-6 text-muted-foreground" />
+              )}
+            </button>
+
+            {/* Round Pairings */}
+            {expandedRounds.has(round) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="border-t border-border/10"
+              >
+                <div className="p-4 space-y-3">
+                  {roundPairings.map((pairing, matchIndex) => {
+                    return (
+                      <motion.div
+                        key={pairing.key || `${round}-${matchIndex}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: matchIndex * 0.05 }}
+                        className="bg-surface/50 border border-border/10 rounded-xl p-4 hover:bg-surface/70 transition-colors"
+                      >
+                        {/* Match Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-sm font-semibold text-primary">
+                            Match {matchIndex + 1}
+                          </div>
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Pending
+                          </div>
+                        </div>
+
+                        {/* Players */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                            <div className="font-medium text-foreground text-base">
+                              Player {pairing.player1_id}
+                            </div>
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-primary">1</span>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-center">
+                            <div className="text-lg font-bold text-muted-foreground bg-muted/20 px-4 py-1 rounded-full">
+                              vs
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
+                            <div className="font-medium text-foreground text-base">
+                              Player {pairing.player2_id}
+                            </div>
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-semibold text-primary">2</span>
+                            </div>
                           </div>
                         </div>
                       </motion.div>

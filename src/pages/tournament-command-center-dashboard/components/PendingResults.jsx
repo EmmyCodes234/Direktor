@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 const PendingResults = ({ pending, onApprove, onReject }) => {
   return (
     <div className="glass-card">
-        <div className="p-4 border-b border-border flex justify-between items-center">
+        <div className="p-4 lg:p-6 border-b border-border/10 flex justify-between items-center">
              <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
                 <Icon name="Mail" size={18} className="text-primary" />
                 <span>Pending Results</span>
@@ -22,7 +22,7 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                 </motion.span>
             )}
         </div>
-        <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
+        <div className="p-4 lg:p-6 space-y-4 max-h-96 overflow-y-auto">
             {pending.length === 0 ? (
                 <div className="text-center py-8">
                     <Icon name="CheckCircle" size={48} className="text-muted-foreground mx-auto mb-4" />
@@ -32,7 +32,7 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                 pending.map((p, index) => (
                     <motion.div 
                       key={p.id} 
-                      className="bg-muted/10 p-4 rounded-xl border border-border/50"
+                      className="bg-muted/10 p-4 lg:p-6 rounded-xl border border-border/10"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}

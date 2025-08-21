@@ -58,7 +58,7 @@ const DocumentationPage = () => {
             <Header />
             <div className="flex pt-24">
                 {/* Sidebar Navigation */}
-                <aside className="w-64 fixed left-0 top-24 h-screen overflow-y-auto border-r border-border/30 bg-background/50 backdrop-blur-sm">
+                <aside className="w-64 fixed left-0 top-24 h-screen overflow-y-auto border-r border-border/10 bg-background/50 backdrop-blur-sm">
                     <nav className="p-4">
                         <div className="space-y-2">
                             {navigationItems.map((item) => (
@@ -81,7 +81,7 @@ const DocumentationPage = () => {
 
                 {/* Main Content */}
                 <main className="flex-1 ml-64">
-                    <div className="max-w-4xl mx-auto px-8 py-8">
+                    <div className="max-w-4xl mx-auto px-8 lg:px-12 py-8 lg:py-12">
                         {/* Overview Section */}
                         {activeSection === 'overview' && (
                             <motion.div

@@ -2,20 +2,20 @@
   position: relative;
   width: 100%;
   overflow: hidden;
-  height: 2.5rem; /* 40px */
-  background-color: rgba(17, 17, 17, 0.6); /* --color-background with opacity */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  height: 3rem; /* 48px */
+  background-color: rgba(17, 17, 17, 0.8); /* --color-background with opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding-left: 100%;
   box-sizing: content-box;
   z-index: 1;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* --color-border */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* --color-border */
 }
 
 .ticker {
   display: inline-block;
-  height: 2.5rem;
-  line-height: 2.5rem;
+  height: 3rem;
+  line-height: 3rem;
   white-space: nowrap;
   padding-right: 100%;
   box-sizing: content-box;
@@ -36,6 +36,7 @@
   font-size: 0.875rem; /* 14px */
   color: #B0B0B0; /* --color-muted-foreground */
   font-family: 'Inter', sans-serif;
+  font-weight: 500;
 }
 
 .ticker__item::after {

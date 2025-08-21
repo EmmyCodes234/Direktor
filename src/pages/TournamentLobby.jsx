@@ -146,7 +146,7 @@ const TournamentLobby = () => {
         <Toaster position="top-center" richColors />
         <Header />
         <main className="pt-20 pb-8 safe-area-inset-bottom">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto px-4 lg:px-6">
             {/* Enhanced Header Section */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

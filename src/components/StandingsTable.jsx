@@ -139,8 +139,8 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
 
   return (
     <div className="space-y-4">
-      {/* Table Header */}
-      <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg overflow-hidden">
         <div className="grid grid-cols-12 gap-4 p-4 text-sm font-medium text-muted-foreground border-b border-border/10">
           <div className="col-span-1">
             <button
@@ -203,7 +203,7 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
           </div>
         </div>
 
-        {/* Table Body */}
+        {/* Desktop Table Body */}
         <div className="divide-y divide-border/20">
           {sortedPlayers.map((player, index) => {
             const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.draws || 0);
@@ -294,6 +294,97 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
             );
           })}
         </div>
+      </div>
+
+      {/* Mobile Standings Cards */}
+      <div className="md:hidden space-y-3">
+        {sortedPlayers.map((player, index) => {
+          const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.draws || 0);
+          const winRate = gamesPlayed > 0 ? ((player.wins || 0) / gamesPlayed * 100).toFixed(1) : 0;
+
+          return (
+            <motion.div
+              key={player.id || index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl p-4 hover:bg-surface/30 transition-colors"
+            >
+              {/* Player Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-lg font-bold ${getRankColor(player.rank)}`}>
+                      {getRankDisplay(player.rank)}
+                    </span>
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                      {player.avatar_url ? (
+                        <img 
+                          src={player.avatar_url} 
+                          alt={player.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <Star className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-foreground text-base truncate">
+                      {player.name || 'Unknown Player'}
+                    </div>
+                    {player.team && (
+                      <div className="text-sm text-muted-foreground truncate">
+                        {player.team}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-primary">
+                    {player.match_wins || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Match Wins</div>
+                </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-3 text-center">
+                <div className="bg-green-500/10 rounded-lg p-2">
+                  <div className="text-lg font-bold text-green-500">
+                    {player.wins || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Wins</div>
+                </div>
+                <div className="bg-red-500/10 rounded-lg p-2">
+                  <div className="text-lg font-bold text-red-500">
+                    {player.losses || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Losses</div>
+                </div>
+                <div className="bg-blue-500/10 rounded-lg p-2">
+                  <div className="text-lg font-bold text-blue-500">
+                    {player.draws || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Draws</div>
+                </div>
+                <div className="bg-primary/10 rounded-lg p-2">
+                  <div className="text-lg font-bold text-primary">
+                    {winRate}%
+                  </div>
+                  <div className="text-xs text-muted-foreground">Win Rate</div>
+                </div>
+              </div>
+
+              {/* Games Played */}
+              <div className="mt-3 text-center">
+                <div className="text-sm text-muted-foreground">
+                  {gamesPlayed} games played
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Summary Stats */}

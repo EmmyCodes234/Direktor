@@ -436,13 +436,13 @@ const TournamentSetupConfiguration = () => {
         )}
       </AnimatePresence>
       <main className="pt-20 pb-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
+        <div className="max-w-4xl mx-auto px-4 lg:px-6">
+          <div className="text-center mb-12 lg:mb-16">
             <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gradient mb-4">
               New Tournament Wizard
             </h1>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
             <div className="md:col-span-1">
                 <SetupProgress steps={stepsConfig} currentStep={currentStep} onStepClick={setCurrentStep} />
             </div>

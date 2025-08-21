@@ -49,7 +49,7 @@ const Routes = () => {
         <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPage />} />
         <Route path="/tournament/:tournamentSlug/standings" element={<PublicTournamentStandings />} />
         <Route path="/tournament/:tournamentSlug/roster" element={<PublicTournamentRoster />} />
-        <Route path="/tournament/:tournamentSlug/pairings" element={<PublicTournamentPairings />} />
+        <Route path="/tournament/:tournamentSlug/public-pairings" element={<PublicTournamentPairings />} />
         <Route path="/players/:playerSlug" element={<PlayerProfilePage />} />
         
         {/* Admin/Dashboard Routes */}

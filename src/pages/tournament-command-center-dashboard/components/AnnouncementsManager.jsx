@@ -95,20 +95,20 @@ const AnnouncementsManager = () => {
   };
 
   return (
-    <div className="bg-card/90 backdrop-blur-sm border border-border/20 rounded-lg">
-      <div className="p-4 border-b border-border/20">
+    <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl">
+      <div className="p-4 lg:p-6 border-b border-border/10">
         <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
           <Icon name="Megaphone" size={18} className="text-primary" />
           <span>Director's Announcements</span>
         </h3>
       </div>
-      <div className="p-4 space-y-4">
-        <form onSubmit={handlePostAnnouncement} className="space-y-3">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+        <form onSubmit={handlePostAnnouncement} className="space-y-3 lg:space-y-4">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your announcement here..."
-            className="w-full h-24 p-4 bg-input border border-border rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target-mobile"
+            className="w-full h-24 p-4 bg-input border border-border/10 rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target-mobile"
             disabled={loading}
           />
           <Button 
@@ -122,7 +122,7 @@ const AnnouncementsManager = () => {
           </Button>
         </form>
         
-        <div className="space-y-3 max-h-64 overflow-y-auto">
+        <div className="space-y-3 lg:space-y-4 max-h-64 overflow-y-auto">
           {announcements.length === 0 ? (
             <div className="text-center py-8">
               <Icon name="Megaphone" size={48} className="text-muted-foreground mx-auto mb-4" />
@@ -132,7 +132,7 @@ const AnnouncementsManager = () => {
             announcements.map((ann, index) => (
               <motion.div 
                 key={ann.id} 
-                className="bg-muted/10 p-4 rounded-xl border border-border/50 group"
+                className="bg-muted/10 p-4 lg:p-5 rounded-xl border border-border/10 group"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}

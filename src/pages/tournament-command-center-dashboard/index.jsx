@@ -92,9 +92,9 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   } = handlers;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 lg:space-y-8">
       {/* Header Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 lg:space-y-6">
         <AnnouncementsManager />
         <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
       </div>

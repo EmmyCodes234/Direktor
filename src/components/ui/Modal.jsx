@@ -104,7 +104,7 @@ const Modal = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "absolute inset-0 bg-background/80 backdrop-blur-sm",
+              "absolute inset-0 bg-background/90 backdrop-blur-md",
               overlayClassName
             )}
             onClick={handleOverlayClick}
@@ -130,9 +130,9 @@ const Modal = ({
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-center justify-between p-6 border-b border-border/30">
+              <div className="flex items-center justify-between p-6 lg:p-8 border-b border-border/10">
                 {title && (
-                  <h2 id="modal-title" className="text-lg font-semibold text-foreground">
+                  <h2 id="modal-title" className="text-lg lg:text-xl font-semibold text-foreground">
                     {title}
                   </h2>
                 )}
@@ -152,7 +152,7 @@ const Modal = ({
 
             {/* Content */}
             <div className={cn(
-              "p-6",
+              "p-6 lg:p-8",
               (title || showCloseButton) && "pt-0"
             )}>
               {children}

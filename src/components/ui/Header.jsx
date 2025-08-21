@@ -59,15 +59,15 @@ const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-morphism border-b border-border/50 safe-area-inset-top">
-      <div className="flex items-center justify-between h-16 px-4 sm:px-6 max-w-7xl mx-auto">
+    <header className="fixed top-0 left-0 right-0 z-50 glass-morphism border-b border-border/10 safe-area-inset-top">
+      <div className="flex items-center justify-between h-16 lg:h-20 px-4 sm:px-6 max-w-7xl mx-auto">
         {/* Logo/Brand - Enhanced touch target for mobile */}
         <button
-          className="flex items-center space-x-3 touch-target-mobile rounded-lg hover:bg-muted/10 transition-colors focus-ring" 
+          className="flex items-center space-x-3 touch-target-mobile rounded-lg hover:bg-muted/10 transition-colors focus-ring p-2" 
           onClick={() => navigate('/')}
           aria-label="Go to home page"
         >
-          <h1 className="text-xl sm:text-2xl font-heading font-bold text-gradient">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold text-gradient">
             Direktor
           </h1>
         </button>

@@ -85,8 +85,8 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               <motion.div 
                 key={player.id} 
                 className={cn(
-                  "rounded-xl border border-border bg-background shadow-sm p-4 flex flex-col gap-3 transition-all duration-200",
-                  isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/50'
+                  "glass-card p-4 lg:p-6 flex flex-col gap-3 transition-all duration-200",
+                  isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/20'
                 )}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

@@ -17,11 +17,11 @@ const MobileNavBar = () => {
     ];
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-background/95 backdrop-blur-xl border-t border-border z-40 safe-area-inset-bottom">
+        <div className="fixed bottom-0 left-0 right-0 h-20 bg-background/95 backdrop-blur-xl border-t border-border/10 z-40 safe-area-inset-bottom">
             {/* Top border with subtle gradient */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/20 to-transparent" />
             
-            <div className="grid grid-cols-4 h-full px-2">
+            <div className="grid grid-cols-4 h-full px-3">
                 {navItems.map((item, index) => {
                     const isActive = location.pathname === item.path;
                     return (
@@ -49,14 +49,14 @@ const MobileNavBar = () => {
                             
                             {/* Icon with enhanced visual feedback */}
                             <div className={cn(
-                                "relative p-2 rounded-lg transition-all duration-200",
+                                "relative p-2 rounded-xl transition-all duration-200",
                                 isActive 
                                     ? "bg-primary/10 text-primary" 
                                     : "group-hover:bg-muted/20"
                             )}>
                                 <Icon 
                                     name={item.icon} 
-                                    size={20} 
+                                    size={22} 
                                     className={cn(
                                         "transition-all duration-200",
                                         isActive ? "scale-110" : "group-hover:scale-105"
