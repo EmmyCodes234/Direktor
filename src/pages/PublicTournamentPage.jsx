@@ -703,26 +703,6 @@ const PublicTournamentPage = () => {
             {/* Floating Action Buttons - Mobile Only */}
             {isMobile && (
                 <>
-                    {/* Floating Share Button */}
-                    <div className="lg:hidden fixed bottom-20 right-4 z-50">
-                        <ShareButton
-                            variant="default"
-                            size="default"
-                            shareData={{
-                                type: 'tournament',
-                                data: {
-                                    shareTournament: () => tournamentSharing.shareTournament(tournament, window.location.href, players)
-                                }
-                            }}
-                            platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
-                            position="top-left"
-                            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 bg-primary/90 backdrop-blur-sm text-white hover:bg-primary"
-                            aria-label="Quick share tournament"
-                        >
-                            <Icon name="Share2" size={16} />
-                        </ShareButton>
-                    </div>
-
                     {/* Floating Submit Result Button - Only if enabled */}
                     {tournament.is_remote_submission_enabled && (
                         <div className="lg:hidden fixed bottom-20 left-4 z-50">

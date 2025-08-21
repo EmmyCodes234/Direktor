@@ -714,6 +714,9 @@ const TournamentCommandCenterDashboard = () => {
 
   const handleRoundPaired = useCallback((updatedTournamentInfo) => {
     setTournamentInfo(updatedTournamentInfo);
+    const newRound = updatedTournamentInfo.currentRound;
+    const pairingsCount = updatedTournamentInfo.pairing_schedule?.[newRound]?.length || 0;
+    setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Generated pairings for Round ${newRound} (${pairingsCount} matches)` }]);
   }, []);
 
   const handleUnpairRound = useCallback(() => {
@@ -786,6 +789,7 @@ const TournamentCommandCenterDashboard = () => {
       if (updateError) throw updateError;
 
       toast.success(`Round ${roundToUnpair} has been successfully unpaired.`);
+      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Unpaired Round ${roundToUnpair} and reverted ${resultsToRevert.length} results` }]);
       setTournamentInfo(data);
     } catch (error) {
       toast.error(`Failed to unpair round: ${error.message}`);
@@ -1095,6 +1099,7 @@ const TournamentCommandCenterDashboard = () => {
         toast.error(`Failed to proceed: ${error.message}`);
         setTournamentInfo(originalTournamentInfo);
       } else {
+        setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: isFinalRound ? `Tournament completed` : `Advanced to Round ${currentRound + 1}` }]);
         toast.success(isFinalRound ? 'Tournament Complete!' : `Proceeding to Round ${currentRound + 1}`);
       }
     } catch (error) {
@@ -1203,6 +1208,7 @@ const TournamentCommandCenterDashboard = () => {
         round: pendingResult.round,
       });
       await supabase.from('pending_results').delete().eq('id', pendingResult.id);
+      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Approved pending result: ${pendingResult.player1_name} ${pendingResult.score1} - ${pendingResult.score2} ${pendingResult.player2_name} (Round ${pendingResult.round})` }]);
       toast.success("Result has been approved and standings are updated.");
     } catch (error) {
       toast.error(`Failed to approve result: ${error.message}`);
@@ -1216,6 +1222,7 @@ const TournamentCommandCenterDashboard = () => {
     if (error) {
       toast.error(`Failed to reject result: ${error.message}`);
     } else {
+      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Rejected pending result (ID: ${id})` }]);
       toast.success("Result has been rejected.");
     }
   }, []);

@@ -59,8 +59,8 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass-card w-full max-w-md mx-4 animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 pt-20 sm:pt-4" onClick={onClose}>
+      <div className="glass-card w-full max-w-md mx-4 animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-border">
           <h2 className="text-xl font-heading font-semibold text-foreground">Submit Game Result</h2>
           <p className="text-sm text-muted-foreground">This result will be sent for director approval.</p>

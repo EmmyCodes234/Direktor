@@ -104,6 +104,25 @@ const ShareButton = ({
     'left': 'right-full top-0 mr-3'
   };
 
+  // Calculate optimal position based on viewport
+  const getOptimalPosition = () => {
+    if (!dropdownRef.current) return position;
+    
+    const rect = dropdownRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // For mobile floating buttons, prefer top positioning
+    if (isMobile && rect.bottom > viewportHeight * 0.7) {
+      return 'top-left';
+    }
+    
+    // For desktop, use the original position
+    return position;
+  };
+
+  const optimalPosition = getOptimalPosition();
+
   return (
     <div className="relative" ref={dropdownRef}>
       <Button
@@ -137,7 +156,10 @@ const ShareButton = ({
               transition={{ duration: 0.15, ease: 'easeOut' }}
               className={cn(
                 "absolute z-50 glass-card border border-border/10 shadow-glass-xl rounded-xl p-3 min-w-[220px]",
-                positionClasses[position]
+                positionClasses[optimalPosition],
+                // Additional positioning for mobile floating buttons
+                isMobile && optimalPosition === 'top-left' && "bottom-full left-0 mb-3",
+                isMobile && optimalPosition === 'top-right' && "bottom-full right-0 mb-3"
               )}
             >
               <div className="space-y-1">
