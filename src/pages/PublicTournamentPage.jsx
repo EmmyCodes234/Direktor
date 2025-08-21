@@ -595,63 +595,68 @@ const PublicTournamentPage = () => {
                                 
                                 <div className="space-y-4">
                                     {Object.keys(pairingsByRound).length > 0 ? (
-                                        Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => (
-                                            <div key={roundNum} id={`round-${roundNum}`} className="bg-card border border-border/20 rounded-lg overflow-hidden">
-                                                <div className="bg-muted/20 px-4 py-3 border-b border-border/20">
-                                                    <h3 className="font-semibold text-lg text-center">Round {roundNum}</h3>
-                                                </div>
-                                                <div className="p-4 space-y-3">
-                                                    {pairingsByRound[roundNum].map(match => {
-                                                        const player1Data = match.player1_id || match.player1;
-                                                        const player2Data = match.player2_id || match.player2;
-                                                        const tableNumber = match.table || match.table_number || match.round;
-                                                        
-                                                        const player1Name = typeof player1Data === 'object' ? player1Data.name : player1Data;
-                                                        const player2Name = typeof player2Data === 'object' ? player2Data.name : player2Data;
-                                                        
-                                                        const player1 = players.find(p => 
-                                                            p.player_id === player1Data || 
-                                                            p.id === player1Data || 
-                                                            p.player_id === parseInt(player1Data) ||
-                                                            p.id === parseInt(player1Data) ||
-                                                            p.name === player1Data ||
-                                                            p.name === player1Name
-                                                        );
-                                                        const player2 = players.find(p => 
-                                                            p.player_id === player2Data || 
-                                                            p.id === player2Data || 
-                                                            p.player_id === parseInt(player2Data) ||
-                                                            p.id === parseInt(player2Data) ||
-                                                            p.name === player2Data ||
-                                                            p.name === player2Name
-                                                        );
-                                                        
-                                                        return (
-                                                            <div key={match.id || match.table || `${roundNum}-${tableNumber}`} className="bg-muted/10 rounded-lg p-4">
-                                                                <div className="flex items-center justify-center mb-3">
-                                                                    <span className="text-sm font-mono text-primary bg-primary/10 px-2 py-1 rounded">Table {tableNumber}</span>
-                                                                </div>
-                                                                <div className="space-y-3">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="flex-1 text-center hover:underline">
-                                                                            <div className="font-medium text-base">{player1?.name || player1Name || 'TBD'}</div>
-                                                                            <div className="text-sm text-muted-foreground">Seed #{player1?.seed || 'TBD'}</div>
-                                                                        </a>
-                                                                        <div className="mx-4">
-                                                                            <span className="text-lg font-bold text-muted-foreground bg-muted/20 px-3 py-1 rounded">VS</span>
+                                        Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => {
+                                            const roundPairings = pairingsByRound[roundNum];
+                                            let tableCounter = 1; // Reset counter for each round
+                                            
+                                            return (
+                                                <div key={roundNum} id={`round-${roundNum}`} className="bg-card border border-border/20 rounded-lg overflow-hidden">
+                                                    <div className="bg-muted/20 px-4 py-3 border-b border-border/20">
+                                                        <h3 className="font-semibold text-lg text-center">Round {roundNum}</h3>
+                                                    </div>
+                                                    <div className="p-4 space-y-3">
+                                                        {roundPairings.map(match => {
+                                                            const player1Data = match.player1_id || match.player1;
+                                                            const player2Data = match.player2_id || match.player2;
+                                                            const currentTableNumber = tableCounter++; // Use consecutive table numbers
+                                                            
+                                                            const player1Name = typeof player1Data === 'object' ? player1Data.name : player1Data;
+                                                            const player2Name = typeof player2Data === 'object' ? player2Data.name : player2Data;
+                                                            
+                                                            const player1 = players.find(p => 
+                                                                p.player_id === player1Data || 
+                                                                p.id === player1Data || 
+                                                                p.player_id === parseInt(player1Data) ||
+                                                                p.id === parseInt(player1Data) ||
+                                                                p.name === player1Data ||
+                                                                p.name === player1Name
+                                                            );
+                                                            const player2 = players.find(p => 
+                                                                p.player_id === player2Data || 
+                                                                p.id === player2Data || 
+                                                                p.player_id === parseInt(player2Data) ||
+                                                                p.id === parseInt(player2Data) ||
+                                                                p.name === player2Data ||
+                                                                p.name === player2Name
+                                                            );
+                                                            
+                                                            return (
+                                                                <div key={match.id || match.table || `${roundNum}-${currentTableNumber}`} className="bg-muted/10 rounded-lg p-4">
+                                                                    <div className="flex items-center justify-center mb-3">
+                                                                        <span className="text-sm font-mono text-primary bg-primary/10 px-2 py-1 rounded">Table {currentTableNumber}</span>
+                                                                    </div>
+                                                                    <div className="space-y-3">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="flex-1 text-center hover:underline">
+                                                                                <div className="font-medium text-base">{player1?.name || player1Name || 'TBD'}</div>
+                                                                                <div className="text-sm text-muted-foreground">Seed #{player1?.seed || 'TBD'}</div>
+                                                                            </a>
+                                                                            <div className="mx-4">
+                                                                                <span className="text-lg font-bold text-muted-foreground bg-muted/20 px-3 py-1 rounded">VS</span>
+                                                                            </div>
+                                                                            <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="flex-1 text-center hover:underline">
+                                                                                <div className="font-medium text-base">{player2?.name || player2Name || 'TBD'}</div>
+                                                                                <div className="text-sm text-muted-foreground">Seed #{player2?.seed || 'TBD'}</div>
+                                                                            </a>
                                                                         </div>
-                                                                        <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="flex-1 text-center hover:underline">
-                                                                            <div className="font-medium text-base">{player2?.name || player2Name || 'TBD'}</div>
-                                                                            <div className="text-sm text-muted-foreground">Seed #{player2?.seed || 'TBD'}</div>
-                                                                        </a>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <div className="bg-card border border-border/20 rounded-lg p-8 text-center">
                                             <Icon name="Swords" size={48} className="mx-auto text-muted-foreground mb-4" />
@@ -711,10 +716,10 @@ const PublicTournamentPage = () => {
                             }}
                             platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
                             position="top-left"
-                            className="w-14 h-14 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 bg-primary text-white"
+                            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 bg-primary/90 backdrop-blur-sm text-white hover:bg-primary"
                             aria-label="Quick share tournament"
                         >
-                            <Icon name="Share2" size={20} />
+                            <Icon name="Share2" size={16} />
                         </ShareButton>
                     </div>
 
@@ -723,10 +728,10 @@ const PublicTournamentPage = () => {
                         <div className="lg:hidden fixed bottom-20 left-4 z-50">
                             <Button 
                                 onClick={() => setShowSubmissionModal(true)} 
-                                className="w-14 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+                                className="w-12 h-12 rounded-full bg-gradient-to-r from-primary/90 to-primary/80 hover:from-primary hover:to-primary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] backdrop-blur-sm"
                                 aria-label="Submit tournament result"
                             >
-                                <Icon name="Send" size={20} />
+                                <Icon name="Send" size={16} />
                             </Button>
                         </div>
                     )}
