@@ -196,6 +196,8 @@ const PublicTournamentPageNew = () => {
             console.log('✅ All data loaded successfully!');
             console.log('🏆 Tournament type:', tournamentData.type);
             console.log('📊 Results count:', resultsResponse.data?.length || 0);
+            console.log('🎯 Matches count:', matchesResponse.data?.length || 0);
+            console.log('🎯 Matches data:', matchesResponse.data);
             console.log('👥 Players with stats:', recalculateRanks(combinedPlayers, tournamentData.type, resultsResponse.data || [], matchesResponse.data || []).map(p => ({
                 name: p.name,
                 wins: p.wins,
@@ -230,9 +232,32 @@ const PublicTournamentPageNew = () => {
     }, [players]);
 
     const pairingsByRound = useMemo(() => {
-        if (!tournament?.pairing_schedule) return {};
-        return tournament.pairing_schedule;
-    }, [tournament]);
+        if (tournament?.type !== 'best_of_league') {
+            // For individual tournaments, try to get pairings from tournament pairing_schedule first
+            if (tournament?.pairing_schedule && Object.keys(tournament.pairing_schedule).length > 0) {
+                return tournament.pairing_schedule;
+            }
+            // Fallback to matches if pairing_schedule is not available
+            if (matches && matches.length > 0) {
+                return matches.reduce((acc, match) => {
+                    if (!acc[match.round]) {
+                        acc[match.round] = [];
+                    }
+                    acc[match.round].push(match);
+                    return acc;
+                }, {});
+            }
+            return {};
+        }
+        // For best_of_league tournaments, use matches table
+        return matches.reduce((acc, match) => {
+            if (!acc[match.round]) {
+                acc[match.round] = [];
+            }
+            acc[match.round].push(match);
+            return acc;
+        }, {});
+    }, [tournament, matches]);
 
     const tickerMessages = useMemo(() => {
         return results.slice(0, 5).map(result => {
@@ -377,16 +402,32 @@ const PublicTournamentPageNew = () => {
                                             <h3 className="text-lg font-semibold text-foreground mb-3">Round {roundNum}</h3>
                                             <div className="space-y-3">
                                                 {roundPairings.map((pairing, index) => {
-                                                    const player1 = players.find(p => p.name === pairing.player1?.name);
-                                                    const player2 = players.find(p => p.name === pairing.player2?.name);
-                                                    const player1Name = pairing.player1?.name || 'TBD';
-                                                    const player2Name = pairing.player2?.name || 'TBD';
+                                                    // Handle different data structures
+                                                    let player1, player2, player1Name, player2Name, tableNum, division;
+                                                    
+                                                    if (tournament?.type === 'best_of_league' && pairing.player1_id) {
+                                                        // From matches table
+                                                        player1 = players.find(p => p.player_id === pairing.player1_id);
+                                                        player2 = players.find(p => p.player_id === pairing.player2_id);
+                                                        player1Name = player1?.name || 'TBD';
+                                                        player2Name = player2?.name || 'TBD';
+                                                        tableNum = pairing.table || index + 1;
+                                                        division = pairing.division || 'Open';
+                                                    } else {
+                                                        // From pairing_schedule
+                                                        player1 = players.find(p => p.name === pairing.player1?.name);
+                                                        player2 = players.find(p => p.name === pairing.player2?.name);
+                                                        player1Name = pairing.player1?.name || 'TBD';
+                                                        player2Name = pairing.player2?.name || 'TBD';
+                                                        tableNum = pairing.table || index + 1;
+                                                        division = pairing.division || 'Open';
+                                                    }
                                                     
                                                     return (
                                                         <div key={index} className="bg-muted/10 border border-border/20 rounded-lg p-4">
                                                             <div className="flex items-center justify-between">
-                                                                <span className="text-sm font-mono text-muted-foreground bg-muted/20 px-2 py-1 rounded">Table {pairing.table}</span>
-                                                                <span className="text-sm text-muted-foreground">{pairing.division || 'Open'}</span>
+                                                                <span className="text-sm font-mono text-muted-foreground bg-muted/20 px-2 py-1 rounded">Table {tableNum}</span>
+                                                                <span className="text-sm text-muted-foreground">{division}</span>
                                                             </div>
                                                             <div className="flex items-center justify-center space-x-4 mt-3">
                                                                 <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="flex-1 text-center hover:underline">
