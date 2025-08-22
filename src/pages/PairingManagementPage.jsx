@@ -15,7 +15,9 @@ const allPairingSystems = [
     { id: 'round_robin', name: 'Round Robin', type: 'individual' },
     { id: 'king_of_the_hill', name: 'King of the Hill (KOTH)', type: 'individual' },
     { id: 'random', name: 'Random', type: 'individual' },
+    { id: 'team_swiss', name: 'Team Swiss', type: 'team' },
     { id: 'team_round_robin', name: 'Team Round Robin', type: 'team' },
+    { id: 'team_random', name: 'Team Random', type: 'team' },
 ];
 
 const PairingManagementPage = () => {

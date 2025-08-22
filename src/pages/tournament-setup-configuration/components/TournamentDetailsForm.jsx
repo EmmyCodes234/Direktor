@@ -115,7 +115,7 @@ const TournamentDetailsForm = ({ formData, onChange, errors }) => {
                         formData.type === 'best_of_league' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted/50'
                     )}
                 >
-                    "Best of" League
+                    Match Play Series
                 </button>
             </div>
         </div>

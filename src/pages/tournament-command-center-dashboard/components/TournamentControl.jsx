@@ -97,6 +97,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     let newPairings = [];
     let table = 1;
 
+    // Handle odd number of players with bye
     if (availablePlayers.length % 2 !== 0) {
       const playersWithByes = new Set(allResults.filter(r => r.player2_name === 'BYE').map(r => r.player1_name));
       let eligibleForBye = availablePlayers
@@ -114,24 +115,65 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
       }
     }
 
-    while (availablePlayers.length > 1) {
-      let player1 = availablePlayers.shift();
-      let opponentFound = false;
-      for (let i = 0; i < availablePlayers.length; i++) {
-        let player2 = availablePlayers[i];
-        const matchupKey1 = `${player1.id}-${player2.id}`;
-        const matchupKey2 = `${player2.id}-${player1.id}`;
+    // Group players by score (wins + 0.5 * ties)
+    const scoreGroups = new Map();
+    availablePlayers.forEach(player => {
+      const score = (player.wins || 0) + 0.5 * (player.ties || 0);
+      if (!scoreGroups.has(score)) {
+        scoreGroups.set(score, []);
+      }
+      scoreGroups.get(score).push(player);
+    });
 
-        if (!previousMatchups.has(matchupKey1) && !previousMatchups.has(matchupKey2)) {
-          newPairings.push({ table: table++, player1: { name: player1.name }, player2: { name: player2.name } });
-          availablePlayers.splice(i, 1);
-          opponentFound = true;
-          break;
+    // Sort score groups in descending order
+    const sortedScores = Array.from(scoreGroups.keys()).sort((a, b) => b - a);
+
+    // Pair within score groups, avoiding rematches
+    for (const score of sortedScores) {
+      const playersInGroup = scoreGroups.get(score);
+      
+      while (playersInGroup.length >= 2) {
+        const player1 = playersInGroup.shift();
+        let opponentFound = false;
+        
+        // Try to find opponent without rematch
+        for (let i = 0; i < playersInGroup.length; i++) {
+          const player2 = playersInGroup[i];
+          const matchupKey1 = `${player1.id}-${player2.id}`;
+          const matchupKey2 = `${player2.id}-${player1.id}`;
+
+          if (!previousMatchups.has(matchupKey1) && !previousMatchups.has(matchupKey2)) {
+            newPairings.push({ 
+              table: table++, 
+              player1: { name: player1.name }, 
+              player2: { name: player2.name } 
+            });
+            playersInGroup.splice(i, 1);
+            opponentFound = true;
+            break;
+          }
+        }
+        
+        // If no opponent found without rematch, take the first available
+        if (!opponentFound && playersInGroup.length > 0) {
+          const player2 = playersInGroup.shift();
+          newPairings.push({ 
+            table: table++, 
+            player1: { name: player1.name }, 
+            player2: { name: player2.name } 
+          });
         }
       }
-      if (!opponentFound) {
-        let player2 = availablePlayers.shift();
-        newPairings.push({ table: table++, player1: { name: player1.name }, player2: { name: player2.name } });
+      
+      // If odd number in this score group, move to next group
+      if (playersInGroup.length === 1) {
+        const nextScore = sortedScores.find(s => s < score);
+        if (nextScore !== undefined) {
+          const nextGroup = scoreGroups.get(nextScore);
+          if (nextGroup) {
+            nextGroup.unshift(playersInGroup[0]);
+          }
+        }
       }
     }
 
@@ -156,6 +198,98 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     }
 
     return newPairings;
+  };
+
+  const generateTeamSwissPairings = (teams, previousTeamMatchups, allResults) => {
+    let availableTeams = [...teams];
+    let newTeamPairings = [];
+    let table = 1;
+
+    // Handle odd number of teams with bye
+    if (availableTeams.length % 2 !== 0) {
+      const teamsWithByes = new Set(allResults.filter(r => r.player2_name === 'BYE').map(r => r.player1_name));
+      let eligibleForBye = availableTeams
+        .filter(team => !teamsWithByes.has(team.name))
+        .sort((a, b) => b.rank - a.rank);
+
+      if (eligibleForBye.length === 0) {
+        eligibleForBye = availableTeams.sort((a, b) => b.rank - a.rank);
+      }
+
+      const byeTeam = eligibleForBye[0];
+      if (byeTeam) {
+        newTeamPairings.push({ 
+          table: 'BYE', 
+          team1: { name: byeTeam.name }, 
+          team2: { name: 'BYE' } 
+        });
+        availableTeams = availableTeams.filter(t => t.id !== byeTeam.id);
+      }
+    }
+
+    // Group teams by score (team wins + 0.5 * team ties)
+    const scoreGroups = new Map();
+    availableTeams.forEach(team => {
+      const score = (team.teamWins || 0) + 0.5 * (team.teamTies || 0);
+      if (!scoreGroups.has(score)) {
+        scoreGroups.set(score, []);
+      }
+      scoreGroups.get(score).push(team);
+    });
+
+    // Sort score groups in descending order
+    const sortedScores = Array.from(scoreGroups.keys()).sort((a, b) => b - a);
+
+    // Pair within score groups, avoiding rematches
+    for (const score of sortedScores) {
+      const teamsInGroup = scoreGroups.get(score);
+      
+      while (teamsInGroup.length >= 2) {
+        const team1 = teamsInGroup.shift();
+        let opponentFound = false;
+        
+        // Try to find opponent without rematch
+        for (let i = 0; i < teamsInGroup.length; i++) {
+          const team2 = teamsInGroup[i];
+          const matchupKey1 = `${team1.id}-${team2.id}`;
+          const matchupKey2 = `${team2.id}-${team1.id}`;
+
+          if (!previousTeamMatchups.has(matchupKey1) && !previousTeamMatchups.has(matchupKey2)) {
+            newTeamPairings.push({ 
+              table: table++, 
+              team1: { name: team1.name }, 
+              team2: { name: team2.name } 
+            });
+            teamsInGroup.splice(i, 1);
+            opponentFound = true;
+            break;
+          }
+        }
+        
+        // If no opponent found without rematch, take the first available
+        if (!opponentFound && teamsInGroup.length > 0) {
+          const team2 = teamsInGroup.shift();
+          newTeamPairings.push({ 
+            table: table++, 
+            team1: { name: team1.name }, 
+            team2: { name: team2.name } 
+          });
+        }
+      }
+      
+      // If odd number in this score group, move to next group
+      if (teamsInGroup.length === 1) {
+        const nextScore = sortedScores.find(s => s < score);
+        if (nextScore !== undefined) {
+          const nextGroup = scoreGroups.get(nextScore);
+          if (nextGroup) {
+            nextGroup.unshift(teamsInGroup[0]);
+          }
+        }
+      }
+    }
+
+    return newTeamPairings;
   };
 
   const handlePairCurrentRound = async () => {
@@ -208,6 +342,70 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
         }
 
         divisionPairings = generateLitoPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
+      } else if (pairingSystem === 'team_swiss') {
+        // Handle team Swiss pairing
+        const teamStats = players.map(p => ({
+          ...p,
+          teamWins: 0,
+          teamLosses: 0,
+          teamTies: 0
+        })).filter(p => p.team_id); // Filter out players not in a team
+        
+        // Calculate team stats from previous results
+        allResultsSoFar.forEach(result => {
+          const p1 = players.find(p => p.player_id === result.player1_id);
+          const p2 = players.find(p => p.player_id === result.player2_id);
+          if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
+          
+          // This is simplified - in reality, you'd need to group by team matches
+          // For now, we'll use individual wins as proxy for team performance
+        });
+        
+        let previousTeamMatchups = new Set();
+        const allowRematches = advancedSettings?.allow_rematches ?? false;
+        if (!allowRematches) {
+          // Build team matchup history
+          allResultsSoFar.forEach(res => {
+            const p1 = players.find(p => p.player_id === res.player1_id);
+            const p2 = players.find(p => p.player_id === res.player2_id);
+            if (p1 && p2 && p1.team_id && p2.team_id && p1.team_id !== p2.team_id) {
+              const teamKey = [p1.team_id, p2.team_id].sort().join('-');
+              previousTeamMatchups.add(teamKey);
+            }
+          });
+        }
+        
+        const teamPairings = generateTeamSwissPairings(teamStats, previousTeamMatchups, allResultsSoFar);
+        
+        // Convert team pairings to individual pairings
+        divisionPairings = [];
+        for (const teamPairing of teamPairings) {
+          if (teamPairing.team2.name === 'BYE') {
+            // Handle team bye
+            const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
+            team1Players.forEach(player => {
+              divisionPairings.push({
+                table: 'BYE',
+                player1: { name: player.name },
+                player2: { name: 'BYE' }
+              });
+            });
+          } else {
+            // Generate individual pairings between teams
+            const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
+            const team2Players = players.filter(p => p.team_id === teamPairing.team2.id);
+            
+            // Simple pairing - match players by position within team
+            const maxPlayers = Math.min(team1Players.length, team2Players.length);
+            for (let i = 0; i < maxPlayers; i++) {
+              divisionPairings.push({
+                table: tableNumber++,
+                player1: { name: team1Players[i].name },
+                player2: { name: team2Players[i].name }
+              });
+            }
+          }
+        }
       } else { // Fallback to Swiss
         let playersToPair = [...divisionPlayers];
         divisionPairings = generateSwissPairings(playersToPair, new Set(), allResultsSoFar);
