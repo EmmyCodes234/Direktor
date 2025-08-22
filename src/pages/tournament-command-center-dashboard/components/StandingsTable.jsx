@@ -5,8 +5,10 @@ import useMediaQuery from '../../../hooks/useMediaQuery';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { supabase } from '../../../lib/supabaseClient';
+import { toast } from 'react-toastify';
 
-const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings }) => {
+const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings, tournamentId, onPlayerUpdate }) => {
   const [viewMode, setViewMode] = useState('individual');
   const navigate = useNavigate();
   const isBestOfLeague = tournamentType === 'best_of_league';
@@ -58,6 +60,39 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const handleModalClick = (e, player) => {
     e.stopPropagation();
     onSelectPlayer(player);
+  };
+
+  const handlePlayerStatusChange = async (playerId, newStatus) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_players')
+        .update({ 
+          status: newStatus,
+          withdrawn_at: newStatus === 'withdrawn' ? new Date().toISOString() : null
+        })
+        .eq('player_id', playerId)
+        .eq('tournament_id', tournamentId);
+
+      if (error) throw error;
+      
+      toast.success(`Player status updated to ${newStatus}`);
+      onPlayerUpdate(); // Trigger refresh
+    } catch (error) {
+      console.error('Error updating player status:', error);
+      toast.error('Failed to update player status');
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'withdrawn':
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning-foreground">Withdrawn</span>;
+      case 'disqualified':
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive-foreground">Disqualified</span>;
+      case 'active':
+      default:
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success-foreground">Active</span>;
+    }
   };
 
   // Pagination for large player lists
@@ -199,10 +234,21 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
             <tr className="border-b border-border">
               <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
               <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
-              {isBestOfLeague && <th className="p-4 w-[15%] text-center font-semibold text-foreground">Match Wins</th>}
-              <th className="p-4 w-[20%] text-center font-semibold text-foreground">Record (W-L-T)</th>
-              <th className="p-4 w-[15%] text-center font-semibold text-foreground">Spread</th>
-              <th className="p-4 w-[10%] text-center font-semibold text-foreground">Stats</th>
+              <th className="p-4 text-left font-semibold text-foreground">
+                    {isBestOfLeague ? 'Match Wins' : 'Wins'}
+                  </th>
+                  <th className="p-4 text-left font-semibold text-foreground">
+                    {isBestOfLeague ? 'Match Losses' : 'Losses'}
+                  </th>
+                  <th className="p-4 text-left font-semibold text-foreground">
+                    Spread
+                  </th>
+                  <th className="p-4 text-left font-semibold text-foreground">
+                    Status
+                  </th>
+                  <th className="p-4 text-left font-semibold text-foreground">
+                    Actions
+                  </th>
             </tr>
           </thead>
           <tbody>
@@ -234,10 +280,33 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                   <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {player.spread > 0 ? '+' : ''}{player.spread || 0}
                   </td>
-                  <td className="p-4 text-center">
-                    <Button variant="ghost" size="icon" onClick={(e) => handleModalClick(e, player)} aria-label="View player stats">
-                      <Icon name="BarChartHorizontal" size={16} />
-                    </Button>
+                  <td className="p-4">
+                    {getStatusBadge(player.status)}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleModalClick(null, player)}
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        title="View player details"
+                      >
+                        <Icon name="Eye" size={16} />
+                      </button>
+                      {player.status === 'active' && (
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Show status change dropdown
+                            }}
+                            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                            title="Change player status"
+                          >
+                            <Icon name="MoreVertical" size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

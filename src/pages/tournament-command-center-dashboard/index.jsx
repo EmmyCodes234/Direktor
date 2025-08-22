@@ -1397,8 +1397,89 @@ const TournamentCommandCenterDashboard = () => {
       [matches, tournamentInfo?.currentRound]
   );
 
-  if (isLoading) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading Dashboard...</p></div>; }
-  if (!tournamentInfo) { return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Tournament not found.</p></div>; }
+  // Filter players by status (active, withdrawn, disqualified)
+  const activePlayers = useMemo(() => {
+    return players.filter(p => p.status === 'active' || !p.status);
+  }, [players]);
+
+  // Filter matches by status
+  const pendingMatches = useMemo(() => {
+    return matches.filter(m => m.status === 'pending');
+  }, [matches]);
+
+  const completedMatches = useMemo(() => {
+    return matches.filter(m => m.status === 'complete');
+  }, [matches]);
+
+  const inProgressMatches = useMemo(() => {
+    return matches.filter(m => m.status === 'in_progress');
+  }, [matches]);
+
+  // Get tournament round status
+  const roundStatus = useMemo(() => {
+    return tournamentInfo?.round_status || {};
+  }, [tournamentInfo]);
+
+  // Check if current round is complete
+  const isCurrentRoundComplete = useMemo(() => {
+    const currentRound = tournamentInfo?.current_round || 1;
+    const roundMatches = matches.filter(m => m.round === currentRound);
+    return roundMatches.length > 0 && roundMatches.every(m => m.status === 'complete');
+  }, [matches, tournamentInfo]);
+
+  // Get tournament configuration
+  const tournamentConfig = useMemo(() => {
+    return {
+      bestOfValue: tournamentInfo?.best_of_value || 15,
+      maxSpread: tournamentInfo?.max_spread,
+      currentRound: tournamentInfo?.current_round || 1,
+      totalRounds: tournamentInfo?.rounds || 1
+    };
+  }, [tournamentInfo]);
+
+  const handleError = (error, context = 'Operation') => {
+    console.error(`${context} error:`, error);
+    
+    let userMessage = 'An unexpected error occurred.';
+    
+    if (error?.message?.includes('network')) {
+      userMessage = 'Network error. Please check your connection and try again.';
+    } else if (error?.message?.includes('permission')) {
+      userMessage = 'You don\'t have permission to perform this action.';
+    } else if (error?.message?.includes('not found')) {
+      userMessage = 'The requested resource was not found.';
+    } else if (error?.message?.includes('validation')) {
+      userMessage = 'Invalid data provided. Please check your input.';
+    }
+    
+    toast.error(`${context} failed: ${userMessage}`);
+  };
+
+  const handleSuccess = (message) => {
+    toast.success(message);
+  };
+
+  if (isLoading) { 
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Loading Tournament Dashboard...</p>
+        </div>
+      </div>
+    ); 
+  }
+
+  if (!tournamentInfo) { 
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Icon name="AlertCircle" size={48} className="text-muted-foreground mx-auto" />
+          <p className="text-muted-foreground">Tournament not found or access denied.</p>
+        </div>
+      </div>
+    ); 
+  }
 
   // Tournament state calculated successfully
   return (

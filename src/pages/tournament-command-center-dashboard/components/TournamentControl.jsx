@@ -356,216 +356,183 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
 
   const handlePairCurrentRound = async () => {
     setIsLoading(true);
-    const currentRound = tournamentInfo.currentRound || 1;
+    try {
+      const currentRound = tournamentInfo.currentRound || 1;
 
-    let schedule = { ...(tournamentInfo.pairing_schedule || {}) };
-    let fullRoundPairings = [];
-    let tableNumber = 1;
+      let schedule = { ...(tournamentInfo.pairing_schedule || {}) };
+      let fullRoundPairings = [];
+      let tableNumber = 1;
 
-    const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ?
-      tournamentInfo.divisions :
-      [{ name: 'Open' }];
+      const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ?
+        tournamentInfo.divisions :
+        [{ name: 'Open' }];
 
-    const { data: allResultsSoFar } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
+      const { data: allResultsSoFar, error: resultsError } = await supabase.from('results').select('*').eq('tournament_id', tournamentInfo.id);
+      
+      if (resultsError) {
+        throw new Error(`Failed to fetch results: ${resultsError.message}`);
+      }
 
-    for (const division of divisions) {
-      const divisionPlayers = players.filter(p => p.division === division.name || (divisions.length === 1 && division.name === 'Open'));
-      const advancedSettings = tournamentInfo.advanced_pairing_modes?.[currentRound];
-      const pairingSystem = advancedSettings?.system || tournamentInfo.pairing_system;
+      for (const division of divisions) {
+        const divisionPlayers = players.filter(p => p.division === division.name || (divisions.length === 1 && division.name === 'Open'));
+        const advancedSettings = tournamentInfo.advanced_pairing_modes?.[currentRound];
+        const pairingSystem = advancedSettings?.system || tournamentInfo.pairing_system;
 
-      let divisionPairings;
+        let divisionPairings;
 
-      if (pairingSystem === 'enhanced_swiss') {
-        let playersToPair = [...divisionPlayers];
-        const baseRound = advancedSettings?.base_round ?? currentRound - 1;
+        if (pairingSystem === 'enhanced_swiss') {
+          // Enhanced Swiss logic (previously Lito)
+          let playersToPair = [...divisionPlayers];
+          const baseRound = advancedSettings?.base_round ?? currentRound - 1;
 
-        if (baseRound < currentRound - 1) {
-          const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
-          const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
-          for (const res of historicalResults) {
-            const p1Stats = statsMap.get(res.player1_id);
-            const p2Stats = statsMap.get(res.player2_id);
-            if (!p1Stats || !p2Stats) continue;
-            if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; } else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; } else { p1Stats.ties++; p2Stats.ties++; }
-          }
-          await updatePlayerStatsInSupabase(statsMap); // Corrected: Call this after the loop
-          playersToPair = Array.from(statsMap.values());
-        }
-
-        playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
-
-        let previousMatchups = new Set();
-        const allowRematches = advancedSettings?.allow_rematches ?? false;
-        if (!allowRematches) {
-          allResultsSoFar.forEach(res => {
-            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
-            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
-          });
-        }
-
-        divisionPairings = generateEnhancedSwissPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
-      } else if (pairingSystem === 'king_of_the_hill') {
-        let playersToPair = [...divisionPlayers];
-        const baseRound = advancedSettings?.base_round ?? currentRound - 1;
-
-        if (baseRound < currentRound - 1) {
-          const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
-          const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
-          for (const res of historicalResults) {
-            const p1Stats = statsMap.get(res.player1_id);
-            const p2Stats = statsMap.get(res.player2_id);
-            if (!p1Stats || !p2Stats) continue;
-            if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; } else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; } else { p1Stats.ties++; p2Stats.ties++; }
-          }
-          await updatePlayerStatsInSupabase(statsMap); // Corrected: Call this after the loop
-          playersToPair = Array.from(statsMap.values());
-        }
-
-        playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
-
-        let previousMatchups = new Set();
-        const allowRematches = advancedSettings?.allow_rematches ?? false;
-        if (!allowRematches) {
-          allResultsSoFar.forEach(res => {
-            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
-            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
-          });
-        }
-
-        divisionPairings = generateKingOfTheHillPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound);
-      } else if (pairingSystem === 'team_swiss') {
-        // Handle team Swiss pairing
-        const teamStats = players.map(p => ({
-          ...p,
-          teamWins: 0,
-          teamLosses: 0,
-          teamTies: 0
-        })).filter(p => p.team_id); // Filter out players not in a team
-        
-        // Calculate team stats from previous results
-        allResultsSoFar.forEach(result => {
-          const p1 = players.find(p => p.player_id === result.player1_id);
-          const p2 = players.find(p => p.player_id === result.player2_id);
-          if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
-          
-          // This is simplified - in reality, you'd need to group by team matches
-          // For now, we'll use individual wins as proxy for team performance
-        });
-        
-        let previousTeamMatchups = new Set();
-        const allowRematches = advancedSettings?.allow_rematches ?? false;
-        if (!allowRematches) {
-          // Build team matchup history
-          allResultsSoFar.forEach(res => {
-            const p1 = players.find(p => p.player_id === res.player1_id);
-            const p2 = players.find(p => p.player_id === res.player2_id);
-            if (p1 && p2 && p1.team_id && p2.team_id && p1.team_id !== p2.team_id) {
-              const teamKey = [p1.team_id, p2.team_id].sort().join('-');
-              previousTeamMatchups.add(teamKey);
+          if (baseRound < currentRound - 1) {
+            const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
+            const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
+            for (const res of historicalResults) {
+              const p1Stats = statsMap.get(res.player1_id);
+              const p2Stats = statsMap.get(res.player2_id);
+              if (!p1Stats || !p2Stats) continue;
+              if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; } else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; } else { p1Stats.ties++; p2Stats.ties++; }
             }
-          });
-        }
-        
-        const teamPairings = generateTeamSwissPairings(teamStats, previousTeamMatchups, allResultsSoFar);
-        
-        // Convert team pairings to individual pairings
-        divisionPairings = [];
-        for (const teamPairing of teamPairings) {
-          if (teamPairing.team2.name === 'BYE') {
-            // Handle team bye
-            const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
-            team1Players.forEach(player => {
-              divisionPairings.push({
-                table: 'BYE',
-                player1: { name: player.name },
-                player2: { name: 'BYE' }
-              });
+            await updatePlayerStatsInSupabase(statsMap);
+            playersToPair = Array.from(statsMap.values());
+          }
+
+          playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
+
+          let previousMatchups = new Set();
+          const allowRematches = advancedSettings?.allow_rematches ?? false;
+          if (!allowRematches) {
+            allResultsSoFar.forEach(res => {
+              previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
+              previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
             });
-          } else {
-            // Generate individual pairings between teams
-            const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
-            const team2Players = players.filter(p => p.team_id === teamPairing.team2.id);
-            
-            // Simple pairing - match players by position within team
-            const maxPlayers = Math.min(team1Players.length, team2Players.length);
-            for (let i = 0; i < maxPlayers; i++) {
-              divisionPairings.push({
-                table: tableNumber++,
-                player1: { name: team1Players[i].name },
-                player2: { name: team2Players[i].name }
+          }
+
+          divisionPairings = generateEnhancedSwissPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
+        } else if (pairingSystem === 'king_of_the_hill') {
+          // King of the Hill logic
+          let playersToPair = [...divisionPlayers];
+          const baseRound = advancedSettings?.base_round ?? currentRound - 1;
+
+          if (baseRound < currentRound - 1) {
+            const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
+            const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
+            for (const res of historicalResults) {
+              const p1Stats = statsMap.get(res.player1_id);
+              const p2Stats = statsMap.get(res.player2_id);
+              if (!p1Stats || !p2Stats) continue;
+              if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; } else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; } else { p1Stats.ties++; p2Stats.ties++; }
+            }
+            await updatePlayerStatsInSupabase(statsMap);
+            playersToPair = Array.from(statsMap.values());
+          }
+
+          playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
+
+          let previousMatchups = new Set();
+          const allowRematches = advancedSettings?.allow_rematches ?? false;
+          if (!allowRematches) {
+            allResultsSoFar.forEach(res => {
+              previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
+              previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
+            });
+          }
+
+          divisionPairings = generateKingOfTheHillPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound);
+        } else if (pairingSystem === 'team_swiss') {
+          // Team Swiss logic (existing code)
+          const teamStats = players.map(p => ({
+            ...p,
+            teamWins: 0,
+            teamLosses: 0,
+            teamTies: 0
+          })).filter(p => p.team_id);
+          
+          allResultsSoFar.forEach(result => {
+            const p1 = players.find(p => p.player_id === result.player1_id);
+            const p2 = players.find(p => p.player_id === result.player2_id);
+            if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
+          });
+          
+          let previousTeamMatchups = new Set();
+          const allowRematches = advancedSettings?.allow_rematches ?? false;
+          if (!allowRematches) {
+            allResultsSoFar.forEach(res => {
+              const p1 = players.find(p => p.player_id === res.player1_id);
+              const p2 = players.find(p => p.player_id === res.player2_id);
+              if (p1 && p2 && p1.team_id && p2.team_id && p1.team_id !== p2.team_id) {
+                const teamKey = [p1.team_id, p2.team_id].sort().join('-');
+                previousTeamMatchups.add(teamKey);
+              }
+            });
+          }
+          
+          const teamPairings = generateTeamSwissPairings(teamStats, previousTeamMatchups, allResultsSoFar);
+          
+          divisionPairings = [];
+          for (const teamPairing of teamPairings) {
+            if (teamPairing.team2.name === 'BYE') {
+              const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
+              team1Players.forEach(player => {
+                divisionPairings.push({
+                  table: 'BYE',
+                  player1: { name: player.name },
+                  player2: { name: 'BYE' }
+                });
               });
+            } else {
+              const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
+              const team2Players = players.filter(p => p.team_id === teamPairing.team2.id);
+              
+              const maxPlayers = Math.min(team1Players.length, team2Players.length);
+              for (let i = 0; i < maxPlayers; i++) {
+                divisionPairings.push({
+                  table: tableNumber++,
+                  player1: { name: team1Players[i].name },
+                  player2: { name: team2Players[i].name }
+                });
+              }
             }
           }
+        } else { // Fallback to Swiss
+          let playersToPair = [...divisionPlayers];
+          divisionPairings = generateSwissPairings(playersToPair, new Set(), allResultsSoFar);
         }
-      } else { // Fallback to Swiss
-        let playersToPair = [...divisionPlayers];
-        divisionPairings = generateSwissPairings(playersToPair, new Set(), allResultsSoFar);
-      }
 
-      const adjustedDivisionPairings = divisionPairings.map(p => ({
-        ...p,
-        table: p.table !== 'BYE' ? tableNumber++ : 'BYE',
-        division: division.name
-      }));
-
-      fullRoundPairings = [...fullRoundPairings, ...adjustedDivisionPairings];
-    }
-
-    schedule[currentRound] = fullRoundPairings;
-
-    const { data, error } = await supabase.from('tournaments').update({ pairing_schedule: schedule }).eq('id', tournamentInfo.id).select().single();
-
-    setIsLoading(false);
-    if (error) {
-      toast.error(`Failed to generate pairings: ${error.message}`);
-    } else {
-      onRoundPaired(data);
-
-      const roundPairings = schedule[currentRound] || [];
-      let topMatchup = null;
-      let highestCombinedRating = 0;
-
-      roundPairings.forEach(p => {
-        if (p.player2.name === 'BYE') return;
-        const player1 = players.find(pl => pl.name === p.player1.name);
-        const player2 = players.find(pl => pl.name === p.player2.name);
-        if (player1 && player2) {
-          const combinedRating = (player1.rating || 0) + (player2.rating || 0);
-          if (combinedRating > highestCombinedRating) {
-            highestCombinedRating = combinedRating;
-            topMatchup = { player1, player2, table: p.table };
+        // Assign table numbers
+        divisionPairings.forEach(pairing => {
+          if (pairing.table !== 'BYE') {
+            pairing.table = tableNumber++;
           }
-        }
-      });
-
-      if (topMatchup) {
-        const announcementMessage = `🔥 Clash of the Titans! Don't miss this Round ${currentRound} marquee matchup between ${topMatchup.player1.name} (${topMatchup.player1.rating}) and ${topMatchup.player2.name} (${topMatchup.player2.rating}) on Table ${topMatchup.table}.`;
-        await supabase.from('announcements').insert({
-          tournament_id: tournamentInfo.id,
-          message: announcementMessage,
         });
+
+        fullRoundPairings.push(...divisionPairings);
       }
 
-      const byePairings = schedule[currentRound]?.filter(p => p.player2.name === 'BYE');
-      if (byePairings && byePairings.length > 0) {
-        for (const byePairing of byePairings) {
-          const byePlayer = players.find(p => p.name === byePairing.player1.name);
-          if (byePlayer) {
-            await supabase.from('results').insert([{
-              tournament_id: tournamentInfo.id,
-              round: currentRound,
-              player1_id: byePlayer.player_id,
-              player2_id: null,
-              player1_name: byePlayer.name,
-              player2_name: 'BYE',
-              score1: 0,
-              score2: 0,
-              is_bye: true,
-            }]);
-            toast.success(`${byePlayer.name} (Div: ${byePlayer.division || 'Open'}) receives a designated win for the bye.`);
-          }
-        }
+      // Update tournament with new pairings
+      schedule[currentRound] = fullRoundPairings;
+      const { data: updatedTournament, error: updateError } = await supabase
+        .from('tournaments')
+        .update({ 
+          pairing_schedule: schedule,
+          current_round: currentRound + 1
+        })
+        .eq('id', tournamentInfo.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw new Error(`Failed to update tournament: ${updateError.message}`);
       }
+
+      onRoundPaired(updatedTournament);
+      toast.success(`Round ${currentRound} pairings generated successfully!`);
+    } catch (error) {
+      console.error('Error generating pairings:', error);
+      toast.error(`Failed to generate pairings: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
