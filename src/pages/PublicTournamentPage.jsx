@@ -4,6 +4,7 @@ import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import PlayerStatsModal from 'components/PlayerStatsModal';
 import ResultSubmissionModal from 'components/ResultSubmissionModal';
+import Button from 'components/ui/Button';
 import { cn } from 'utils/cn';
 import 'styles/ticker.css';
 import { Toaster, toast } from 'sonner';
@@ -153,10 +154,13 @@ const PublicTournamentPage = () => {
         }).map((player, index) => ({ ...player, rank: index + 1 }));
     }, []);
 
-    // Fetch and refresh public data
-    const fetchPublicData = useCallback(async () => {
+    // Fetch and refresh public data - NEW VERSION
+    const fetchPublicDataNew = useCallback(async () => {
         if (!tournamentSlug) { setLoading(false); return; }
         setLoading(true);
+        
+        // Force cache invalidation
+        console.log('🔄 NEW VERSION - Cache invalidation - version 3.0');
         
         // Debug environment variables
         console.log('🔧 Environment check:', {
@@ -187,82 +191,82 @@ const PublicTournamentPage = () => {
             throw new Error(`Database connection failed: ${testError.message}`);
         }
         
+        // Let's also check if we can find the specific tournament with a broader search
+        const { data: allTournaments, error: allError } = await supabase
+            .from('tournaments')
+            .select('id, name, slug, status')
+            .ilike('slug', `%${tournamentSlug}%`);
+        
+        console.log('🔍 All tournaments with similar slug:', { data: allTournaments, error: allError });
+        
         try {
             console.log('🔍 Making tournament query for slug:', tournamentSlug);
             
-            // Try a simpler query first to avoid 406 errors
-            let tournamentData = null;
-            let tErr = null;
+            // BRAND NEW APPROACH - Ultra minimal query
+            console.log('🚀 ULTRA MINIMAL QUERY APPROACH');
             
-            try {
-                const result = await supabase
-                    .from('tournaments')
-                    .select('id, name, slug, status, venue, date, type, rounds, playerCount, user_id, created_at, updated_at, pairing_schedule, divisions, games_per_match, is_remote_submission_enabled, start_date, end_date')
-                    .eq('slug', tournamentSlug)
-                    .single();
-                    
-                tournamentData = result.data;
-                tErr = result.error;
-            } catch (error) {
-                console.error('❌ Query failed with exception:', error);
-                tErr = error;
-            }
-                
-            console.log('📊 Tournament query result:', { data: tournamentData, error: tErr });
+            const ultraMinimalQuery = await supabase
+                .from('tournaments')
+                .select('id, name, slug, status')
+                .eq('slug', tournamentSlug)
+                .single();
             
-            if (tErr) {
-                console.error('❌ Tournament query error:', tErr);
-                console.error('❌ Error details:', {
-                    code: tErr.code,
-                    message: tErr.message,
-                    details: tErr.details,
-                    hint: tErr.hint
-                });
-                throw tErr;
+            console.log('📊 Ultra minimal query result:', { 
+                data: ultraMinimalQuery.data, 
+                error: ultraMinimalQuery.error,
+                errorString: JSON.stringify(ultraMinimalQuery.error, null, 2)
+            });
+            
+            if (ultraMinimalQuery.error) {
+                console.error('❌ Ultra minimal query failed:', JSON.stringify(ultraMinimalQuery.error, null, 2));
+                throw ultraMinimalQuery.error;
             }
             
-            if (!tournamentData) {
+            if (!ultraMinimalQuery.data) {
                 console.error('❌ No tournament found with slug:', tournamentSlug);
-                
-                // Let's check if there are any tournaments with similar slugs
-                const { data: similarTournaments, error: similarError } = await supabase
-                    .from('tournaments')
-                    .select('id, name, slug, status')
-                    .ilike('slug', `%${tournamentSlug}%`)
-                    .limit(5);
-                
-                if (!similarError && similarTournaments && similarTournaments.length > 0) {
-                    console.log('🔍 Found similar tournaments:', similarTournaments);
-                }
-                
                 throw new Error("Tournament not found");
             }
             
-            console.log('✅ Tournament found:', tournamentData.name);
+            console.log('✅ Tournament found:', ultraMinimalQuery.data.name);
             
             // Check if tournament is in a public state
-            if (tournamentData.status === 'draft') {
+            if (ultraMinimalQuery.data.status === 'draft') {
                 console.error('❌ Tournament is in draft status and not publicly accessible');
                 throw new Error("Tournament not found");
             }
             
-            setTournament(tournamentData);
+            setTournament(ultraMinimalQuery.data);
+            
+            // Now fetch additional data with the tournament ID
+            const tournamentId = ultraMinimalQuery.data.id;
+            
             const { data: tournamentPlayersData, error: tpError } = await supabase
                 .from('tournament_players')
                 .select(`*, players(id, name, rating, photo_url, slug)`)
-                .eq('tournament_id', tournamentData.id);
+                .eq('tournament_id', tournamentId);
             if (tpError) throw tpError;
             const combinedPlayers = tournamentPlayersData.map(tp => ({
                 ...tp.players,
                 ...tp
             }));
-            const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}] = await Promise.all([
-                supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
-                supabase.from('teams').select('id, name').eq('tournament_id', tournamentData.id),
-                supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true }),
-                supabase.from('matches').select('*').eq('tournament_id', tournamentData.id).order('round', { ascending: true })
+            const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}, {data: photosData}] = await Promise.all([
+                supabase.from('results').select('*').eq('tournament_id', tournamentId).order('created_at', { ascending: false }),
+                supabase.from('teams').select('id, name').eq('tournament_id', tournamentId),
+                supabase.from('prizes').select('*').eq('tournament_id', tournamentId).order('rank', { ascending: true }),
+                supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true }),
+                supabase.from('player_photos').select('*').eq('tournament_id', tournamentId)
             ]);
-            setPlayers(recalculateRanks(combinedPlayers, tournamentData.type, resultsData || [], matchesData || []));
+            
+            // Combine players with their photos
+            const playersWithPhotos = combinedPlayers.map(player => {
+                const photo = photosData?.find(p => p.player_id === player.player_id);
+                return {
+                    ...player,
+                    photo_url: photo?.photo_url || null
+                };
+            });
+            
+            setPlayers(recalculateRanks(playersWithPhotos, ultraMinimalQuery.data.type, resultsData || [], matchesData || []));
             setResults(resultsData || []);
             setTeams(teamsData || []);
             setPrizes(prizesData || []);
@@ -275,24 +279,24 @@ const PublicTournamentPage = () => {
         }
     }, [tournamentSlug, recalculateRanks]);
 
-    // Initial fetch
+    // Initial fetch - USE NEW VERSION
     useEffect(() => {
-        fetchPublicData();
-    }, [fetchPublicData]);
+        fetchPublicDataNew();
+    }, [fetchPublicDataNew]);
 
     // Real-time updates
     useEffect(() => {
         if (!tournament) return;
         const channel = supabase.channel(`public-tournament-updates-${tournament.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchPublicDataNew)
             .subscribe();
         return () => {
             if (channel) supabase.removeChannel(channel);
         };
-    }, [tournament, fetchPublicData]);
+    }, [tournament, fetchPublicDataNew]);
 
     const handlePlayerClick = (e, player) => {
         e.preventDefault();

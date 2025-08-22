@@ -25,6 +25,7 @@ import ReportsPage from "./pages/ReportsPage";
 import PairingManagementPage from "./pages/PairingManagementPage";
 import WallChartPage from "./pages/WallChartPage";
 import PlayerProfilePage from "./pages/PlayerProfilePage"; // Import the new page
+import PublicTournamentPageNew from "pages/PublicTournamentPageNew";
 
 const Routes = () => {
   return (
@@ -46,7 +47,7 @@ const Routes = () => {
         
         {/* Public Tournament & Player Routes */}
         <Route path="/tournaments/:tournamentSlug/register" element={<RegistrationPage />} />
-        <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPage />} />
+        <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPageNew />} />
         <Route path="/tournament/:tournamentSlug/standings" element={<PublicTournamentStandings />} />
         <Route path="/tournament/:tournamentSlug/roster" element={<PublicTournamentRoster />} />
         <Route path="/tournament/:tournamentSlug/public-pairings" element={<PublicTournamentPairings />} />
