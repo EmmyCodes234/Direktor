@@ -5,8 +5,8 @@ import useMediaQuery from '../../../hooks/useMediaQuery';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '../../../lib/supabaseClient';
-import { toast } from 'react-toastify';
+import { supabase } from '../../../supabaseClient';
+import { toast } from 'sonner';
 
 const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings, tournamentId, onPlayerUpdate }) => {
   const [viewMode, setViewMode] = useState('individual');
