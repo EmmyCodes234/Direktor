@@ -79,7 +79,7 @@ const PublicTournamentPageNew = () => {
             console.log('📋 Step 1: Getting basic tournament info...');
             const { data: tournamentData, error: tournamentError } = await supabase
                 .from('tournaments')
-                .select('id, name, slug, status, venue, date, type, rounds, playerCount, is_remote_submission_enabled, start_date, end_date')
+                .select('id, name, slug, status, venue, date, type, rounds, playerCount, is_remote_submission_enabled, start_date, end_date, pairing_schedule')
                 .eq('slug', tournamentSlug)
                 .single();
             
@@ -99,6 +99,7 @@ const PublicTournamentPageNew = () => {
             }
             
             console.log('✅ Tournament found:', tournamentData.name);
+            console.log('📋 Pairing schedule:', tournamentData.pairing_schedule);
             setTournament(tournamentData);
             
             // Step 2: Get players
@@ -291,6 +292,15 @@ const PublicTournamentPageNew = () => {
                                 <Icon name="Swords" className="mr-2 text-primary" size={20}/>Pairings
                             </h2>
                             <div className="space-y-4">
+                                {(() => {
+                                    console.log('🔍 Pairings Debug:', {
+                                        tournamentPairingSchedule: tournament?.pairing_schedule,
+                                        pairingsByRound,
+                                        pairingsByRoundKeys: Object.keys(pairingsByRound),
+                                        pairingsByRoundLength: Object.keys(pairingsByRound).length
+                                    });
+                                    return null;
+                                })()}
                                 {Object.keys(pairingsByRound).length > 0 ? (
                                     Object.entries(pairingsByRound).map(([roundNum, roundPairings]) => (
                                         <div key={roundNum} className="bg-card border border-border/20 rounded-lg p-4">
