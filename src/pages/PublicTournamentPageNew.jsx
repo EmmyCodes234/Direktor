@@ -37,28 +37,90 @@ const PublicTournamentPageNew = () => {
     // Simple recalculate ranks function
     const recalculateRanks = useCallback((playerList, tournamentType, resultsList, matchesList) => {
         if (!playerList) return [];
-        let enrichedPlayers = playerList.map(player => {
-            let wins = 0, losses = 0, ties = 0, spread = 0;
+        let enrichedPlayers = playerList;
+        
+        if (tournamentType === 'best_of_league') {
+            // Calculate match_wins by grouping results by match-up and counting majority wins
+            const bestOf = 15; // Default to 15, or get from tournament settings if available
+            const majority = Math.floor(bestOf / 2) + 1;
+            // Build a map of match-ups: key = sorted player ids, value = array of results
+            const matchupMap = {};
             (resultsList || []).forEach(result => {
-                if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
-                    let isP1 = result.player1_id === player.player_id;
-                    let myScore = isP1 ? result.score1 : result.score2;
-                    let oppScore = isP1 ? result.score2 : result.score1;
-                    if (myScore > oppScore) wins++;
-                    else if (myScore < oppScore) losses++;
-                    else ties++;
-                    spread += (myScore - oppScore);
-                }
+                if (!result.player1_id || !result.player2_id) return;
+                const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
+                const key = ids.join('-');
+                if (!matchupMap[key]) matchupMap[key] = [];
+                matchupMap[key].push(result);
             });
-            return {
-                ...player,
-                wins,
-                losses,
-                ties,
-                spread
-            };
-        });
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
+                // Calculate per-game stats
+                (resultsList || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        spread += (myScore - oppScore);
+                    }
+                });
+                // Calculate match_wins: for each match-up, if player has majority, count as match win
+                Object.entries(matchupMap).forEach(([key, results]) => {
+                    // Only consider match-ups where this player participated
+                    if (!key.split('-').includes(String(player.player_id))) return;
+                    // Count games won by each player in this match-up
+                    const [id1, id2] = key.split('-').map(Number);
+                    let p1Wins = 0, p2Wins = 0;
+                    results.forEach(r => {
+                        if (r.score1 > r.score2) {
+                            if (r.player1_id === id1) p1Wins++;
+                            else p2Wins++;
+                        } else if (r.score2 > r.score1) {
+                            if (r.player2_id === id1) p1Wins++;
+                            else p2Wins++;
+                        }
+                    });
+                    if (id1 === player.player_id && p1Wins >= majority) match_wins++;
+                    if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+                });
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread,
+                    match_wins
+                };
+            });
+        } else {
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0;
+                (resultsList || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        spread += (myScore - oppScore);
+                    }
+                });
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread
+                };
+            });
+        }
         return [...enrichedPlayers].sort((a, b) => {
+            if (tournamentType === 'best_of_league') {
+                if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+            }
             if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
             return (b.spread || 0) - (a.spread || 0);
         }).map((player, index) => ({ ...player, rank: index + 1 }));
@@ -132,6 +194,14 @@ const PublicTournamentPageNew = () => {
             setMatches(matchesResponse.data || []);
             
             console.log('✅ All data loaded successfully!');
+            console.log('🏆 Tournament type:', tournamentData.type);
+            console.log('📊 Results count:', resultsResponse.data?.length || 0);
+            console.log('👥 Players with stats:', recalculateRanks(combinedPlayers, tournamentData.type, resultsResponse.data || [], matchesResponse.data || []).map(p => ({
+                name: p.name,
+                wins: p.wins,
+                match_wins: p.match_wins,
+                rank: p.rank
+            })));
             
         } catch (error) {
             console.error("Error loading tournament data:", error);
