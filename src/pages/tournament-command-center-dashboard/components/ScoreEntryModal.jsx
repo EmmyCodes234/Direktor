@@ -11,6 +11,8 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
   const [score1, setScore1] = useState('');
   const [score2, setScore2] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [matchStatus, setMatchStatus] = useState('normal'); // normal, forfeit, withdrawal, bye
+  const [forfeitPlayer, setForfeitPlayer] = useState(null); // 'player1', 'player2', or null
 
   const isEditing = !!existingResult;
   const isBestOfLeague = tournamentType === 'best_of_league';
@@ -22,6 +24,8 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
     if (isOpen) {
       setScore1(isEditing ? existingResult.score1 : '');
       setScore2(isEditing ? existingResult.score2 : '');
+      setMatchStatus(existingResult?.is_forfeit ? 'forfeit' : existingResult?.is_bye ? 'bye' : 'normal');
+      setForfeitPlayer(existingResult?.forfeit_player || null);
     }
   }, [isOpen, isEditing, existingResult]);
 
@@ -36,26 +40,83 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (score1 === '' || score2 === '') {
-      toast.error("Please enter scores for both players.");
+    
+    if (isMatchComplete) {
+      toast.error("This match is already complete and cannot be modified.");
       return;
     }
+
     setIsLoading(true);
-    const resultPayload = {
-      player1: player1Name,
-      player2: player2Name,
-      score1: parseInt(score1, 10),
-      score2: parseInt(score2, 10),
-      id: isEditing ? existingResult.id : undefined,
-      match_id: isBestOfLeague ? matchup.id : undefined,
-    };
+
     try {
-      await onResultSubmit(resultPayload, isEditing);
+      let finalScore1 = score1;
+      let finalScore2 = score2;
+
+      // Handle special match statuses
+      if (matchStatus === 'forfeit') {
+        if (forfeitPlayer === 'player1') {
+          finalScore1 = 0;
+          finalScore2 = 400; // Standard forfeit score
+        } else if (forfeitPlayer === 'player2') {
+          finalScore1 = 400;
+          finalScore2 = 0;
+        }
+      } else if (matchStatus === 'bye') {
+        finalScore1 = 400;
+        finalScore2 = 0;
+      } else if (matchStatus === 'withdrawal') {
+        // Handle withdrawal logic
+        if (forfeitPlayer === 'player1') {
+          finalScore1 = 0;
+          finalScore2 = 400;
+        } else if (forfeitPlayer === 'player2') {
+          finalScore1 = 400;
+          finalScore2 = 0;
+        }
+      } else {
+        // Normal match - validate scores
+        const num1 = parseInt(score1, 10);
+        const num2 = parseInt(score2, 10);
+        
+        if (isNaN(num1) || isNaN(num2) || num1 < 0 || num2 < 0) {
+          toast.error("Please enter valid non-negative scores.");
+          setIsLoading(false);
+          return;
+        }
+        
+        finalScore1 = num1;
+        finalScore2 = num2;
+      }
+
+      const resultData = {
+        tournament_id: matchup.tournament_id,
+        round: matchup.round,
+        player1_id: matchup.player1_id,
+        player2_id: matchup.player2_id,
+        score1: finalScore1,
+        score2: finalScore2,
+        match_id: matchup.id,
+        is_bye: matchStatus === 'bye',
+        is_forfeit: matchStatus === 'forfeit',
+        forfeit_player: forfeitPlayer,
+        player1_starts: matchup.player1_starts || false,
+        player2_starts: matchup.player2_starts || false
+      };
+
+      await onResultSubmit(resultData, isEditing);
       onClose();
     } catch (error) {
-      // Parent component will show the error toast
+      console.error('Error submitting result:', error);
+      toast.error('Failed to submit result. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMatchStatusChange = (status) => {
+    setMatchStatus(status);
+    if (status === 'normal') {
+      setForfeitPlayer(null);
     }
   };
 
@@ -66,119 +127,186 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           onClick={onClose}
         >
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="glass-card w-full max-w-md mx-auto rounded-t-xl sm:rounded-xl shadow-xl"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-background rounded-lg shadow-xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <form onSubmit={handleSubmit}>
-              <div className="p-6 lg:p-8 border-b border-border/10">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-heading font-semibold text-foreground">
-                    {isEditing ? 'Edit Score' : 'Enter Score'}
-                  </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                {isEditing ? 'Edit Result' : 'Submit Result'}
+              </h2>
+              <button
+                onClick={onClose}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Icon name="X" size={20} />
+              </button>
+            </div>
+
+            {isMatchComplete && (
+              <div className="mb-4 p-3 bg-warning/10 border border-warning/20 rounded-md">
+                <p className="text-sm text-warning-foreground">
+                  ⚠️ This match is already complete and cannot be modified.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Match Status Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Match Status</label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={onClose}
-                    className="touch-target p-2 rounded-lg hover:bg-muted/20 transition-colors"
-                    aria-label="Close modal"
+                    onClick={() => handleMatchStatusChange('normal')}
+                    className={`p-2 text-sm rounded-md border transition-colors ${
+                      matchStatus === 'normal' 
+                        ? 'bg-primary text-primary-foreground border-primary' 
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
                   >
-                    <Icon name="X" size={20} />
+                    Normal Match
                   </button>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {isBestOfLeague ? 'Match' : `Table ${matchup.table}`} • Round {matchup.round}
-                    </p>
-                    
-                    {isBestOfLeague && (
-                      <div className="bg-muted/20 p-4 rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-foreground">{player1Name}</span>
-                          <span className="font-bold text-primary text-lg">
-                            {safeCurrentMatchScore[player1Name] !== undefined
-                              ? safeCurrentMatchScore[player1Name]
-                              : 0}
-                          </span>
-                        </div>
-                        <div className="text-center text-muted-foreground my-2">
-                          <Icon name="Minus" size={16} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-foreground">{player2Name}</span>
-                          <span className="font-bold text-primary text-lg">
-                            {safeCurrentMatchScore[player2Name] !== undefined
-                              ? safeCurrentMatchScore[player2Name]
-                              : 0}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        {player1Name} Score
-                      </label>
-                      <Input
-                        type="number"
-                        value={score1}
-                        onChange={(e) => setScore1(e.target.value)}
-                        placeholder="0"
-                        className="text-center text-lg font-mono touch-target-mobile"
-                        disabled={isMatchComplete}
-                        min="0"
-                      />
-                    </div>
-
-                    <div className="text-center text-muted-foreground">
-                      <Icon name="Minus" size={20} />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        {player2Name} Score
-                      </label>
-                      <Input
-                        type="number"
-                        value={score2}
-                        onChange={(e) => setScore2(e.target.value)}
-                        placeholder="0"
-                        className="text-center text-lg font-mono touch-target-mobile"
-                        disabled={isMatchComplete}
-                        min="0"
-                      />
-                    </div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleMatchStatusChange('forfeit')}
+                    className={`p-2 text-sm rounded-md border transition-colors ${
+                      matchStatus === 'forfeit' 
+                        ? 'bg-destructive text-destructive-foreground border-destructive' 
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
+                  >
+                    Forfeit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMatchStatusChange('withdrawal')}
+                    className={`p-2 text-sm rounded-md border transition-colors ${
+                      matchStatus === 'withdrawal' 
+                        ? 'bg-warning text-warning-foreground border-warning' 
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
+                  >
+                    Withdrawal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMatchStatusChange('bye')}
+                    className={`p-2 text-sm rounded-md border transition-colors ${
+                      matchStatus === 'bye' 
+                        ? 'bg-secondary text-secondary-foreground border-secondary' 
+                        : 'bg-background border-border hover:bg-muted'
+                    }`}
+                  >
+                    Bye
+                  </button>
                 </div>
               </div>
 
-              <div className="p-6 flex flex-col sm:flex-row gap-3">
+              {/* Forfeit/Withdrawal Player Selection */}
+              {(matchStatus === 'forfeit' || matchStatus === 'withdrawal') && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    {matchStatus === 'forfeit' ? 'Forfeiting Player' : 'Withdrawing Player'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForfeitPlayer('player1')}
+                      className={`p-2 text-sm rounded-md border transition-colors ${
+                        forfeitPlayer === 'player1' 
+                          ? 'bg-destructive text-destructive-foreground border-destructive' 
+                          : 'bg-background border-border hover:bg-muted'
+                      }`}
+                    >
+                      {player1Name}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForfeitPlayer('player2')}
+                      className={`p-2 text-sm rounded-md border transition-colors ${
+                        forfeitPlayer === 'player2' 
+                          ? 'bg-destructive text-destructive-foreground border-destructive' 
+                          : 'bg-background border-border hover:bg-muted'
+                      }`}
+                    >
+                      {player2Name}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Score Inputs (only for normal matches) */}
+              {matchStatus === 'normal' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">{player1Name}</label>
+                    <Input
+                      type="number"
+                      value={score1}
+                      onChange={(e) => setScore1(e.target.value)}
+                      placeholder="Score"
+                      min="0"
+                      disabled={isMatchComplete}
+                      className="text-center"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">{player2Name}</label>
+                    <Input
+                      type="number"
+                      value={score2}
+                      onChange={(e) => setScore2(e.target.value)}
+                      placeholder="Score"
+                      min="0"
+                      disabled={isMatchComplete}
+                      className="text-center"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Status Display */}
+              {matchStatus !== 'normal' && (
+                <div className="p-3 bg-muted/20 rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    {matchStatus === 'forfeit' && forfeitPlayer && 
+                      `${forfeitPlayer === 'player1' ? player1Name : player2Name} forfeits`
+                    }
+                    {matchStatus === 'withdrawal' && forfeitPlayer && 
+                      `${forfeitPlayer === 'player1' ? player1Name : player2Name} withdraws`
+                    }
+                    {matchStatus === 'bye' && 
+                      `${player1Name} receives a bye`
+                    }
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="touch-target-mobile flex-1"
+                  className="flex-1"
                   disabled={isLoading}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
+                  className="flex-1"
                   loading={isLoading}
-                  className="touch-target-mobile flex-1"
-                  disabled={isMatchComplete}
+                  disabled={isMatchComplete || (matchStatus === 'normal' && (!score1 || !score2)) || 
+                           ((matchStatus === 'forfeit' || matchStatus === 'withdrawal') && !forfeitPlayer)}
                 >
-                  {isEditing ? 'Update Score' : 'Submit Score'}
+                  {isEditing ? 'Update' : 'Submit'}
                 </Button>
               </div>
             </form>

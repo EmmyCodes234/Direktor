@@ -180,7 +180,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     return assignStarts(newPairings, players, allResults);
   };
 
-  const generateLitoPairings = (playersToPair, previousMatchups, allResults, currentRound, totalRounds) => {
+  const generateEnhancedSwissPairings = (playersToPair, previousMatchups, allResults, currentRound, totalRounds) => {
     let newPairings = [];
     const roundsRemaining = totalRounds - currentRound;
     const isLateStage = roundsRemaining < 3;
@@ -198,6 +198,68 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     }
 
     return newPairings;
+  };
+
+  const generateKingOfTheHillPairings = (playersToPair, previousMatchups, allResults, currentRound) => {
+    let newPairings = [];
+    let table = 1;
+
+    // Sort players by rank (1st place vs 2nd place, 3rd vs 4th, etc.)
+    const sortedPlayers = [...playersToPair].sort((a, b) => a.rank - b.rank);
+    
+    // Handle odd number of players with bye
+    if (sortedPlayers.length % 2 !== 0) {
+      const byePlayer = sortedPlayers[sortedPlayers.length - 1]; // Last place gets bye
+      newPairings.push({ table: 'BYE', player1: { name: byePlayer.name }, player2: { name: 'BYE' } });
+      sortedPlayers.pop();
+    }
+
+    // Pair top vs bottom, working towards the middle
+    for (let i = 0; i < sortedPlayers.length / 2; i++) {
+      const player1 = sortedPlayers[i];
+      const player2 = sortedPlayers[sortedPlayers.length - 1 - i];
+      
+      // Check for rematches
+      const matchupKey1 = `${player1.id}-${player2.id}`;
+      const matchupKey2 = `${player2.id}-${player1.id}`;
+      
+      if (!previousMatchups.has(matchupKey1) && !previousMatchups.has(matchupKey2)) {
+        newPairings.push({ 
+          table: table++, 
+          player1: { name: player1.name }, 
+          player2: { name: player2.name } 
+        });
+      } else {
+        // If rematch, try to find alternative pairing
+        let alternativeFound = false;
+        for (let j = i + 1; j < sortedPlayers.length / 2; j++) {
+          const altPlayer = sortedPlayers[j];
+          const altMatchupKey1 = `${player1.id}-${altPlayer.id}`;
+          const altMatchupKey2 = `${altPlayer.id}-${player1.id}`;
+          
+          if (!previousMatchups.has(altMatchupKey1) && !previousMatchups.has(altMatchupKey2)) {
+            newPairings.push({ 
+              table: table++, 
+              player1: { name: player1.name }, 
+              player2: { name: altPlayer.name } 
+            });
+            alternativeFound = true;
+            break;
+          }
+        }
+        
+        if (!alternativeFound) {
+          // If no alternative, use original pairing (rematch)
+          newPairings.push({ 
+            table: table++, 
+            player1: { name: player1.name }, 
+            player2: { name: player2.name } 
+          });
+        }
+      }
+    }
+
+    return assignStarts(newPairings, players, allResults);
   };
 
   const generateTeamSwissPairings = (teams, previousTeamMatchups, allResults) => {
@@ -313,7 +375,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
 
       let divisionPairings;
 
-      if (pairingSystem === 'lito') {
+      if (pairingSystem === 'enhanced_swiss') {
         let playersToPair = [...divisionPlayers];
         const baseRound = advancedSettings?.base_round ?? currentRound - 1;
 
@@ -341,7 +403,36 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           });
         }
 
-        divisionPairings = generateLitoPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
+        divisionPairings = generateEnhancedSwissPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
+      } else if (pairingSystem === 'king_of_the_hill') {
+        let playersToPair = [...divisionPlayers];
+        const baseRound = advancedSettings?.base_round ?? currentRound - 1;
+
+        if (baseRound < currentRound - 1) {
+          const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
+          const statsMap = new Map(playersToPair.map(p => [p.id, { ...p, wins: 0, losses: 0, ties: 0 }]));
+          for (const res of historicalResults) {
+            const p1Stats = statsMap.get(res.player1_id);
+            const p2Stats = statsMap.get(res.player2_id);
+            if (!p1Stats || !p2Stats) continue;
+            if (res.score1 > res.score2) { p1Stats.wins++; p2Stats.losses++; } else if (res.score2 > res.score1) { p2Stats.wins++; p1Stats.losses++; } else { p1Stats.ties++; p2Stats.ties++; }
+          }
+          await updatePlayerStatsInSupabase(statsMap); // Corrected: Call this after the loop
+          playersToPair = Array.from(statsMap.values());
+        }
+
+        playersToPair.sort((a, b) => (b.wins + (b.ties * 0.5)) - (a.wins + (a.ties * 0.5)));
+
+        let previousMatchups = new Set();
+        const allowRematches = advancedSettings?.allow_rematches ?? false;
+        if (!allowRematches) {
+          allResultsSoFar.forEach(res => {
+            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
+            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
+          });
+        }
+
+        divisionPairings = generateKingOfTheHillPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound);
       } else if (pairingSystem === 'team_swiss') {
         // Handle team Swiss pairing
         const teamStats = players.map(p => ({
@@ -478,7 +569,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     }
   };
 
-  const generateFullLeagueSchedule = async () => {
+  const handleGenerateAllLeagueMatches = async () => {
     setIsLoading(true);
     toast.info("Generating all league matches...");
 
@@ -486,49 +577,72 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     const scheduleTemplate = roundRobinSchedules[players.length];
 
     if (!scheduleTemplate) {
-      toast.error(`Round Robin is not supported for ${players.length} players.`);
+      toast.error(`Round Robin is not supported for ${players.length} players. Please use 3-15 players.`);
       setIsLoading(false);
       return;
     }
 
     const allMatches = [];
-    for (let round = 1; round < players.length; round++) {
+    for (let round = 1; round <= scheduleTemplate.length; round++) {
+      const roundSchedule = scheduleTemplate[round - 1];
       const pairedPlayers = new Set();
-      playersBySeed.forEach(player1 => {
-        if (pairedPlayers.has(player1.id)) return;
-
-        const opponentSeed = scheduleTemplate[player1.seed - 1][round - 1];
-        const player2 = playersBySeed.find(p => p.seed === opponentSeed);
-
-        if (player2 && !pairedPlayers.has(player2.id)) {
-          allMatches.push({
-            tournament_id: tournamentInfo.id,
-            round: round,
-            player1_id: player1.player_id,
-            player2_id: player2.player_id,
-          });
-          pairedPlayers.add(player1.id);
-          pairedPlayers.add(player2.id);
+      
+      // For odd numbers, the last player gets a bye
+      if (players.length % 2 !== 0 && roundSchedule.length < players.length - 1) {
+        const byePlayer = playersBySeed[playersBySeed.length - 1];
+        allMatches.push({
+          tournament_id: tournamentInfo.id,
+          round: round,
+          player1_id: byePlayer.player_id,
+          player2_id: null, // BYE
+          table: 'BYE',
+          status: 'complete',
+          winner_id: byePlayer.player_id
+        });
+      }
+      
+      // Process regular pairings
+      for (let i = 0; i < roundSchedule.length; i += 2) {
+        if (i + 1 < roundSchedule.length) {
+          const player1Seed = roundSchedule[i];
+          const player2Seed = roundSchedule[i + 1];
+          
+          const player1 = playersBySeed.find(p => p.seed === player1Seed);
+          const player2 = playersBySeed.find(p => p.seed === player2Seed);
+          
+          if (player1 && player2 && !pairedPlayers.has(player1.player_id) && !pairedPlayers.has(player2.player_id)) {
+            allMatches.push({
+              tournament_id: tournamentInfo.id,
+              round: round,
+              player1_id: player1.player_id,
+              player2_id: player2.player_id,
+              table: Math.floor(i / 2) + 1,
+              status: 'pending'
+            });
+            pairedPlayers.add(player1.player_id);
+            pairedPlayers.add(player2.player_id);
+          }
         }
-      });
+      }
     }
 
-    const { error } = await supabase.from('matches').insert(allMatches);
+    // Insert all matches
+    const { error: insertError } = await supabase
+      .from('matches')
+      .insert(allMatches);
 
-    if (error) {
-      toast.error(`Failed to generate schedule: ${error.message}`);
+    if (insertError) {
+      console.error('Error inserting matches:', insertError);
+      toast.error('Failed to generate league matches.');
     } else {
-      const { data, error: updateError } = await supabase
-        .from('tournaments')
-        .update({ status: 'in_progress' })
-        .eq('id', tournamentInfo.id)
-        .select()
-        .single();
-      if (updateError) {
-        toast.error(`Failed to update tournament status: ${updateError.message}`);
-      } else {
-        onRoundPaired(data);
-        toast.success("Full league schedule has been generated!");
+      toast.success(`Generated ${allMatches.length} league matches successfully!`);
+      // Refresh matches data
+      const { data: newMatches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentInfo.id);
+      if (newMatches) {
+        setMatches(newMatches);
       }
     }
     setIsLoading(false);
@@ -660,7 +774,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                   {tournamentInfo?.type === 'best_of_league' && (
                     <Button
                       variant="outline"
-                      onClick={generateFullLeagueSchedule}
+                      onClick={handleGenerateAllLeagueMatches}
                       loading={isLoading}
                       className="touch-target-mobile"
                       size="lg"

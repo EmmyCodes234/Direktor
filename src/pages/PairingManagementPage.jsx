@@ -11,9 +11,9 @@ import { Checkbox } from '../components/ui/Checkbox';
 
 const allPairingSystems = [
     { id: 'swiss', name: 'Swiss', type: 'individual' },
-    { id: 'lito', name: 'Lito Pairings (Enhanced Swiss)', type: 'individual' },
-    { id: 'round_robin', name: 'Round Robin', type: 'individual' },
+    { id: 'enhanced_swiss', name: 'Enhanced Swiss (Prize Protection)', type: 'individual' },
     { id: 'king_of_the_hill', name: 'King of the Hill (KOTH)', type: 'individual' },
+    { id: 'round_robin', name: 'Round Robin', type: 'individual' },
     { id: 'random', name: 'Random', type: 'individual' },
     { id: 'team_swiss', name: 'Team Swiss', type: 'team' },
     { id: 'team_round_robin', name: 'Team Round Robin', type: 'team' },
