@@ -70,6 +70,9 @@ const PublicTournamentPageNew = () => {
         setLoading(true);
         
         console.log('🆕 FRESH APPROACH - Loading tournament:', tournamentSlug);
+        console.log('🌍 Environment:', import.meta.env.MODE);
+        console.log('🔧 Supabase URL available:', !!import.meta.env.VITE_SUPABASE_URL);
+        console.log('🔧 Supabase Key available:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
         
         try {
             // Step 1: Get basic tournament info
@@ -131,6 +134,7 @@ const PublicTournamentPageNew = () => {
             
         } catch (error) {
             console.error("Error loading tournament data:", error);
+            console.error("Full error details:", JSON.stringify(error, null, 2));
             toast.error("Failed to load tournament data. The link may be incorrect or the tournament was not found.");
         } finally {
             setLoading(false);
