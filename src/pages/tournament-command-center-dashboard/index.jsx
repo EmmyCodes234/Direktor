@@ -19,6 +19,7 @@ import DashboardSidebar from './components/DashboardSidebar';
 import MobileNavBar from './components/MobileNavBar';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import AnnouncementsManager from './components/AnnouncementsManager';
+import PhotoDatabaseManager from '../../components/PhotoDatabaseManager';
 
 const AuditLogModal = ({ isOpen, onClose, log }) => {
   const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -81,6 +82,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   
   const {
     handleRoundPaired,
+    handleManualPairingsSaved,
     handleEnterScore,
     handleCompleteRound,
     handleApproveResult,
@@ -119,6 +121,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
             <TournamentControl 
               tournamentInfo={tournamentInfo} 
               onRoundPaired={handleRoundPaired} 
+              onManualPairingsSaved={handleManualPairingsSaved}
               players={players} 
               onEnterScore={handleEnterScore} 
               recentResults={recentResults} 
@@ -319,6 +322,7 @@ const TournamentCommandCenterDashboard = () => {
   const [showScoreModal, setShowScoreModal] = useState({ isOpen: false, existingResult: null });
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [auditLog, setAuditLog] = useState([]);
+  const [showPhotoDatabase, setShowPhotoDatabase] = useState(false);
   const [pendingScoreAction, setPendingScoreAction] = useState(null); // For confirmation dialog
   const [activeMatchup, setActiveMatchup] = useState(null);
   const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
@@ -431,29 +435,38 @@ const TournamentCommandCenterDashboard = () => {
         ...tp
       }));
       
-      setPlayers(combinedPlayers);
       setTournamentInfo(tournamentData);
 
       const promises = [
         supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
         supabase.from('pending_results').select('*').eq('tournament_id', tournamentData.id).eq('status', 'pending').order('created_at', { ascending: true }),
         supabase.from('teams').select('*').eq('tournament_id', tournamentData.id),
-        supabase.from('matches').select('*').eq('tournament_id', tournamentData.id)
+        supabase.from('matches').select('*').eq('tournament_id', tournamentData.id),
+        supabase.from('player_photos').select('*').eq('tournament_id', tournamentData.id)
       ];
 
-      const [{ data: resultsData, error: resultsError }, { data: pendingData, error: pendingError }, { data: teamsData, error: teamsError }, { data: matchesData, error: matchesError }] = await Promise.all(promises);
+      const [{ data: resultsData, error: resultsError }, { data: pendingData, error: pendingError }, { data: teamsData, error: teamsError }, { data: matchesData, error: matchesError }, { data: photosData, error: photosError }] = await Promise.all(promises);
 
       if (resultsError) console.error("Error fetching results:", resultsError);
       if (pendingError) console.error("Error fetching pending results:", pendingError);
       if (teamsError) console.error("Error fetching teams:", teamsError);
       if (matchesError) console.error("Error fetching matches:", matchesError);
+      if (photosError) console.error("Error fetching player photos:", photosError);
 
-              // Data fetched successfully
+      // Combine players with their photos
+      const playersWithPhotos = combinedPlayers.map(player => {
+        const photo = photosData?.find(p => p.player_id === player.player_id);
+        return {
+          ...player,
+          photo_url: photo?.photo_url || null
+        };
+      });
 
       setRecentResults(resultsData || []);
       setPendingResults(pendingData || []);
       setTeams(teamsData || []);
       setMatches(matchesData || []);
+      setPlayers(playersWithPhotos);
 
     } catch (error) {
       console.error("Error fetching tournament:", error);
@@ -717,6 +730,13 @@ const TournamentCommandCenterDashboard = () => {
     const newRound = updatedTournamentInfo.currentRound;
     const pairingsCount = updatedTournamentInfo.pairing_schedule?.[newRound]?.length || 0;
     setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Generated pairings for Round ${newRound} (${pairingsCount} matches)` }]);
+  }, []);
+
+  const handleManualPairingsSaved = useCallback((updatedTournamentInfo) => {
+    setTournamentInfo(updatedTournamentInfo);
+    const newRound = updatedTournamentInfo.currentRound;
+    const pairingsCount = updatedTournamentInfo.pairing_schedule?.[newRound]?.length || 0;
+    setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Manual pairings created for Round ${newRound} (${pairingsCount} matches)` }]);
   }, []);
 
   const handleUnpairRound = useCallback(() => {
@@ -1253,6 +1273,7 @@ const TournamentCommandCenterDashboard = () => {
   const tournamentState = getTournamentState();
   const handlers = useMemo(() => ({
     handleRoundPaired,
+    handleManualPairingsSaved,
     handleEnterScore,
     handleCompleteRound,
     handleApproveResult,
@@ -1261,7 +1282,7 @@ const TournamentCommandCenterDashboard = () => {
     isSubmitting,
     handleUnpairRound,
     isLoading
-  }), [handleRoundPaired, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, isSubmitting, handleUnpairRound, isLoading]);
+  }), [handleRoundPaired, handleManualPairingsSaved, handleEnterScore, handleCompleteRound, handleApproveResult, handleRejectResult, isSubmitting, handleUnpairRound, isLoading]);
   const currentRoundMatches = useMemo(() => 
       matches.filter(m => m.round === tournamentInfo?.currentRound), 
       [matches, tournamentInfo?.currentRound]
@@ -1314,9 +1335,34 @@ const TournamentCommandCenterDashboard = () => {
           tournamentId={tournamentInfo?.id}
           matches={matches}
       />
+      <PhotoDatabaseManager
+          isOpen={showPhotoDatabase}
+          onClose={() => setShowPhotoDatabase(false)}
+          players={players}
+          tournamentId={tournamentInfo?.id}
+          onPhotosUpdated={() => {
+              // Refresh player data to include photos
+              fetchTournamentData();
+          }}
+      />
       <main className="pt-20 pb-24 sm:pb-8">
-        {/* Floating Audit Log Button: always visible, subtle, only opens modal when clicked */}
-        <div className="fixed bottom-20 sm:bottom-4 right-4 z-40">
+        {/* Floating Action Buttons */}
+        <div className="fixed bottom-20 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
+          {/* Photo Database Button */}
+          <motion.button
+            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
+            style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
+            onClick={() => setShowPhotoDatabase(true)}
+            aria-label="Manage player photos"
+            initial={{ opacity: 0.7, scale: 1 }}
+            whileHover={{ opacity: 1, scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <Icon name="Image" className="mr-2" />
+            <span className="hidden sm:inline">Photos</span>
+          </motion.button>
+          
+          {/* Audit Log Button */}
           <motion.button
             className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
             style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronUp, ChevronDown, Trophy, Star } from 'lucide-react';
+import { cn } from '../utils/cn';
 
 const StandingsTable = ({ players, tournamentType, isLoading }) => {
   const [sortBy, setSortBy] = useState('rank');
@@ -226,16 +227,26 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
 
                 {/* Player Info */}
                 <div className="col-span-4 flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    {player.avatar_url ? (
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
+                    {player.photo_url ? (
                       <img 
-                        src={player.avatar_url} 
+                        src={player.photo_url} 
                         alt={player.name}
                         className="w-8 h-8 rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
                       />
-                    ) : (
+                    ) : null}
+                    <div 
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center",
+                        player.photo_url ? "hidden" : "bg-primary/10"
+                      )}
+                    >
                       <Star className="w-4 h-4 text-primary" />
-                    )}
+                    </div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-foreground truncate">
@@ -318,11 +329,15 @@ const StandingsTable = ({ players, tournamentType, isLoading }) => {
                       {getRankDisplay(player.rank)}
                     </span>
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                      {player.avatar_url ? (
+                      {player.photo_url ? (
                         <img 
-                          src={player.avatar_url} 
+                          src={player.photo_url} 
                           alt={player.name}
                           className="w-10 h-10 rounded-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         />
                       ) : (
                         <Star className="w-5 h-5 text-primary" />

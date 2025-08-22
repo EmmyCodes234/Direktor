@@ -6,6 +6,7 @@ import { roundRobinSchedules } from '../../../utils/pairingSchedules';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
 import { cn } from '../../../utils/cn';
+import ManualPairingModal from '../../../components/ManualPairingModal';
 
 // This pure function can live outside the component
 const assignStarts = (pairings, players, allResults) => {
@@ -74,10 +75,11 @@ const updatePlayerStatsInSupabase = async (statsMap) => {
 };
 
 
-const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScore, recentResults, onUnpairRound, matches }) => {
+const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSaved, players, onEnterScore, recentResults, onUnpairRound, matches }) => {
   const [currentPairings, setCurrentPairings] = useState([]);
   const [isPaired, setIsPaired] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showManualPairing, setShowManualPairing] = useState(false);
 
   useEffect(() => {
     const currentRound = tournamentInfo?.currentRound || 1;
@@ -334,6 +336,55 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
     setIsLoading(false);
   };
 
+  const handleSaveManualPairings = async (manualPairings) => {
+    setIsLoading(true);
+    const currentRound = tournamentInfo.currentRound || 1;
+    
+    let schedule = { ...(tournamentInfo.pairing_schedule || {}) };
+    
+    // Process manual pairings to add starts assignment
+    const processedPairings = assignStarts(manualPairings, players, recentResults);
+    
+    schedule[currentRound] = processedPairings;
+
+    const { data, error } = await supabase.from('tournaments').update({ pairing_schedule: schedule }).eq('id', tournamentInfo.id).select().single();
+
+    setIsLoading(false);
+    if (error) {
+      toast.error(`Failed to save manual pairings: ${error.message}`);
+      throw error;
+    } else {
+      onManualPairingsSaved(data);
+      toast.success('Manual pairings saved successfully!');
+      
+      // Create announcement for top matchup
+      const roundPairings = schedule[currentRound] || [];
+      let topMatchup = null;
+      let highestCombinedRating = 0;
+
+      roundPairings.forEach(p => {
+        if (p.player2.name === 'BYE') return;
+        const player1 = players.find(pl => pl.name === p.player1.name);
+        const player2 = players.find(pl => pl.name === p.player2.name);
+        if (player1 && player2) {
+          const combinedRating = (player1.rating || 0) + (player2.rating || 0);
+          if (combinedRating > highestCombinedRating) {
+            highestCombinedRating = combinedRating;
+            topMatchup = { player1, player2, table: p.table };
+          }
+        }
+      });
+
+      if (topMatchup) {
+        const announcementMessage = `🔥 Manual Pairing Complete! Round ${currentRound} features ${topMatchup.player1.name} (${topMatchup.player1.rating}) vs ${topMatchup.player2.name} (${topMatchup.player2.rating}) on Table ${topMatchup.table}.`;
+        await supabase.from('announcements').insert({
+          tournament_id: tournamentInfo.id,
+          message: announcementMessage,
+        });
+      }
+    }
+  };
+
   const isLeagueGenerated = useMemo(() => {
     return tournamentInfo?.type === 'best_of_league' && matches.length > 0;
   }, [tournamentInfo, matches]);
@@ -395,8 +446,19 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
                     size="lg"
                   >
                     <Icon name="Swords" className="mr-2" />
-                    Pair Round
+                    Auto Pair Round
                   </Button>
+                  {tournamentInfo?.type !== 'best_of_league' && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowManualPairing(true)}
+                      className="touch-target-mobile"
+                      size="lg"
+                    >
+                      <Icon name="Hand" className="mr-2" />
+                      Manual Pair
+                    </Button>
+                  )}
                   {tournamentInfo?.type === 'best_of_league' && (
                     <Button
                       variant="outline"
@@ -602,6 +664,17 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, players, onEnterScor
           </div>
         </div>
       )}
+      
+      {/* Manual Pairing Modal */}
+      <ManualPairingModal
+        isOpen={showManualPairing}
+        onClose={() => setShowManualPairing(false)}
+        players={players}
+        currentRound={tournamentInfo?.currentRound || 1}
+        onSavePairings={handleSaveManualPairings}
+        existingPairings={currentPairings}
+        tournamentInfo={tournamentInfo}
+      />
     </div>
   );
 };

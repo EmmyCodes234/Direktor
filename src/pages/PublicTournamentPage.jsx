@@ -4,7 +4,6 @@ import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import PlayerStatsModal from 'components/PlayerStatsModal';
 import ResultSubmissionModal from 'components/ResultSubmissionModal';
-import Button from 'components/ui/Button';
 import { cn } from 'utils/cn';
 import 'styles/ticker.css';
 import { Toaster, toast } from 'sonner';
@@ -158,13 +157,95 @@ const PublicTournamentPage = () => {
     const fetchPublicData = useCallback(async () => {
         if (!tournamentSlug) { setLoading(false); return; }
         setLoading(true);
+        
+        // Debug environment variables
+        console.log('🔧 Environment check:', {
+            supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Missing',
+            supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing',
+            isDev: import.meta.env.DEV
+        });
+        
+        // Log the actual Supabase URL (first part only for security)
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (supabaseUrl) {
+            console.log('🔧 Supabase URL (first 30 chars):', supabaseUrl.substring(0, 30) + '...');
+        }
+        
+        console.log('🔍 Looking for tournament with slug:', tournamentSlug);
+        
+        // First, let's test if we can access tournaments at all
+        const { data: testTournaments, error: testError } = await supabase
+            .from('tournaments')
+            .select('id, name, slug, status')
+            .limit(3);
+        
+        console.log('🧪 Test query result:', { data: testTournaments, error: testError });
+        
+        // If the test query fails, there's a fundamental issue
+        if (testError) {
+            console.error('❌ Test query failed:', testError);
+            throw new Error(`Database connection failed: ${testError.message}`);
+        }
+        
         try {
-            const { data: tournamentData, error: tErr } = await supabase
-                .from('tournaments')
-                .select(`*`)
-                .eq('slug', tournamentSlug)
-                .single();
-            if (tErr || !tournamentData) throw tErr || new Error("Tournament not found");
+            console.log('🔍 Making tournament query for slug:', tournamentSlug);
+            
+            // Try a simpler query first to avoid 406 errors
+            let tournamentData = null;
+            let tErr = null;
+            
+            try {
+                const result = await supabase
+                    .from('tournaments')
+                    .select('id, name, slug, status, venue, date, type, rounds, playerCount, user_id, created_at, updated_at, pairing_schedule, divisions, games_per_match, is_remote_submission_enabled, start_date, end_date')
+                    .eq('slug', tournamentSlug)
+                    .single();
+                    
+                tournamentData = result.data;
+                tErr = result.error;
+            } catch (error) {
+                console.error('❌ Query failed with exception:', error);
+                tErr = error;
+            }
+                
+            console.log('📊 Tournament query result:', { data: tournamentData, error: tErr });
+            
+            if (tErr) {
+                console.error('❌ Tournament query error:', tErr);
+                console.error('❌ Error details:', {
+                    code: tErr.code,
+                    message: tErr.message,
+                    details: tErr.details,
+                    hint: tErr.hint
+                });
+                throw tErr;
+            }
+            
+            if (!tournamentData) {
+                console.error('❌ No tournament found with slug:', tournamentSlug);
+                
+                // Let's check if there are any tournaments with similar slugs
+                const { data: similarTournaments, error: similarError } = await supabase
+                    .from('tournaments')
+                    .select('id, name, slug, status')
+                    .ilike('slug', `%${tournamentSlug}%`)
+                    .limit(5);
+                
+                if (!similarError && similarTournaments && similarTournaments.length > 0) {
+                    console.log('🔍 Found similar tournaments:', similarTournaments);
+                }
+                
+                throw new Error("Tournament not found");
+            }
+            
+            console.log('✅ Tournament found:', tournamentData.name);
+            
+            // Check if tournament is in a public state
+            if (tournamentData.status === 'draft') {
+                console.error('❌ Tournament is in draft status and not publicly accessible');
+                throw new Error("Tournament not found");
+            }
+            
             setTournament(tournamentData);
             const { data: tournamentPlayersData, error: tpError } = await supabase
                 .from('tournament_players')
@@ -479,7 +560,7 @@ const PublicTournamentPage = () => {
             {/* Mobile Bottom Navigation - Always Visible at Bottom */}
             <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background border-t border-border/20 pb-safe">
                 <div className="px-4 py-3">
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className={`grid gap-2 ${tournament.is_remote_submission_enabled ? 'grid-cols-5' : 'grid-cols-4'}`}>
                         <button 
                             onClick={() => scrollToRef(standingsRef)}
                             className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
@@ -512,6 +593,16 @@ const PublicTournamentPage = () => {
                             <Icon name="BarChart2" size={20} className="text-primary mb-1"/>
                             <span className="text-xs font-medium text-foreground">Stats</span>
                         </button>
+                        {tournament.is_remote_submission_enabled && (
+                            <button 
+                                onClick={() => setShowSubmissionModal(true)}
+                                className="flex flex-col items-center justify-center py-2 px-1 rounded-lg bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors touch-manipulation"
+                                aria-label="Submit tournament result"
+                            >
+                                <Icon name="Send" size={20} className="text-primary mb-1"/>
+                                <span className="text-xs font-medium text-foreground">Submit</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -522,7 +613,7 @@ const PublicTournamentPage = () => {
             </div>
             
             {/* Main Content - Properly spaced for mobile */}
-            <main className="pt-32 pb-24 lg:pt-28 lg:pb-10">
+            <main className="pt-32 pb-20 lg:pt-28 lg:pb-10">
                 <div className="w-full px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
                         <aside className="hidden lg:block lg:col-span-1 lg:sticky top-32 self-start">
@@ -699,24 +790,6 @@ const PublicTournamentPage = () => {
                     </div>
                 </div>
             </main>
-
-            {/* Floating Action Buttons - Mobile Only */}
-            {isMobile && (
-                <>
-                    {/* Floating Submit Result Button - Only if enabled */}
-                    {tournament.is_remote_submission_enabled && (
-                        <div className="lg:hidden fixed bottom-20 left-4 z-50">
-                            <Button 
-                                onClick={() => setShowSubmissionModal(true)} 
-                                className="w-12 h-12 rounded-full bg-gradient-to-r from-primary/90 to-primary/80 hover:from-primary hover:to-primary/90 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] backdrop-blur-sm"
-                                aria-label="Submit tournament result"
-                            >
-                                <Icon name="Send" size={16} />
-                            </Button>
-                        </div>
-                    )}
-                </>
-            )}
 
             {/* Desktop Floating Share Button */}
             <div className="hidden lg:block fixed bottom-6 right-6 z-50">
