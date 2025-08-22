@@ -31,15 +31,30 @@ CREATE INDEX IF NOT EXISTS idx_matches_status ON matches(status);
 CREATE INDEX IF NOT EXISTS idx_results_match_id ON results(match_id);
 CREATE INDEX IF NOT EXISTS idx_tournament_players_status ON tournament_players(status);
 
--- Add constraints for data integrity
-ALTER TABLE results ADD CONSTRAINT IF NOT EXISTS check_valid_scores 
-  CHECK (score1 >= 0 AND score2 >= 0);
-
-ALTER TABLE tournament_players ADD CONSTRAINT IF NOT EXISTS check_valid_status 
-  CHECK (status IN ('active', 'withdrawn', 'disqualified'));
-
-ALTER TABLE matches ADD CONSTRAINT IF NOT EXISTS check_valid_match_status 
-  CHECK (status IN ('pending', 'in_progress', 'complete', 'cancelled'));
+-- Add constraints for data integrity (using DO block to handle existing constraints)
+DO $$
+BEGIN
+    -- Add score validation constraint if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_valid_scores' AND table_name = 'results') THEN
+        ALTER TABLE results ADD CONSTRAINT check_valid_scores 
+            CHECK (score1 >= 0 AND score2 >= 0);
+    END IF;
+    
+    -- Add player status constraint if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_valid_status' AND table_name = 'tournament_players') THEN
+        ALTER TABLE tournament_players ADD CONSTRAINT check_valid_status 
+            CHECK (status IN ('active', 'withdrawn', 'disqualified'));
+    END IF;
+    
+    -- Add match status constraint if it doesn't exist
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                   WHERE constraint_name = 'check_valid_match_status' AND table_name = 'matches') THEN
+        ALTER TABLE matches ADD CONSTRAINT check_valid_match_status 
+            CHECK (status IN ('pending', 'in_progress', 'complete', 'cancelled'));
+    END IF;
+END $$;
 
 -- Update existing data
 UPDATE matches SET status = 'complete' WHERE status IS NULL;
