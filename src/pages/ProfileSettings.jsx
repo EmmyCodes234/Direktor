@@ -6,9 +6,11 @@ import Input from '../components/ui/Input';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import { motion } from 'framer-motion';
+import { useOnboarding } from '../components/onboarding/OnboardingProvider';
 
 const ProfileSettings = () => {
     const navigate = useNavigate();
+    const { resetOnboarding } = useOnboarding();
     const [user, setUser] = useState(null);
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
@@ -41,6 +43,24 @@ const ProfileSettings = () => {
             toast.error(error.message);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResetOnboarding = async () => {
+        try {
+            // Call the database function to reset onboarding
+            const { error } = await supabase.rpc('reset_user_onboarding', {
+                user_uuid: user.id
+            });
+
+            if (error) throw error;
+
+            // Reset the local onboarding state
+            resetOnboarding();
+            
+            toast.success("Onboarding has been reset. You can now go through it again!");
+        } catch (error) {
+            toast.error("Failed to reset onboarding: " + error.message);
         }
     };
 
@@ -87,6 +107,21 @@ const ProfileSettings = () => {
                                     </Button>
                                 </div>
                             </form>
+                        </div>
+
+                        {/* Onboarding Reset Section */}
+                        <div className="glass-card p-8 mt-6">
+                            <h3 className="text-xl font-semibold text-foreground mb-4">Onboarding</h3>
+                            <p className="text-muted-foreground mb-4">
+                                Reset your onboarding experience to go through the setup process again.
+                            </p>
+                            <Button 
+                                variant="outline" 
+                                onClick={handleResetOnboarding}
+                                className="w-full sm:w-auto"
+                            >
+                                Reset Onboarding
+                            </Button>
                         </div>
                     </motion.div>
                 </div>

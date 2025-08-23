@@ -1483,7 +1483,7 @@ const TournamentCommandCenterDashboard = () => {
 
   // Tournament state calculated successfully
   return (
-    <div className="min-h-screen bg-background">
+    <div className="layout-mobile">
       <TickerBar />
       <Toaster position="top-right" richColors />
       <ConfirmationModal
@@ -1535,7 +1535,7 @@ const TournamentCommandCenterDashboard = () => {
               fetchTournamentData();
           }}
       />
-      <main className="pt-20 pb-24 sm:pb-8">
+      <main className="layout-mobile-content">
         {/* Floating Action Buttons */}
         <div className="fixed bottom-20 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
           {/* Photo Database Button */}
@@ -1566,11 +1566,15 @@ const TournamentCommandCenterDashboard = () => {
             <span className="hidden sm:inline">Audit Log</span>
           </motion.button>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="container-mobile">
             {isDesktop ? (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div className="md:col-span-1"><DashboardSidebar tournamentSlug={tournamentSlug} /></div>
-                    <div className="md:col-span-3"><MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} /></div>
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+                    <div className="hidden lg:block">
+                      <DashboardSidebar tournamentSlug={tournamentSlug} />
+                    </div>
+                    <div className="lg:col-span-3">
+                      <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
+                    </div>
                 </div>
             ) : ( 
                 <div className="space-y-6">

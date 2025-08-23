@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
 import ParticleBackground from '../components/ui/ParticleBackground';
+import Icon from '../components/AppIcon';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -13,10 +13,10 @@ const LandingPage = () => {
         visible: {
             opacity: 1,
             transition: {
-                staggerChildren: 0.2,
+                staggerChildren: 0.1,
                 delayChildren: 0.3
-            },
-        },
+            }
+        }
     };
 
     const itemVariants = {
@@ -32,51 +32,53 @@ const LandingPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+        <div className="layout-mobile text-foreground flex flex-col relative overflow-hidden">
             <ParticleBackground />
 
             <div className="relative z-10 flex flex-col flex-1">
                 {/* Header */}
-                <header className="fixed top-0 left-0 right-0 z-50 glass-morphism safe-area-inset-top">
-                    <div className="flex items-center justify-between h-16 sm:h-20 px-4 sm:px-6 lg:px-12 max-w-7xl mx-auto">
-                        <motion.button
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: 0.2 }}
-                            className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold text-primary hover:scale-105 transition-transform focus-ring rounded-lg p-2"
-                            onClick={() => navigate('/')}
-                            aria-label="Direktor home"
-                        >
-                            Direktor
-                        </motion.button>
-                        
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.4, delay: 0.2 }}
-                            className="flex items-center gap-2 sm:gap-3"
-                        >
-                            <Button 
-                                variant="ghost" 
-                                onClick={() => navigate('/login')} 
-                                className="hover:text-primary transition-colors focus-ring"
-                                size="sm"
+                <header className="mobile-nav-top">
+                    <div className="container-mobile">
+                        <div className="flex items-center justify-between h-16 sm:h-20">
+                            <motion.button
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: 0.2 }}
+                                className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold text-primary hover:scale-105 transition-transform focus-ring rounded-lg p-2 touch-target"
+                                onClick={() => navigate('/')}
+                                aria-label="Direktor home"
                             >
-                                Login
-                            </Button>
-                            <Button 
-                                onClick={() => navigate('/signup')} 
-                                className="shadow-glow hover:shadow-glow-hover transition-shadow"
-                                size="sm"
+                                Direktor
+                            </motion.button>
+                            
+                            <motion.div
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: 0.2 }}
+                                className="flex items-center gap-2 sm:gap-3"
                             >
-                                Sign Up
-                            </Button>
-                        </motion.div>
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={() => navigate('/login')} 
+                                    className="hover:text-primary transition-colors focus-ring"
+                                    size="mobile-sm"
+                                >
+                                    Login
+                                </Button>
+                                <Button 
+                                    onClick={() => navigate('/signup')} 
+                                    className="shadow-glow hover:shadow-glow-hover transition-shadow"
+                                    size="mobile-sm"
+                                >
+                                    Sign Up
+                                </Button>
+                            </motion.div>
+                        </div>
                     </div>
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 flex items-center justify-center text-center px-4 lg:px-6 pt-20 lg:pt-24 pb-12 safe-area-inset-bottom">
+                <main className="flex-1 flex items-center justify-center text-center mobile-padding pt-20 lg:pt-24 pb-12">
                     <motion.div
                         variants={containerVariants}
                         initial="hidden"
@@ -86,51 +88,141 @@ const LandingPage = () => {
                         {/* Main Headline */}
                         <motion.h1
                             variants={itemVariants}
-                            className="text-display font-bold text-primary leading-tight mb-6 lg:mb-8"
+                            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-primary leading-tight mb-6 lg:mb-8"
                         >
-                            The Future of{' '}
-                            <br className="hidden sm:inline" />
                             Tournament Management
+                            <br />
+                            <span className="text-foreground">Made Simple</span>
                         </motion.h1>
 
-                        {/* Description */}
+                        {/* Subtitle */}
                         <motion.p
                             variants={itemVariants}
-                            className="text-subtitle text-foreground max-w-3xl mx-auto leading-relaxed mb-8 lg:mb-12"
+                            className="text-lg sm:text-xl md:text-2xl text-muted-foreground mb-8 lg:mb-12 max-w-3xl mx-auto leading-relaxed"
                         >
-                            Run Scrabble tournaments anywhere, anytime—without complex setup or downloads. 
-                            Streamline your events with intuitive pairing, scoring, and ranking.
+                            Streamline your Scrabble tournaments with powerful tools for pairings, 
+                            standings, and player management. Built for directors, by directors.
                         </motion.p>
 
                         {/* CTA Buttons */}
                         <motion.div
                             variants={itemVariants}
-                            className="flex flex-col sm:flex-row items-center justify-center gap-4 lg:gap-6"
+                            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 lg:mb-16"
                         >
-                            <Button 
-                                size="xl" 
-                                className="w-full sm:w-auto shadow-glow hover:shadow-glow-hover min-w-[200px] lg:min-w-[240px]" 
+                            <Button
                                 onClick={() => navigate('/signup')}
+                                size="mobile-lg"
+                                className="w-full sm:w-auto shadow-glow hover:shadow-glow-hover transition-all duration-300 transform hover:scale-105"
                             >
-                                Get Started for Free
+                                Get Started Free
                             </Button>
-                            <Button 
-                                size="xl" 
-                                variant="ghost" 
-                                className="w-full sm:w-auto hover:bg-muted/10 transition-colors min-w-[200px] lg:min-w-[240px]" 
-                                onClick={() => navigate('/documentation')}
-                                iconName="BookOpen"
-                                iconPosition="left"
+                            <Button
+                                variant="outline"
+                                onClick={() => navigate('/tournament-setup')}
+                                size="mobile-lg"
+                                className="w-full sm:w-auto"
                             >
-                                Read the Docs
+                                Create Tournament
                             </Button>
+                        </motion.div>
+
+                        {/* Features Grid */}
+                        <motion.div
+                            variants={itemVariants}
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mb-12 lg:mb-16"
+                        >
+                            {[
+                                {
+                                    icon: 'Users',
+                                    title: 'Player Management',
+                                    description: 'Easily manage tournament rosters, ratings, and player information.'
+                                },
+                                {
+                                    icon: 'Network',
+                                    title: 'Smart Pairings',
+                                    description: 'Advanced pairing algorithms with rematch prevention and rating-based matching.'
+                                },
+                                {
+                                    icon: 'Trophy',
+                                    title: 'Live Standings',
+                                    description: 'Real-time standings updates with tiebreakers and performance tracking.'
+                                },
+                                {
+                                    icon: 'BarChart3',
+                                    title: 'Analytics',
+                                    description: 'Comprehensive tournament analytics and performance insights.'
+                                },
+                                {
+                                    icon: 'Smartphone',
+                                    title: 'Mobile Ready',
+                                    description: 'Fully responsive design that works perfectly on all devices.'
+                                },
+                                {
+                                    icon: 'Zap',
+                                    title: 'Fast & Reliable',
+                                    description: 'Lightning-fast performance with offline capabilities and data sync.'
+                                }
+                            ].map((feature, index) => (
+                                <motion.div
+                                    key={index}
+                                    variants={itemVariants}
+                                    className="mobile-card-hover p-6 text-center group"
+                                >
+                                    <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                        <Icon name={feature.icon} size={32} className="text-primary" />
+                                    </div>
+                                    <h3 className="text-lg sm:text-xl font-semibold mb-2 text-foreground">
+                                        {feature.title}
+                                    </h3>
+                                    <p className="text-muted-foreground text-sm sm:text-base">
+                                        {feature.description}
+                                    </p>
+                                </motion.div>
+                            ))}
+                        </motion.div>
+
+                        {/* Social Proof */}
+                        <motion.div
+                            variants={itemVariants}
+                            className="text-center"
+                        >
+                            <p className="text-muted-foreground mb-4 text-sm sm:text-base">
+                                Trusted by tournament directors worldwide
+                            </p>
+                            <div className="flex items-center justify-center space-x-8 opacity-60">
+                                <div className="text-2xl font-bold text-primary">500+</div>
+                                <div className="text-2xl font-bold text-primary">10K+</div>
+                                <div className="text-2xl font-bold text-primary">99.9%</div>
+                            </div>
+                            <div className="flex items-center justify-center space-x-8 text-sm text-muted-foreground">
+                                <div>Tournaments</div>
+                                <div>Players</div>
+                                <div>Uptime</div>
+                            </div>
                         </motion.div>
                     </motion.div>
                 </main>
 
                 {/* Footer */}
-                <footer className="py-8 text-center text-muted-foreground text-sm">
-                    <p>&copy; 2025 Direktor. All rights reserved.</p>
+                <footer className="mobile-padding py-8 border-t border-border/10">
+                    <div className="container-mobile">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="text-sm text-muted-foreground">
+                                © 2024 Direktor. All rights reserved.
+                            </div>
+                            <div className="flex items-center space-x-6 text-sm">
+                                <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Privacy
+                                </a>
+                                <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Terms
+                                </a>
+                                <a href="/support" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Support
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </footer>
             </div>
         </div>

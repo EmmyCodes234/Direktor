@@ -5,7 +5,7 @@ import { cn } from "../../utils/cn";
 import Icon from '../AppIcon';
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] select-none",
+    "inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] select-none mobile-tap-highlight touch-manipulation",
     {
         variants: {
             variant: {
@@ -21,14 +21,21 @@ const buttonVariants = cva(
                 glass: "glass-card hover:bg-card/95 hover:shadow-glow border-border/30",
             },
             size: {
-                xs: "h-10 px-3 text-xs min-w-[2.5rem]",
-                sm: "h-11 px-4 text-sm min-w-[2.75rem]",
-                default: "h-12 px-6 text-sm min-w-[3rem]",
-                lg: "h-14 px-8 text-base min-w-[3.5rem]",
-                xl: "h-16 px-10 text-base min-w-[4rem]",
-                icon: "h-12 w-12 p-0",
-                "icon-sm": "h-10 w-10 p-0",
-                "icon-lg": "h-16 w-16 p-0",
+                xs: "h-8 px-2 text-xs min-w-[2rem] touch-target",
+                sm: "h-10 px-3 text-sm min-w-[2.5rem] touch-target",
+                default: "h-12 px-4 text-sm min-w-[3rem] touch-target",
+                lg: "h-14 px-6 text-base min-w-[3.5rem] touch-target-lg",
+                xl: "h-16 px-8 text-base min-w-[4rem] touch-target-lg",
+                icon: "h-12 w-12 p-0 touch-target",
+                "icon-sm": "h-10 w-10 p-0 touch-target",
+                "icon-lg": "h-16 w-16 p-0 touch-target-lg",
+                // Mobile-specific sizes
+                "mobile-sm": "h-10 px-3 text-sm min-w-[2.5rem] touch-target sm:h-8 sm:px-2 sm:text-xs",
+                "mobile-default": "h-12 px-4 text-sm min-w-[3rem] touch-target sm:h-10 sm:px-3",
+                "mobile-lg": "h-14 px-6 text-base min-w-[3.5rem] touch-target-lg sm:h-12 sm:px-4 sm:text-sm",
+                "mobile-xl": "h-16 px-8 text-base min-w-[4rem] touch-target-lg sm:h-14 sm:px-6",
+                "mobile-icon": "h-12 w-12 p-0 touch-target sm:h-10 sm:w-10",
+                "mobile-icon-lg": "h-16 w-16 p-0 touch-target-lg sm:h-12 sm:w-12",
             },
         },
         defaultVariants: {
@@ -38,131 +45,65 @@ const buttonVariants = cva(
     }
 );
 
-const Button = React.forwardRef(({
-    className,
-    variant,
-    size,
-    asChild = false,
-    children,
+const Button = React.forwardRef(({ 
+    className, 
+    variant, 
+    size, 
+    asChild = false, 
+    iconName, 
+    iconPosition = "left", 
+    iconSize = 16,
     loading = false,
-    iconName = null,
-    iconPosition = 'left',
-    iconSize = null,
-    fullWidth = false,
-    disabled = false,
-    tooltip = null,
-    'aria-label': ariaLabel,
-    pressed = false,
-    expanded = false,
-    hasPopup = false,
-    controls = null,
-    describedBy = null,
-    ...props
+    disabled,
+    children,
+    ...props 
 }, ref) => {
     const Comp = asChild ? Slot : "button";
-
-    // Enhanced icon size mapping
-    const iconSizeMap = {
-        xs: 12,
-        sm: 14,
-        default: 16,
-        lg: 18,
-        xl: 20,
-        icon: 16,
-        "icon-sm": 14,
-        "icon-lg": 20,
-    };
-
-    const calculatedIconSize = iconSize || iconSizeMap[size] || 16;
-
-    // Enhanced loading spinner with better animation
-    const LoadingSpinner = () => (
-        <svg 
-            className="animate-spin h-4 w-4 mr-2" 
-            fill="none" 
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-        >
-            <circle 
-                className="opacity-25" 
-                cx="12" 
-                cy="12" 
-                r="10" 
-                stroke="currentColor" 
-                strokeWidth="4" 
-            />
-            <path 
-                className="opacity-75" 
-                fill="currentColor" 
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" 
-            />
-        </svg>
-    );
-
-    // Enhanced icon rendering with better spacing
-    const renderIcon = () => {
-        if (!iconName) return null;
-
-        const iconSpacing = children ? (iconPosition === 'left' ? "mr-2" : "ml-2") : "";
-        
-        return (
-            <Icon
-                name={iconName}
-                size={calculatedIconSize}
-                className={cn(iconSpacing, "flex-shrink-0")}
-                aria-hidden="true"
-            />
-        );
-    };
-
-    // Enhanced accessibility attributes
-    const accessibilityProps = {
-        'aria-label': ariaLabel,
-        'aria-pressed': pressed,
-        'aria-expanded': expanded,
-        'aria-haspopup': hasPopup,
-        'aria-controls': controls,
-        'aria-describedby': describedBy,
-        'role': asChild ? undefined : 'button',
-        'tabIndex': disabled ? -1 : 0,
-    };
-
-    // Determine if this is an icon-only button for accessibility
-    const isIconOnly = iconName && !children;
-    const buttonAriaLabel = ariaLabel || (isIconOnly ? iconName : undefined);
-
+    
+    // Determine if we should use mobile-specific size
+    const isMobileSize = size && size.startsWith('mobile-');
+    const actualSize = isMobileSize ? size : size;
+    
     return (
         <Comp
             className={cn(
-                buttonVariants({ variant, size }),
-                fullWidth && "w-full",
-                loading && "cursor-wait",
+                buttonVariants({ variant, size: actualSize }),
+                loading && "opacity-70 cursor-not-allowed",
                 className
             )}
             ref={ref}
             disabled={disabled || loading}
-            aria-label={buttonAriaLabel}
-            aria-pressed={pressed}
-            aria-expanded={expanded}
-            aria-haspopup={hasPopup}
-            aria-controls={controls}
-            aria-describedby={describedBy}
-            title={tooltip}
-            type={props.type || "button"}
             {...props}
         >
-            {loading && <LoadingSpinner />}
-            {!loading && iconName && iconPosition === 'left' && renderIcon()}
-            {children && (
-                <span className={cn(loading && "opacity-0")}>
-                    {children}
-                </span>
+            {loading && (
+                <Icon 
+                    name="Loader2" 
+                    size={iconSize} 
+                    className="mr-2 animate-spin" 
+                />
             )}
-            {!loading && iconName && iconPosition === 'right' && renderIcon()}
+            
+            {!loading && iconName && iconPosition === "left" && (
+                <Icon 
+                    name={iconName} 
+                    size={iconSize} 
+                    className="mr-2" 
+                />
+            )}
+            
+            {children}
+            
+            {!loading && iconName && iconPosition === "right" && (
+                <Icon 
+                    name={iconName} 
+                    size={iconSize} 
+                    className="ml-2" 
+                />
+            )}
         </Comp>
     );
 });
 
 Button.displayName = "Button";
 
-export default Button;
+export { Button, buttonVariants };

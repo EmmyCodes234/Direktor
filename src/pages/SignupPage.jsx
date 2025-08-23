@@ -46,6 +46,10 @@ const SignupPage = () => {
             if (error) throw error;
             
             toast.success("Account created successfully! Please check your email to verify your account and then log in.");
+            
+            // Note: Onboarding will be triggered automatically when user first logs in
+            // via the OnboardingProvider in App.jsx
+            
             setTimeout(() => {
                 navigate('/login');
             }, 3000);

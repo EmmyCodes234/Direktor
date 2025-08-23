@@ -40,92 +40,114 @@ const Header = () => {
   }, [quickMenuOpen]);
 
   const navigationTabs = [
-    { label: 'Lobby', path: '/', icon: 'Home' },
-    { label: 'Dashboard', path: `/tournament/${activeTournamentSlug}/dashboard`, icon: 'Monitor' },
+    {
+      label: 'Lobby',
+      path: '/lobby',
+      icon: 'Home',
+      mobileIcon: 'Home'
+    },
+    {
+      label: 'Dashboard',
+      path: `/tournament/${tournamentSlug}/dashboard`,
+      icon: 'LayoutDashboard',
+      mobileIcon: 'LayoutDashboard',
+      requiresTournament: true
+    },
+    {
+      label: 'Players',
+      path: `/tournament/${tournamentSlug}/players`,
+      icon: 'Users',
+      mobileIcon: 'Users',
+      requiresTournament: true
+    },
+    {
+      label: 'Pairings',
+      path: `/tournament/${tournamentSlug}/pairings`,
+      icon: 'Network',
+      mobileIcon: 'Network',
+      requiresTournament: true
+    },
+    {
+      label: 'Standings',
+      path: `/tournament/${tournamentSlug}/standings`,
+      icon: 'Trophy',
+      mobileIcon: 'Trophy',
+      requiresTournament: true
+    },
+    {
+      label: 'Settings',
+      path: `/tournament/${tournamentSlug}/settings`,
+      icon: 'Settings',
+      mobileIcon: 'Settings',
+      requiresTournament: true
+    }
   ];
 
-  const handleTabClick = (path) => {
-    navigate(path);
-    setQuickMenuOpen(false);
-  };
-  
-  const handleQuickAction = (action) => {
-    action();
-    setQuickMenuOpen(false);
-  };
-
   const quickActions = [
-    { label: 'New Tournament', icon: 'Plus', action: () => navigate('/tournament-setup-configuration') }
+    {
+      label: 'New Tournament',
+      icon: 'Plus',
+      action: () => navigate('/tournament-setup'),
+      mobileOnly: false
+    },
+    {
+      label: 'Profile Settings',
+      icon: 'User',
+      action: () => navigate('/profile'),
+      mobileOnly: false
+    },
+    {
+      label: 'Help & Support',
+      icon: 'HelpCircle',
+      action: () => window.open('/docs', '_blank'),
+      mobileOnly: true
+    },
+    {
+      label: 'Sign Out',
+      icon: 'LogOut',
+      action: () => {
+        // Handle sign out
+        console.log('Sign out clicked');
+      },
+      mobileOnly: false
+    }
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-morphism border-b border-border/10 safe-area-inset-top">
-      <div className="flex items-center justify-between h-16 lg:h-20 px-4 sm:px-6 max-w-7xl mx-auto">
-        {/* Logo/Brand - Enhanced touch target for mobile */}
-        <button
-          className="flex items-center space-x-3 touch-target-mobile rounded-lg hover:bg-muted/10 transition-colors focus-ring p-2" 
-          onClick={() => navigate('/')}
-          aria-label="Go to home page"
-        >
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-heading font-bold text-gradient">
+    <header className="mobile-nav-top">
+      <div className="container-mobile">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Logo/Brand */}
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold text-primary hover:scale-105 transition-transform focus-ring rounded-lg p-2 touch-target"
+            onClick={() => navigate('/')}
+            aria-label="Direktor home"
+          >
             Direktor
-          </h1>
-        </button>
+          </motion.button>
 
-        {/* Desktop Navigation */}
-        {isDesktop && (
-          <nav className="flex items-center space-x-1" role="navigation" aria-label="Main navigation">
-            {navigationTabs.map((tab) => {
-              if (!activeTournamentSlug && tab.label !== 'Lobby') return null;
-
-              const isDashboardActive = tab.label === 'Dashboard' && !!tournamentSlug;
-              const isLobbyActive = tab.label === 'Lobby' && location.pathname === '/lobby';
-              const isActive = isDashboardActive || isLobbyActive;
-              
-              return (
-                <button
-                  key={tab.label}
-                  onClick={() => handleTabClick(tab.path)}
-                  className={cn(
-                    "flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out relative group focus-ring",
-                    isActive
-                      ? 'text-primary bg-primary/10 shadow-sm' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
-                  )}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <Icon name={tab.icon} size={16} aria-hidden="true" />
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="active-nav-indicator" 
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" 
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        )}
-
-        {/* Mobile Navigation & Quick Actions */}
-        <div className="flex items-center space-x-2">
-          {/* Mobile Navigation Tabs */}
-          {isMobile && (
-            <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide" role="navigation" aria-label="Mobile navigation">
+          {/* Desktop Navigation */}
+          {isDesktop && (
+            <nav className="flex items-center space-x-1" role="navigation" aria-label="Desktop navigation">
               {navigationTabs.map((tab) => {
-                if (!activeTournamentSlug && tab.label !== 'Lobby') return null;
+                if (!activeTournamentSlug && tab.requiresTournament) return null;
 
                 const isDashboardActive = tab.label === 'Dashboard' && !!tournamentSlug;
                 const isLobbyActive = tab.label === 'Lobby' && location.pathname === '/lobby';
                 const isActive = isDashboardActive || isLobbyActive;
                 
                 return (
-                  <button
+                  <motion.button
                     key={tab.label}
-                    onClick={() => handleTabClick(tab.path)}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
+                    onClick={() => navigate(tab.path)}
                     className={cn(
-                      "flex items-center space-x-1 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200 ease-out touch-target-mobile whitespace-nowrap focus-ring",
+                      "relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 touch-target",
                       isActive
                         ? 'text-primary bg-primary/10 shadow-sm' 
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
@@ -133,90 +155,100 @@ const Header = () => {
                     aria-current={isActive ? 'page' : undefined}
                   >
                     <Icon name={tab.icon} size={16} aria-hidden="true" />
-                    <span className="hidden xs:inline">{tab.label}</span>
-                  </button>
+                    <span className="ml-2">{tab.label}</span>
+                    {isActive && (
+                      <motion.div 
+                        layoutId="active-nav-indicator" 
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" 
+                      />
+                    )}
+                  </motion.button>
                 );
               })}
             </nav>
           )}
 
-          {/* Quick Actions Menu */}
-          <div className="relative" ref={menuRef}>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setQuickMenuOpen(!quickMenuOpen)}
-              className="touch-target-mobile focus-ring"
-              aria-label="Open menu"
-              aria-expanded={quickMenuOpen}
-              aria-haspopup="true"
-            >
-              <Icon name={quickMenuOpen ? "X" : "Menu"} size={20} />
-            </Button>
+          {/* Mobile Navigation & Quick Actions */}
+          <div className="flex items-center space-x-2">
+            {/* Mobile Navigation Tabs */}
+            {isMobile && (
+              <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide" role="navigation" aria-label="Mobile navigation">
+                {navigationTabs.map((tab) => {
+                  if (!activeTournamentSlug && tab.requiresTournament) return null;
 
-            <AnimatePresence>
-              {quickMenuOpen && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className={cn(
-                    "absolute right-0 top-full mt-2 glass-card shadow-glass-xl origin-top-right z-50 min-w-[200px]",
-                    isMobile ? "w-64" : "w-56"
-                  )}
-                  role="menu"
-                  aria-orientation="vertical"
-                >
-                  <div className="p-2">
-                    {!isDesktop && (
-                      <>
-                        <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                          Navigation
-                        </div>
-                        {navigationTabs.map((tab) => {
-                          if (!activeTournamentSlug && tab.label !== 'Lobby') return null;
-                          const isDashboardActive = tab.label === 'Dashboard' && !!tournamentSlug;
-                          const isLobbyActive = tab.label === 'Lobby' && location.pathname === '/lobby';
-                          const isActive = isDashboardActive || isLobbyActive;
-                          
-                          return (
-                            <button
-                              key={tab.label}
-                              onClick={() => handleTabClick(tab.path)}
-                              className={cn(
-                                "w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left hover:bg-muted/10 transition-colors duration-200 text-sm touch-target-mobile focus-ring",
-                                isActive && "text-primary bg-primary/10"
-                              )}
-                              role="menuitem"
-                            >
-                              <Icon name={tab.icon} size={16} aria-hidden="true" />
-                              <span>{tab.label}</span>
-                            </button>
-                          )
-                        })}
-                        <div className="h-px bg-border/50 my-2" />
-                      </>
-                    )}
-                    
-                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Actions
+                  const isDashboardActive = tab.label === 'Dashboard' && !!tournamentSlug;
+                  const isLobbyActive = tab.label === 'Lobby' && location.pathname === '/lobby';
+                  const isActive = isDashboardActive || isLobbyActive;
+                  
+                  return (
+                    <motion.button
+                      key={tab.label}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2, delay: 0.1 }}
+                      onClick={() => navigate(tab.path)}
+                      className={cn(
+                        "relative p-2 text-xs font-medium rounded-lg transition-all duration-200 touch-target",
+                        isActive
+                          ? 'text-primary bg-primary/10' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
+                      )}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <Icon name={tab.mobileIcon} size={16} aria-hidden="true" />
+                      {isActive && (
+                        <motion.div 
+                          layoutId="mobile-active-nav-indicator" 
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" 
+                        />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </nav>
+            )}
+
+            {/* Quick Actions Menu */}
+            <div className="relative" ref={menuRef}>
+              <motion.button
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                onClick={() => setQuickMenuOpen(!quickMenuOpen)}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/10 rounded-lg transition-colors touch-target"
+                aria-label="Quick actions menu"
+              >
+                <Icon name="MoreHorizontal" size={20} />
+              </motion.button>
+
+              <AnimatePresence>
+                {quickMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/20 rounded-lg shadow-mobile-lg z-50"
+                  >
+                    <div className="p-2 space-y-1">
+                      {quickActions.map((action) => (
+                        <button
+                          key={action.label}
+                          onClick={() => {
+                            action.action();
+                            setQuickMenuOpen(false);
+                          }}
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-foreground hover:bg-muted/10 rounded-md transition-colors touch-target"
+                        >
+                          <Icon name={action.icon} size={16} />
+                          <span>{action.label}</span>
+                        </button>
+                      ))}
                     </div>
-                    {quickActions.map((action, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleQuickAction(action.action)}
-                        className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-left hover:bg-muted/10 transition-colors duration-200 text-sm touch-target-mobile focus-ring"
-                        role="menuitem"
-                      >
-                        <Icon name={action.icon} size={16} aria-hidden="true" />
-                        <span>{action.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>

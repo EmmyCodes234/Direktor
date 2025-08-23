@@ -11,7 +11,13 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: {
+        DEFAULT: "1rem",
+        sm: "1.5rem",
+        lg: "2rem",
+        xl: "2.5rem",
+        "2xl": "3rem",
+      },
       screens: {
         "2xl": "1400px",
       },
@@ -20,6 +26,33 @@ export default {
       screens: {
         'xs': '475px',
         '3xl': '1600px',
+        // Mobile-first breakpoints
+        'mobile': '320px',
+        'mobile-lg': '375px',
+        'mobile-xl': '425px',
+        'tablet': '768px',
+        'tablet-lg': '1024px',
+        'desktop': '1280px',
+        'desktop-lg': '1536px',
+      },
+      spacing: {
+        // Mobile-specific spacing
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+        'safe-left': 'env(safe-area-inset-left)',
+        'safe-right': 'env(safe-area-inset-right)',
+        // Touch target sizes
+        'touch-target': '44px',
+        'touch-target-lg': '48px',
+      },
+      minHeight: {
+        'screen-mobile': '100dvh',
+        'screen-tablet': '100vh',
+      },
+      maxWidth: {
+        'mobile': '100vw',
+        'tablet': '768px',
+        'desktop': '1280px',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -67,12 +100,6 @@ export default {
           DEFAULT: "hsl(var(--error))",
           foreground: "hsl(var(--error-foreground))",
         },
-        surface: {
-          DEFAULT: "hsl(var(--surface))",
-          foreground: "hsl(var(--surface-foreground))",
-        },
-        interactive: "hsl(var(--interactive))",
-        overlay: "hsl(var(--overlay))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -80,58 +107,105 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        'heading': ['Figtree', 'sans-serif'],
-        'body': ['Inter', 'sans-serif'],
-        'mono': ['JetBrains Mono', 'monospace'],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        heading: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
-      boxShadow: {
-        'glass': '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
-        'glass-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
-        'glass-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
-        'glow': '0 0 20px rgba(0, 123, 255, 0.3)',
-        'glow-lg': '0 0 30px rgba(0, 123, 255, 0.4)',
-      },
-      backdropBlur: {
-        'xs': '2px',
+      fontSize: {
+        // Mobile-first typography scale
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '5xl': ['3rem', { lineHeight: '1' }],
+        '6xl': ['3.75rem', { lineHeight: '1' }],
+        '7xl': ['4.5rem', { lineHeight: '1' }],
+        '8xl': ['6rem', { lineHeight: '1' }],
+        '9xl': ['8rem', { lineHeight: '1' }],
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-out',
-        'fade-in-up': 'fadeInUp 0.3s ease-out',
-        'scale-in': 'scaleIn 0.2s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
-        'shimmer': 'shimmer 1.5s ease-in-out infinite',
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.5s ease-out",
+        "slide-in": "slide-in 0.3s ease-out",
+        "scale-in": "scale-in 0.2s ease-out",
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
-        scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
-          '100%': { opacity: '1', transform: 'scale(1)' },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
-        slideDown: {
-          '0%': { opacity: '0', transform: 'translateY(-10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        "slide-in": {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
         },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        "scale-in": {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         },
-      },
-      spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
       },
     },
   },
   plugins: [
     require("tailwindcss-animate"),
+    // Custom plugin for mobile-first utilities
+    function({ addUtilities, theme }) {
+      const newUtilities = {
+        // Safe area utilities
+        '.safe-area-inset-top': {
+          paddingTop: 'env(safe-area-inset-top)',
+        },
+        '.safe-area-inset-bottom': {
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        },
+        '.safe-area-inset-left': {
+          paddingLeft: 'env(safe-area-inset-left)',
+        },
+        '.safe-area-inset-right': {
+          paddingRight: 'env(safe-area-inset-right)',
+        },
+        // Touch target utilities
+        '.touch-target': {
+          minHeight: '44px',
+          minWidth: '44px',
+        },
+        '.touch-target-lg': {
+          minHeight: '48px',
+          minWidth: '48px',
+        },
+        // Mobile-specific utilities
+        '.mobile-scroll': {
+          '-webkit-overflow-scrolling': 'touch',
+          'scroll-behavior': 'smooth',
+        },
+        '.mobile-tap-highlight': {
+          '-webkit-tap-highlight-color': 'transparent',
+        },
+        // Glass morphism for mobile
+        '.glass-mobile': {
+          'backdrop-filter': 'blur(10px)',
+          'background': 'rgba(255, 255, 255, 0.1)',
+          'border': '1px solid rgba(255, 255, 255, 0.2)',
+        },
+        '.glass-mobile-dark': {
+          'backdrop-filter': 'blur(10px)',
+          'background': 'rgba(0, 0, 0, 0.1)',
+          'border': '1px solid rgba(255, 255, 255, 0.1)',
+        },
+      };
+      addUtilities(newUtilities);
+    },
   ],
 }
