@@ -343,7 +343,12 @@ const TournamentCommandCenterDashboard = () => {
       if (!error && isMounted) {
         setLadderConfig(data);
       } else if (error && error.code !== 'PGRST116') {
-        console.warn('Failed to fetch ladder config:', error);
+        // If table doesn't exist, just log a warning and continue
+        if (error.code === '42P01') {
+          console.warn('Ladder system table not available yet. Run database migration to enable ladder features.');
+        } else {
+          console.warn('Failed to fetch ladder config:', error);
+        }
       }
     };
     fetchLadderConfig();

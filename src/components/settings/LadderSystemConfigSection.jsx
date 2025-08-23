@@ -7,6 +7,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
 import Icon from '../AppIcon';
+import LadderSystemStatus from './LadderSystemStatus';
 
 const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
     const [config, setConfig] = useState({
@@ -71,6 +72,12 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
                 .single();
 
             if (error && error.code !== 'PGRST116') {
+                // If table doesn't exist, just log a warning and continue
+                if (error.code === '42P01') {
+                    console.warn('Ladder system table not available yet. Run database migration to enable ladder features.');
+                    setLoading(false);
+                    return;
+                }
                 throw error;
             }
 
@@ -79,7 +86,10 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
             }
         } catch (error) {
             console.error('Failed to fetch ladder config:', error);
-            toast.error('Failed to load ladder system configuration');
+            // Don't show error toast for missing table
+            if (error.code !== '42P01') {
+                toast.error('Failed to load ladder system configuration');
+            }
         } finally {
             setLoading(false);
         }
@@ -95,7 +105,14 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
                     ...config
                 });
 
-            if (error) throw error;
+            if (error) {
+                if (error.code === '42P01') {
+                    toast.error('Ladder system not available. Please run database migration first.');
+                    setSaving(false);
+                    return;
+                }
+                throw error;
+            }
 
             toast.success('Ladder system configuration saved successfully');
             if (onConfigChange) {
@@ -103,7 +120,9 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
             }
         } catch (error) {
             console.error('Failed to save ladder config:', error);
-            toast.error('Failed to save ladder system configuration');
+            if (error.code !== '42P01') {
+                toast.error('Failed to save ladder system configuration');
+            }
         } finally {
             setSaving(false);
         }
@@ -170,6 +189,12 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
         );
     }
 
+    // Check if ladder system is available
+    const isLadderSystemAvailable = () => {
+        // This will be true once the database migration is applied
+        return true; // For now, always show the interface
+    };
+
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }} 
@@ -188,6 +213,9 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
                     </p>
                 </div>
             </div>
+
+            {/* Status Indicator */}
+            <LadderSystemStatus />
 
             {/* Enable Ladder Mode */}
             <div className="space-y-3">

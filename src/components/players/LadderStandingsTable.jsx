@@ -30,7 +30,15 @@ const LadderStandingsTable = ({
                 p_tournament_id: parseInt(tournamentId)
             });
 
-            if (error) throw error;
+            if (error) {
+                // If function doesn't exist (table not migrated), show appropriate message
+                if (error.code === '42883') {
+                    console.warn('Ladder system functions not available yet. Run database migration to enable ladder features.');
+                    setLoading(false);
+                    return;
+                }
+                throw error;
+            }
 
             // Group players by division
             const divisionStandings = {};
