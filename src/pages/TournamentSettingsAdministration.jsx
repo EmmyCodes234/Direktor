@@ -11,6 +11,9 @@ import PrizeManager from '../components/settings/PrizeManager';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ResetTournamentModal from '../components/settings/ResetTournamentModal';
 import PhotoDatabaseManager from '../components/PhotoDatabaseManager';
+import CarryoverConfigSection from '../components/settings/CarryoverConfigSection';
+import PromotionEventsHistory from '../components/players/PromotionEventsHistory';
+import LadderSystemConfigSection from '../components/settings/LadderSystemConfigSection';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
@@ -103,6 +106,7 @@ const TournamentSettingsAdministration = () => {
     const [showResetModal, setShowResetModal] = useState(false);
     const [showAuditLog, setShowAuditLog] = useState(false);
     const [showPhotoDatabase, setShowPhotoDatabase] = useState(false);
+    const [showPromotionHistory, setShowPromotionHistory] = useState(false);
     const [auditLog, setAuditLog] = useState([]);
     const [players, setPlayers] = useState([]);
     const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -295,6 +299,11 @@ const TournamentSettingsAdministration = () => {
                     fetchTournamentData();
                 }}
             />
+            <PromotionEventsHistory
+                tournamentId={settings?.id}
+                isOpen={showPromotionHistory}
+                onClose={() => setShowPromotionHistory(false)}
+            />
             <Toaster position="top-center" richColors />
             <Header />
             <main className="pt-20 pb-8">
@@ -326,6 +335,26 @@ const TournamentSettingsAdministration = () => {
                                     <PrizeManager currency={settings.currency} tournamentId={settings.id} />
                                     <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
+                                    <LadderSystemConfigSection tournamentId={settings.id} />
+                                    <CarryoverConfigSection tournamentId={settings.id} />
+                                    
+                                    {/* Promotion Events History Section */}
+                                    <div className="glass-card p-6">
+                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
+                                            <Icon name="History" size={20} className="text-primary" />
+                                            <span>Promotion Events History</span>
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mb-4">View the complete history of player promotions and demotions with carry-over details.</p>
+                                        <Button 
+                                            onClick={() => setShowPromotionHistory(true)}
+                                            variant="outline"
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Icon name="Clock" className="mr-2" size={16} />
+                                            View History
+                                        </Button>
+                                    </div>
+                                    
                                     <SystemPreferencesSection />
                                     
                                     {/* Audit Log Section */}

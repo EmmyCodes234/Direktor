@@ -10,6 +10,7 @@ import PlayerStatsSummary from '../components/players/PlayerStatsSummary';
 import ConfirmationModal from '../components/ConfirmationModal';
 import PlayerEditModal from '../components/players/PlayerEditModal';
 import AddPlayer from '../components/players/AddPlayer';
+import PlayerPromotionManager from '../components/players/PlayerPromotionManager';
 
 const PlayerManagementRosterControl = () => {
     const { tournamentSlug } = useParams();
@@ -20,6 +21,8 @@ const PlayerManagementRosterControl = () => {
     const [playerToWithdraw, setPlayerToWithdraw] = useState(null);
     const [playerToEdit, setPlayerToEdit] = useState(null);
     const [tournamentInfo, setTournamentInfo] = useState(null);
+    const [showPromotionManager, setShowPromotionManager] = useState(false);
+    const [groups, setGroups] = useState([]);
 
     const fetchPlayers = useCallback(async (tournamentId) => {
         if (!tournamentId) return;
@@ -54,7 +57,7 @@ const PlayerManagementRosterControl = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('tournaments')
-                .select('id, pairing_schedule, slug')
+                .select('id, pairing_schedule, slug, divisions')
                 .eq('slug', tournamentSlug)
                 .single();
 
@@ -64,6 +67,12 @@ const PlayerManagementRosterControl = () => {
             } else {
                 setTournamentInfo(data);
                 await fetchPlayers(data.id);
+                
+                // Extract groups from divisions
+                if (data.divisions && Array.isArray(data.divisions)) {
+                    setGroups(data.divisions);
+                }
+                
                 setLoading(false);
             }
         };
@@ -209,6 +218,11 @@ const PlayerManagementRosterControl = () => {
 
     const canAddPlayers = !tournamentInfo?.pairing_schedule || Object.keys(tournamentInfo.pairing_schedule).length === 0;
 
+    const handlePlayerMoved = () => {
+        fetchPlayers(tournamentInfo.id);
+        setShowPromotionManager(false);
+    };
+
     return (
         <div className="min-h-screen bg-background">
             <PlayerEditModal
@@ -233,6 +247,14 @@ const PlayerManagementRosterControl = () => {
                 onCancel={() => setPlayerToWithdraw(null)}
                 confirmText="Yes, Withdraw"
             />
+            <PlayerPromotionManager
+                tournamentId={tournamentInfo?.id}
+                players={players}
+                groups={groups}
+                isOpen={showPromotionManager}
+                onClose={() => setShowPromotionManager(false)}
+                onPlayerMoved={handlePlayerMoved}
+            />
             <Toaster position="top-right" richColors />
             <Header />
             <main className="pt-20 pb-8">
@@ -245,7 +267,19 @@ const PlayerManagementRosterControl = () => {
                                 <p className="text-muted-foreground">Manage all participants in this tournament.</p>
                             </div>
 
-                            {canAddPlayers && <AddPlayer onAddPlayer={handleAddPlayer} />}
+                            <div className="flex flex-wrap gap-4 mb-6">
+                                {canAddPlayers && <AddPlayer onAddPlayer={handleAddPlayer} />}
+                                {groups.length > 1 && (
+                                    <Button 
+                                        onClick={() => setShowPromotionManager(true)}
+                                        variant="outline"
+                                        className="flex items-center space-x-2"
+                                    >
+                                        <Icon name="ArrowUpDown" size={16} />
+                                        <span>Promote/Demote Players</span>
+                                    </Button>
+                                )}
+                            </div>
 
                             <PlayerStatsSummary stats={playerStats} />
                             

@@ -19,12 +19,14 @@ import DashboardSidebar from './components/DashboardSidebar';
 import MobileNavBar from './components/MobileNavBar';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import AnnouncementsManager from './components/AnnouncementsManager';
+import CarryoverStandingsTable from '../../components/players/CarryoverStandingsTable';
+import LadderStandingsTable from '../../components/players/LadderStandingsTable';
 
 
 
 
 // Memoized Main Content with custom comparison to ensure updates when players change
-const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
+const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }) => {
   const navigate = useNavigate();
   const { tournamentSlug } = useParams();
   
@@ -209,14 +211,31 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
               </div>
             </div>
           ) : (
-            <StandingsTable 
-              players={players} 
-              recentResults={recentResults} 
-              onSelectPlayer={setSelectedPlayerModal} 
-              tournamentType={tournamentInfo?.type} 
-              teamStandings={teamStandings} 
-              isLoading={isLoading}
-            />
+            ladderConfig && ladderConfig.isLadderMode ? (
+              <LadderStandingsTable 
+                tournamentId={tournamentInfo?.id}
+                players={players}
+                ladderConfig={ladderConfig}
+                onPlayerSelect={setSelectedPlayerModal}
+              />
+            ) : carryoverConfig && carryoverConfig.policy !== 'none' ? (
+              <CarryoverStandingsTable 
+                tournamentId={tournamentInfo?.id}
+                players={players}
+                groups={tournamentInfo?.divisions || []}
+                showCarryover={carryoverConfig?.show_carryover_in_standings}
+                onPlayerSelect={setSelectedPlayerModal}
+              />
+            ) : (
+              <StandingsTable 
+                players={players} 
+                recentResults={recentResults} 
+                onSelectPlayer={setSelectedPlayerModal} 
+                tournamentType={tournamentInfo?.type} 
+                teamStandings={teamStandings} 
+                isLoading={isLoading}
+              />
+            )
           )}
           
           {tournamentInfo?.type === 'team' && (
@@ -243,7 +262,9 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
       prevProps.pendingResults === nextProps.pendingResults &&
       prevProps.tournamentState === nextProps.tournamentState &&
       prevProps.teamStandings === nextProps.teamStandings &&
-      prevProps.matches === nextProps.matches
+      prevProps.matches === nextProps.matches &&
+      prevProps.carryoverConfig === nextProps.carryoverConfig &&
+      prevProps.ladderConfig === nextProps.ladderConfig
     );
   } else {
     // Default shallow compare for other tournament types
@@ -254,7 +275,9 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
       prevProps.pendingResults === nextProps.pendingResults &&
       prevProps.tournamentState === nextProps.tournamentState &&
       prevProps.teamStandings === nextProps.teamStandings &&
-      prevProps.matches === nextProps.matches
+      prevProps.matches === nextProps.matches &&
+      prevProps.carryoverConfig === nextProps.carryoverConfig &&
+      prevProps.ladderConfig === nextProps.ladderConfig
     );
   }
 });
@@ -283,6 +306,48 @@ const TournamentCommandCenterDashboard = () => {
   const [playerStatsMap, setPlayerStatsMap] = useState(new Map());
   // Announcements for ticker
   const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
+  const [carryoverConfig, setCarryoverConfig] = useState(null);
+  const [ladderConfig, setLadderConfig] = useState(null);
+
+  // Fetch carry-over configuration
+  useEffect(() => {
+    if (!tournamentInfo?.id) return;
+    let isMounted = true;
+    const fetchCarryoverConfig = async () => {
+      const { data, error } = await supabase
+        .from('carryover_config')
+        .select('*')
+        .eq('tournament_id', tournamentInfo.id)
+        .single();
+      
+      if (!error && isMounted) {
+        setCarryoverConfig(data);
+      } else if (error && error.code !== 'PGRST116') {
+        console.warn('Failed to fetch carry-over config:', error);
+      }
+    };
+    fetchCarryoverConfig();
+  }, [tournamentInfo?.id]);
+
+  // Fetch ladder system configuration
+  useEffect(() => {
+    if (!tournamentInfo?.id) return;
+    let isMounted = true;
+    const fetchLadderConfig = async () => {
+      const { data, error } = await supabase
+        .from('ladder_system_config')
+        .select('*')
+        .eq('tournament_id', tournamentInfo.id)
+        .single();
+      
+      if (!error && isMounted) {
+        setLadderConfig(data);
+      } else if (error && error.code !== 'PGRST116') {
+        console.warn('Failed to fetch ladder config:', error);
+      }
+    };
+    fetchLadderConfig();
+  }, [tournamentInfo?.id]);
 
   // Fetch latest announcements for ticker
   useEffect(() => {
@@ -1481,12 +1546,12 @@ const TournamentCommandCenterDashboard = () => {
                       <DashboardSidebar tournamentSlug={tournamentSlug} />
                     </div>
                     <div className="lg:col-span-3">
-                      <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
+                      <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }} />
                     </div>
                 </div>
             ) : ( 
                 <div className="space-y-4 sm:space-y-6 w-full">
-                    <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
+                    <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }} />
                 </div>
             )}
         </div>

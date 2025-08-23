@@ -86,7 +86,7 @@ const TournamentDetailsForm = ({ formData, onChange, errors }) => {
             <label className="text-sm font-medium leading-none text-foreground">
                 Tournament Type
             </label>
-            <div className="mt-2 grid grid-cols-3 gap-2 rounded-lg bg-input p-1">
+            <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 rounded-lg bg-input p-1">
                 <button
                     type="button"
                     onClick={() => handleInputChange('type', 'individual')}
@@ -116,6 +116,16 @@ const TournamentDetailsForm = ({ formData, onChange, errors }) => {
                     )}
                 >
                     Match Play Series
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleInputChange('type', 'ladder')}
+                    className={cn(
+                        "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                        formData.type === 'ladder' ? 'bg-primary text-primary-foreground shadow-sm' : 'hover:bg-muted/50'
+                    )}
+                >
+                    Ladder System
                 </button>
             </div>
         </div>
