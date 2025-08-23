@@ -4,7 +4,8 @@ import Header from '../components/ui/Header';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
 import { CardSkeleton } from '../components/ui/LoadingStates';
-import Modal, { ConfirmModal } from '../components/ui/Modal';
+import Modal from '../components/ui/Modal';
+import ConfirmationModal from '../components/ConfirmationModal';
 import TournamentRecoveryModal from '../components/TournamentRecoveryModal';
 import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +15,7 @@ import { fetchUserTournaments, deleteTournament } from '../store/slices/tourname
 import { fetchUser, signOut } from '../store/slices/authSlice';
 import { useUser } from '../store/hooks';
 import { handleError } from '../utils/errorHandler';
+import { supabase } from '../supabaseClient';
 
 const TournamentLobby = () => {
   const navigate = useNavigate();
@@ -35,6 +37,40 @@ const TournamentLobby = () => {
           console.log('No user found, fetching user...');
           const userData = await dispatch(fetchUser()).unwrap();
           console.log('Fetched user:', userData);
+        }
+        
+        // Diagnostic: Check database tables and data
+        if (user?.id) {
+          console.log('Running database diagnostics for user:', user.id);
+          
+          // Check if tournaments table exists and has data
+          try {
+            const { data: allTournaments, error: tournamentsError } = await supabase
+              .from('tournaments')
+              .select('id, name, user_id, created_at')
+              .order('created_at', { ascending: false })
+              .limit(10);
+            
+            console.log('Database diagnostic - All tournaments:', allTournaments);
+            console.log('Database diagnostic - Tournaments error:', tournamentsError);
+            
+            // Check user-specific tournaments
+            const { data: userTournaments, error: userError } = await supabase
+              .from('tournaments')
+              .select('id, name, user_id, created_at')
+              .eq('user_id', user.id);
+            
+            console.log('Database diagnostic - User tournaments:', userTournaments);
+            console.log('Database diagnostic - User tournaments error:', userError);
+            
+            // Check if user exists in auth.users
+            const { data: authUser, error: authError } = await supabase.auth.getUser();
+            console.log('Database diagnostic - Auth user:', authUser);
+            console.log('Database diagnostic - Auth error:', authError);
+            
+          } catch (diagnosticError) {
+            console.error('Database diagnostic failed:', diagnosticError);
+          }
         }
         
         // Fetch tournaments if user is available
@@ -132,14 +168,13 @@ const TournamentLobby = () => {
 
   return (
     <>
-      <ConfirmModal
+      <ConfirmationModal
         isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
+        onCancel={() => setShowConfirmModal(false)}
         onConfirm={handleDeleteTournament}
         title="Delete Tournament"
         message={`Are you sure you want to permanently delete "${tournamentToDelete?.name}"? All associated data will be lost and cannot be recovered.`}
         confirmText="Delete Tournament"
-        variant="destructive"
       />
       
       <div className="min-h-screen bg-background">

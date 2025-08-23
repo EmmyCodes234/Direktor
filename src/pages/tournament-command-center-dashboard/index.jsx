@@ -1537,7 +1537,7 @@ const TournamentCommandCenterDashboard = () => {
       />
       <main className="layout-mobile-content">
         {/* Floating Action Buttons */}
-        <div className="fixed bottom-20 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
+        <div className="fixed bottom-24 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
           {/* Photo Database Button */}
           <motion.button
             className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 sm:p-4 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"

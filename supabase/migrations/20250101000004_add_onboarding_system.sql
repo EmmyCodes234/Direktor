@@ -17,6 +17,11 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_onboarding_status ON user_profiles(
 -- Enable RLS on user_profiles
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then create new ones
+DROP POLICY IF EXISTS "Users can view their own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON user_profiles;
+
 -- Create RLS policies for user_profiles
 CREATE POLICY "Users can view their own profile" ON user_profiles
     FOR SELECT USING (auth.uid() = id);
@@ -82,6 +87,17 @@ ALTER TABLE onboarding_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE onboarding_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE onboarding_sessions ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then create new ones
+DROP POLICY IF EXISTS "Anyone can read onboarding steps" ON onboarding_steps;
+DROP POLICY IF EXISTS "Users can view their own onboarding progress" ON onboarding_progress;
+DROP POLICY IF EXISTS "Users can insert their own onboarding progress" ON onboarding_progress;
+DROP POLICY IF EXISTS "Users can update their own onboarding progress" ON onboarding_progress;
+DROP POLICY IF EXISTS "Users can delete their own onboarding progress" ON onboarding_progress;
+DROP POLICY IF EXISTS "Users can view their own onboarding sessions" ON onboarding_sessions;
+DROP POLICY IF EXISTS "Users can insert their own onboarding sessions" ON onboarding_sessions;
+DROP POLICY IF EXISTS "Users can update their own onboarding sessions" ON onboarding_sessions;
+DROP POLICY IF EXISTS "Users can delete their own onboarding sessions" ON onboarding_sessions;
+
 -- Create RLS policies for onboarding_steps (read-only for all authenticated users)
 CREATE POLICY "Anyone can read onboarding steps" ON onboarding_steps
     FOR SELECT USING (true);
@@ -135,6 +151,12 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+-- Drop existing triggers if they exist, then create new ones
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
+DROP TRIGGER IF EXISTS update_onboarding_steps_updated_at ON onboarding_steps;
+DROP TRIGGER IF EXISTS update_onboarding_progress_updated_at ON onboarding_progress;
+DROP TRIGGER IF EXISTS update_onboarding_sessions_updated_at ON onboarding_sessions;
 
 -- Create triggers for updated_at
 CREATE TRIGGER update_user_profiles_updated_at 

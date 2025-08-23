@@ -28,6 +28,7 @@ const createSlug = (name) => {
 
 const TournamentSetupConfiguration = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const query = useQuery();
   const draftId = query.get('draftId');
 
@@ -77,7 +78,7 @@ const TournamentSetupConfiguration = () => {
         end_date: validateDate(planEndDate) || prev.end_date,
         type: planType || prev.type,
     }));
-  }, [query]);
+  }, [location.search]);
   
   useEffect(() => {
     const fetchPlayerDetails = async () => {

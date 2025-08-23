@@ -59,7 +59,9 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
 
   const handleModalClick = (e, player) => {
     e.stopPropagation();
-    onSelectPlayer(player);
+    if (player && onSelectPlayer) {
+      onSelectPlayer(player);
+    }
   };
 
   const handlePlayerStatusChange = async (playerId, newStatus) => {
@@ -86,12 +88,12 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   const getStatusBadge = (status) => {
     switch (status) {
       case 'withdrawn':
-        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning-foreground">Withdrawn</span>;
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">Withdrawn</span>;
       case 'disqualified':
-        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive-foreground">Disqualified</span>;
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">Disqualified</span>;
       case 'active':
       default:
-        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success-foreground">Active</span>;
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Active</span>;
     }
   };
 
@@ -165,6 +167,13 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                   >
                     <Icon name="BarChartHorizontal" size={20} className="text-muted-foreground" />
                   </button>
+                </div>
+                
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(player.status)}
+                  </div>
                 </div>
                 
                 {/* Stats Grid */}
@@ -286,9 +295,10 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleModalClick(null, player)}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={(e) => handleModalClick(e, player)}
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors touch-target"
                         title="View player details"
+                        aria-label={`View details for ${player.name}`}
                       >
                         <Icon name="Eye" size={16} />
                       </button>

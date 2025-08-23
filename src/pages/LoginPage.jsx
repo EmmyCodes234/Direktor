@@ -62,22 +62,51 @@ const LoginPage = () => {
         return Object.keys(newErrors).length === 0;
     };
 
+    const testSupabaseConnection = async () => {
+        try {
+            console.log('Testing Supabase connection...');
+            // Use a simpler test that doesn't require specific table access
+            const { data, error } = await supabase.auth.getSession();
+            console.log('Supabase connection test result:', { data, error });
+            return !error;
+        } catch (err) {
+            console.error('Supabase connection test failed:', err);
+            return false;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (!validateForm()) return;
         
+        console.log('Starting login process...');
         setLoading(true);
         setErrors({});
         
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            console.log('Attempting to sign in with email:', formData.email.trim());
+            
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Login timeout - request took too long')), 10000);
+            });
+            
+            const signInPromise = supabase.auth.signInWithPassword({
                 email: formData.email.trim(),
                 password: formData.password,
             });
-
-            if (error) throw error;
             
+            const { data, error } = await Promise.race([signInPromise, timeoutPromise]);
+
+            console.log('Sign in response:', { data, error });
+
+            if (error) {
+                console.error('Sign in error:', error);
+                throw error;
+            }
+            
+            console.log('Sign in successful, user:', data.user);
             toast.success("Welcome back! Redirecting to your lobby...");
             // Small delay for better UX
             setTimeout(() => {
@@ -85,10 +114,12 @@ const LoginPage = () => {
             }, 1000);
 
         } catch (error) {
+            console.error('Login error caught:', error);
             toast.error(error.message);
             // Focus back to email field for retry
             document.getElementById('email')?.focus();
         } finally {
+            console.log('Login process completed, setting loading to false');
             setLoading(false);
         }
     };

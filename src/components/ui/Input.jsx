@@ -8,6 +8,9 @@ const Input = forwardRef(({
   size = "default",
   icon,
   iconPosition = "left",
+  leftIcon,
+  rightIcon,
+  onRightIconClick,
   error,
   disabled,
   loading = false,
@@ -32,9 +35,11 @@ const Input = forwardRef(({
     size === "mobile-sm" && "h-10 px-3 text-sm sm:h-9 sm:px-3 sm:text-sm",
     size === "mobile-default" && "h-12 px-4 text-base sm:h-10 sm:px-3 sm:text-sm",
     size === "mobile-lg" && "h-14 px-6 text-lg sm:h-12 sm:px-4 sm:text-base",
-    // Icon positioning
-    icon && iconPosition === "left" && "pl-10",
-    icon && iconPosition === "right" && "pr-10",
+      // Icon positioning
+  (icon || leftIcon) && (iconPosition === "left" || leftIcon) && "pl-10",
+  icon && iconPosition === "right" && "pr-10",
+  // Right icon positioning
+  rightIcon && "pr-10",
     // Error state
     error && "border-destructive focus-visible:ring-destructive/50",
     // Full width
@@ -68,9 +73,9 @@ const Input = forwardRef(({
       )}
       
       <div className="relative">
-        {icon && iconPosition === "left" && (
-          <Icon name={icon} className={iconClasses} />
-        )}
+        {(icon && iconPosition === "left") || leftIcon ? (
+          <Icon name={leftIcon || icon} className={iconClasses} />
+        ) : null}
         
         <input
           type={type}
@@ -82,6 +87,25 @@ const Input = forwardRef(({
         
         {icon && iconPosition === "right" && (
           <Icon name={icon} className={iconClasses} />
+        )}
+        
+        {rightIcon && (
+          <button
+            type="button"
+            onClick={onRightIconClick}
+            className={cn(
+              "absolute top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors",
+              "right-3",
+              size === "sm" && "h-4 w-4",
+              size === "default" && "h-5 w-5",
+              size === "lg" && "h-6 w-6",
+              size === "mobile-sm" && "h-4 w-4 sm:h-4 sm:w-4",
+              size === "mobile-default" && "h-5 w-5 sm:h-4 sm:w-4",
+              size === "mobile-lg" && "h-6 w-6 sm:h-5 sm:w-5"
+            )}
+          >
+            <Icon name={rightIcon} className="h-full w-full" />
+          </button>
         )}
         
         {loading && (
