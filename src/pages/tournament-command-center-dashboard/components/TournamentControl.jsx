@@ -704,13 +704,13 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     <div className="space-y-6">
       {/* Tournament Status & Controls - Hidden for best-of-league with generated schedule */}
       {!(tournamentInfo?.type === 'best_of_league' && matches.length > 0) && (
-        <div className="bg-card/90 backdrop-blur-sm border border-border/20 rounded-lg p-6">
+        <div className="bg-card/90 backdrop-blur-sm border border-border/20 rounded-lg p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
-              <h2 className="text-xl font-heading font-semibold text-foreground">
+              <h2 className="text-lg sm:text-xl font-heading font-semibold text-foreground">
                 Round {tournamentInfo?.currentRound || 1} Control
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 {isPaired ? `${currentPairings.length} pairings generated` : 'No pairings for current round'}
               </p>
             </div>
@@ -721,7 +721,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                   <Button
                     onClick={handlePairCurrentRound}
                     loading={isLoading}
-                    className="touch-target-mobile"
+                    className="touch-target"
                     size="lg"
                   >
                     <Icon name="Swords" className="mr-2" />
@@ -731,7 +731,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                     <Button
                       variant="outline"
                       onClick={() => setShowManualPairing(true)}
-                      className="touch-target-mobile"
+                      className="touch-target"
                       size="lg"
                     >
                       <Icon name="Hand" className="mr-2" />
@@ -743,7 +743,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                       variant="outline"
                       onClick={handleGenerateAllLeagueMatches}
                       loading={isLoading}
-                      className="touch-target-mobile"
+                      className="touch-target"
                       size="lg"
                     >
                       <Icon name="Calendar" className="mr-2" />
@@ -758,7 +758,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                   <Button
                     variant="outline"
                     onClick={onUnpairRound}
-                    className="touch-target-mobile"
+                    className="touch-target"
                     size="lg"
                   >
                     <Icon name="RotateCcw" className="mr-2" />
@@ -773,16 +773,16 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
 
       {/* Current Pairings - Hidden for best-of-league with generated schedule */}
       {isPaired && currentPairings.length > 0 && !(tournamentInfo?.type === 'best_of_league' && matches.length > 0) && (
-        <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl p-6">
-          <h3 className="text-lg font-heading font-semibold text-foreground mb-6">
+        <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl p-4 sm:p-6">
+          <h3 className="text-lg font-heading font-semibold text-foreground mb-4 sm:mb-6">
             Round {tournamentInfo?.currentRound || 1} Pairings
           </h3>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {currentPairings.map((pairing, index) => (
               <motion.div
                 key={index}
-                className="bg-muted/10 rounded-xl p-4 lg:p-6 border border-border/10 hover:border-border/30 transition-all duration-200"
+                className="bg-muted/10 rounded-xl p-4 sm:p-5 lg:p-6 border border-border/10 hover:border-border/30 transition-all duration-200 touch-target"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -847,12 +847,12 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
 
       {/* Best of League Matches */}
       {tournamentInfo?.type === 'best_of_league' && matches.length > 0 && (
-        <div className="glass-card p-6 lg:p-8">
-          <h3 className="text-lg lg:text-xl font-heading font-semibold text-foreground mb-6">
+        <div className="glass-card p-4 sm:p-6 lg:p-8">
+          <h3 className="text-lg lg:text-xl font-heading font-semibold text-foreground mb-4 sm:mb-6">
             Best of League Matches
           </h3>
           
-          <div className="space-y-6 lg:space-y-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             {(() => {
               // Group matches by round
               const matchesByRound = matches.reduce((acc, match) => {
@@ -866,12 +866,12 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
               return Object.keys(matchesByRound).sort((a, b) => parseInt(a) - parseInt(b)).map((roundNum, roundIndex) => (
                 <motion.div
                   key={roundNum}
-                  className="bg-muted/10 rounded-xl p-4 lg:p-6 border border-border/10"
+                  className="bg-muted/10 rounded-xl p-4 sm:p-5 lg:p-6 border border-border/10"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: roundIndex * 0.1 }}
                 >
-                  <div className="flex items-center justify-between mb-4 lg:mb-6">
+                  <div className="flex items-center justify-between mb-4 sm:mb-5 lg:mb-6">
                     <h4 className="text-lg lg:text-xl font-semibold text-foreground">
                       Round {roundNum}
                     </h4>
@@ -880,7 +880,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                     </span>
                   </div>
                   
-                  <div className="space-y-3 lg:space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {matchesByRound[roundNum].map((match, matchIndex) => {
                       const p1Wins = getGameWins(match, match.player1_id);
                       const p2Wins = getGameWins(match, match.player2_id);
@@ -892,30 +892,30 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                       return (
                         <div
                           key={match.id}
-                          className="flex items-center justify-between p-3 lg:p-4 bg-background/50 rounded-lg border border-border/10"
+                          className="flex items-center justify-between p-3 sm:p-4 bg-background/50 rounded-lg border border-border/10 touch-target"
                         >
-                                                     <div className="flex items-center gap-3 flex-1">
-                             <span className="text-sm font-mono text-muted-foreground min-w-[60px]">
-                               Match {matchIndex + 1}
-                             </span>
-                            <div className="flex items-center gap-2 flex-1">
-                              <span className="font-medium text-foreground truncate">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <span className="text-xs sm:text-sm font-mono text-muted-foreground flex-shrink-0">
+                              Match {matchIndex + 1}
+                            </span>
+                            <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                              <span className="font-medium text-foreground truncate text-sm sm:text-base">
                                 {player1.name}
                               </span>
-                              <span className="font-mono font-bold text-primary">
+                              <span className="font-mono font-bold text-primary text-sm sm:text-base">
                                 {p1Wins}
                               </span>
-                              <span className="text-muted-foreground">vs</span>
-                              <span className="font-mono font-bold text-primary">
+                              <span className="text-muted-foreground text-xs sm:text-sm">vs</span>
+                              <span className="font-mono font-bold text-primary text-sm sm:text-base">
                                 {p2Wins}
                               </span>
-                              <span className="font-medium text-foreground truncate">
+                              <span className="font-medium text-foreground truncate text-sm sm:text-base">
                                 {player2.name}
                               </span>
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                             <span className={cn(
                               "text-xs px-2 py-1 rounded-full",
                               isMatchCompleted(match)

@@ -96,25 +96,25 @@ const AnnouncementsManager = () => {
 
   return (
     <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl">
-      <div className="p-4 lg:p-6 border-b border-border/10">
+      <div className="p-4 sm:p-5 lg:p-6 border-b border-border/10">
         <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
           <Icon name="Megaphone" size={18} className="text-primary" />
-          <span>Director's Announcements</span>
+          <span className="text-base sm:text-lg">Director's Announcements</span>
         </h3>
       </div>
-      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-        <form onSubmit={handlePostAnnouncement} className="space-y-3 lg:space-y-4">
+      <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6">
+        <form onSubmit={handlePostAnnouncement} className="space-y-3 sm:space-y-4">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your announcement here..."
-            className="w-full h-24 p-4 bg-input border border-border/10 rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target-mobile"
+            className="w-full h-24 p-4 bg-input border border-border/10 rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target"
             disabled={loading}
           />
           <Button 
             type="submit" 
             loading={loading} 
-            className="w-full touch-target-mobile"
+            className="w-full touch-target"
             size="lg"
           >
             <Icon name="Send" size={16} className="mr-2" />
@@ -122,7 +122,7 @@ const AnnouncementsManager = () => {
           </Button>
         </form>
         
-        <div className="space-y-3 lg:space-y-4 max-h-64 overflow-y-auto">
+        <div className="space-y-3 sm:space-y-4 max-h-64 overflow-y-auto">
           {announcements.length === 0 ? (
             <div className="text-center py-8">
               <Icon name="Megaphone" size={48} className="text-muted-foreground mx-auto mb-4" />
@@ -132,21 +132,21 @@ const AnnouncementsManager = () => {
             announcements.map((ann, index) => (
               <motion.div 
                 key={ann.id} 
-                className="bg-muted/10 p-4 lg:p-5 rounded-xl border border-border/10 group"
+                className="bg-muted/10 p-4 sm:p-5 rounded-xl border border-border/10 group touch-target"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 space-y-2">
-                    <p className="text-sm text-foreground leading-relaxed">{ann.message}</p>
+                    <p className="text-sm sm:text-base text-foreground leading-relaxed">{ann.message}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(ann.created_at).toLocaleString()}
                     </p>
                   </div>
                   <button
                     onClick={() => handleDelete(ann.id)}
-                    className="touch-target p-2 rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="touch-target p-2 sm:p-3 rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
                     aria-label="Delete announcement"
                   >
                     <Icon name="Trash2" size={16} className="text-destructive" />

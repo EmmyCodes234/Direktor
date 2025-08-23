@@ -94,9 +94,9 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
   } = handlers;
 
   return (
-    <div className="space-y-6 lg:space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
       {/* Header Section */}
-      <div className="space-y-4 lg:space-y-6">
+      <div className="space-y-4 sm:space-y-5 lg:space-y-6">
         <AnnouncementsManager />
         <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
       </div>
@@ -1540,7 +1540,7 @@ const TournamentCommandCenterDashboard = () => {
         <div className="fixed bottom-20 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
           {/* Photo Database Button */}
           <motion.button
-            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
+            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 sm:p-4 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
             style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
             onClick={() => setShowPhotoDatabase(true)}
             aria-label="Manage player photos"
@@ -1548,13 +1548,13 @@ const TournamentCommandCenterDashboard = () => {
             whileHover={{ opacity: 1, scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
           >
-            <Icon name="Image" className="mr-2" />
-            <span className="hidden sm:inline">Photos</span>
+            <Icon name="Image" className="mr-2" size={20} />
+            <span className="hidden sm:inline text-sm">Photos</span>
           </motion.button>
           
           {/* Audit Log Button */}
           <motion.button
-            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
+            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 sm:p-4 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
             style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
             onClick={() => setShowAuditLog(true)}
             aria-label="Open audit log"
@@ -1562,8 +1562,8 @@ const TournamentCommandCenterDashboard = () => {
             whileHover={{ opacity: 1, scale: 1.05 }}
             whileTap={{ scale: 0.97 }}
           >
-            <Icon name="ClipboardList" className="mr-2" />
-            <span className="hidden sm:inline">Audit Log</span>
+            <Icon name="ClipboardList" className="mr-2" size={20} />
+            <span className="hidden sm:inline text-sm">Audit Log</span>
           </motion.button>
         </div>
         <div className="container-mobile">
@@ -1577,7 +1577,7 @@ const TournamentCommandCenterDashboard = () => {
                     </div>
                 </div>
             ) : ( 
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                     <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
                 </div>
             )}

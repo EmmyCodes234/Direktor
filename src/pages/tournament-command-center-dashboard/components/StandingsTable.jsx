@@ -105,7 +105,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     if (isMobile) {
       // Enhanced card layout for mobile
       return (
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-4 p-4">
           {pagedPlayers.map((player, index) => {
             let isComplete = false;
             let matchWins = 0;
@@ -120,7 +120,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               <motion.div 
                 key={player.id} 
                 className={cn(
-                  "glass-card p-4 lg:p-6 flex flex-col gap-3 transition-all duration-200",
+                  "glass-card p-4 sm:p-5 flex flex-col gap-4 transition-all duration-200 touch-target",
                   isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/20'
                 )}
                 initial={{ opacity: 0, y: 20 }}
@@ -132,7 +132,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 <div className="flex items-center gap-3">
                   {/* Rank Badge */}
                   <div className={cn(
-                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
+                    "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
                     player.rank <= 3 
                       ? "bg-primary/20 text-primary border-2 border-primary/30" 
                       : "bg-muted/20 text-muted-foreground border border-border"
@@ -145,7 +145,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                     <a 
                       href={`/players/${player.slug}`} 
                       onClick={(e) => handlePlayerClick(e, player)} 
-                      className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate"
+                      className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate text-base"
                     >
                       {player.name}
                     </a>
@@ -161,14 +161,14 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                   <button 
                     onClick={(e) => handleModalClick(e, player)} 
                     aria-label="View player stats"
-                    className="touch-target p-2 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+                    className="touch-target p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all duration-200"
                   >
-                    <Icon name="BarChartHorizontal" size={18} className="text-muted-foreground" />
+                    <Icon name="BarChartHorizontal" size={20} className="text-muted-foreground" />
                   </button>
                 </div>
                 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-2 gap-3">
                   {isBestOfLeague && (
                     <div className="bg-muted/10 rounded-lg p-3">
                       <div className="text-xs text-muted-foreground font-medium mb-1">Match Wins</div>
@@ -204,9 +204,9 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 onClick={() => setPage(p => Math.max(1, p - 1))} 
                 disabled={page === 1} 
                 aria-label="Previous page"
-                className="touch-target px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                <Icon name="ChevronLeft" size={16} />
+                <Icon name="ChevronLeft" size={18} />
               </button>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Page</span>
@@ -217,9 +217,9 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
                 disabled={page === totalPages} 
                 aria-label="Next page"
-                className="touch-target px-4 py-2 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                <Icon name="ChevronRight" size={16} />
+                <Icon name="ChevronRight" size={18} />
               </button>
             </div>
           )}

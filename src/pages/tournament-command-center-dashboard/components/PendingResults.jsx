@@ -6,10 +6,10 @@ import { motion } from 'framer-motion';
 const PendingResults = ({ pending, onApprove, onReject }) => {
   return (
     <div className="glass-card">
-        <div className="p-4 lg:p-6 border-b border-border/10 flex justify-between items-center">
+        <div className="p-4 sm:p-5 lg:p-6 border-b border-border/10 flex justify-between items-center">
              <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
                 <Icon name="Mail" size={18} className="text-primary" />
-                <span>Pending Results</span>
+                <span className="text-base sm:text-lg">Pending Results</span>
             </h3>
             {pending.length > 0 && (
                 <motion.span 
@@ -22,7 +22,7 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                 </motion.span>
             )}
         </div>
-        <div className="p-4 lg:p-6 space-y-4 max-h-96 overflow-y-auto">
+        <div className="p-4 sm:p-5 lg:p-6 space-y-4 max-h-96 overflow-y-auto">
             {pending.length === 0 ? (
                 <div className="text-center py-8">
                     <Icon name="CheckCircle" size={48} className="text-muted-foreground mx-auto mb-4" />
@@ -32,15 +32,15 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                 pending.map((p, index) => (
                     <motion.div 
                       key={p.id} 
-                      className="bg-muted/10 p-4 lg:p-6 rounded-xl border border-border/10"
+                      className="bg-muted/10 p-4 sm:p-5 lg:p-6 rounded-xl border border-border/10 touch-target"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
                     >
-                        <div className="space-y-3">
+                        <div className="space-y-3 sm:space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <p className="font-medium text-foreground">
+                                    <p className="font-medium text-foreground text-sm sm:text-base">
                                         {p.player1_name} vs {p.player2_name}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
@@ -49,32 +49,32 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                                 </div>
                             </div>
                             
-                            <div className="bg-background/50 p-3 rounded-lg">
-                                <div className="flex items-center justify-center space-x-4">
+                            <div className="bg-background/50 p-3 sm:p-4 rounded-lg">
+                                <div className="flex items-center justify-center space-x-3 sm:space-x-4">
                                     <div className="text-center">
-                                        <span className="font-medium text-foreground">{p.player1_name}</span>
-                                        <div className="font-mono font-bold text-2xl text-primary">
+                                        <span className="font-medium text-foreground text-sm sm:text-base">{p.player1_name}</span>
+                                        <div className="font-mono font-bold text-xl sm:text-2xl text-primary">
                                             {p.score1}
                                         </div>
                                     </div>
                                     <div className="text-muted-foreground">
-                                        <Icon name="Minus" size={20} />
+                                        <Icon name="Minus" size={18} className="sm:w-5 sm:h-5" />
                                     </div>
                                     <div className="text-center">
-                                        <span className="font-medium text-foreground">{p.player2_name}</span>
-                                        <div className="font-mono font-bold text-2xl text-primary">
+                                        <span className="font-medium text-foreground text-sm sm:text-base">{p.player2_name}</span>
+                                        <div className="font-mono font-bold text-xl sm:text-2xl text-primary">
                                             {p.score2}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 sm:gap-3">
                                 <Button 
                                   size="sm" 
                                   variant="outline" 
                                   onClick={() => onReject(p.id)}
-                                  className="touch-target-mobile flex-1"
+                                  className="touch-target flex-1"
                                 >
                                     <Icon name="X" size={16} className="mr-2" />
                                     Reject
@@ -82,7 +82,7 @@ const PendingResults = ({ pending, onApprove, onReject }) => {
                                 <Button 
                                   size="sm" 
                                   onClick={() => onApprove(p)}
-                                  className="touch-target-mobile flex-1"
+                                  className="touch-target flex-1"
                                 >
                                     <Icon name="Check" size={16} className="mr-2" />
                                     Approve

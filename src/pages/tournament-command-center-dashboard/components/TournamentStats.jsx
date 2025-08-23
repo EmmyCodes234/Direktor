@@ -68,26 +68,26 @@ const TournamentStats = ({ players, recentResults, tournamentInfo }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
       {stats.map((stat, index) => (
         <motion.div
           key={index}
-          className="glass-card p-4 lg:p-6 hover:border-primary/30 transition-all duration-200 group touch-target"
+          className="glass-card p-3 sm:p-4 lg:p-6 hover:border-primary/30 transition-all duration-200 group touch-target"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <div className="flex flex-col items-center text-center space-y-3 lg:space-y-4">
-            <div className={`flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
-              <Icon name={stat.icon} size={24} className={stat.color} />
+          <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 lg:space-y-4">
+            <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
+              <Icon name={stat.icon} size={20} className={`${stat.color} sm:w-6 sm:h-6 lg:w-6 lg:h-6`} />
             </div>
-            <div className="space-y-1 lg:space-y-2">
-              <div className="font-mono font-bold text-xl lg:text-2xl text-foreground">
+            <div className="space-y-1 sm:space-y-2">
+              <div className="font-mono font-bold text-lg sm:text-xl lg:text-2xl text-foreground">
                 {stat.value}
               </div>
-              <div className="text-xs lg:text-sm text-muted-foreground font-medium">
+              <div className="text-xs sm:text-sm text-muted-foreground font-medium leading-tight">
                 {stat.label}
               </div>
             </div>
