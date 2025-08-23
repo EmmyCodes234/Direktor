@@ -790,29 +790,31 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-mono text-muted-foreground">Table {pairing.table}</span>
                   {pairing.player1.starts && (
-                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full whitespace-nowrap">
                       {pairing.player1.name} starts
                     </span>
                   )}
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                    <span className="font-medium text-foreground truncate flex-1">
-                      {pairing.player1.name}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {pairing.player1.starts && (
-                        <Icon name="Play" size={14} className="text-primary" />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEnterScore(pairing)}
-                        className="touch-target"
-                      >
-                        <Icon name="Edit" size={16} />
-                      </Button>
+                  <div className="flex flex-col p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-foreground text-sm sm:text-base break-words">
+                        {pairing.player1.name}
+                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {pairing.player1.starts && (
+                          <Icon name="Play" size={14} className="text-primary" />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEnterScore(pairing)}
+                          className="touch-target"
+                        >
+                          <Icon name="Edit" size={16} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   
@@ -820,22 +822,24 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
                     <Icon name="Minus" size={16} />
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                    <span className="font-medium text-foreground truncate flex-1">
-                      {pairing.player2.name}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {pairing.player2.starts && (
-                        <Icon name="Play" size={14} className="text-primary" />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEnterScore(pairing)}
-                        className="touch-target"
-                      >
-                        <Icon name="Edit" size={16} />
-                      </Button>
+                  <div className="flex flex-col p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-foreground text-sm sm:text-base break-words">
+                        {pairing.player2.name}
+                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {pairing.player2.starts && (
+                          <Icon name="Play" size={14} className="text-primary" />
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEnterScore(pairing)}
+                          className="touch-target"
+                        >
+                          <Icon name="Edit" size={16} />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -10,11 +10,63 @@ import EmergencyControlsSection from '../components/settings/EmergencyControlsSe
 import PrizeManager from '../components/settings/PrizeManager';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ResetTournamentModal from '../components/settings/ResetTournamentModal';
+import PhotoDatabaseManager from '../components/PhotoDatabaseManager';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
 import useMediaQuery from '../hooks/useMediaQuery';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const AuditLogModal = ({ isOpen, onClose, log }) => {
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:justify-end bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+          aria-modal="true"
+          role="dialog"
+        >
+          <motion.div
+            initial={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+            animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }}
+            exit={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className={
+              isDesktop
+                ? 'glass-card w-full max-w-md h-full md:h-auto md:max-h-[90vh] md:rounded-l-xl shadow-xl p-6 md:mr-0 md:mt-0 md:mb-0 md:ml-0 md:rounded-none border-l border-border flex flex-col'
+                : 'glass-card w-full max-w-lg mx-auto rounded-t-xl shadow-xl p-6 pb-8 mb-0 border-t border-border flex flex-col'
+            }
+            style={isDesktop ? { height: '100vh', maxHeight: '90vh', marginRight: 0 } : {}}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
+              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
+            </div>
+            <div className="overflow-y-auto flex-1 min-h-0 max-h-[60vh] md:max-h-[70vh]">
+              {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
+                <ul className="space-y-2">
+                  {log.map((entry, i) => (
+                    <li key={i} className="p-2 bg-muted/10 rounded text-sm">
+                      <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br/>
+                      <span>{entry.action}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 const ShareSection = ({ tournamentSlug }) => {
     const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
@@ -49,6 +101,10 @@ const TournamentSettingsAdministration = () => {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
+    const [showAuditLog, setShowAuditLog] = useState(false);
+    const [showPhotoDatabase, setShowPhotoDatabase] = useState(false);
+    const [auditLog, setAuditLog] = useState([]);
+    const [players, setPlayers] = useState([]);
     const isDesktop = useMediaQuery('(min-width: 768px)');
 
     useEffect(() => {
@@ -78,6 +134,24 @@ const TournamentSettingsAdministration = () => {
                     return;
                 }
                 setSettings(data);
+                
+                // Fetch players for photo database
+                const { data: playersData, error: playersError } = await supabase
+                    .from('tournament_players')
+                    .select('*, players(id, name, rating, photo_url, slug)')
+                    .eq('tournament_id', data.id);
+                
+                if (!playersError && playersData) {
+                    const combinedPlayers = playersData.map(tp => ({
+                        ...tp.players,
+                        ...tp
+                    }));
+                    setPlayers(combinedPlayers);
+                }
+                
+                // Fetch audit log (you might want to implement this based on your needs)
+                // For now, we'll set an empty array
+                setAuditLog([]);
             }
             setLoading(false);
         };
@@ -206,6 +280,21 @@ const TournamentSettingsAdministration = () => {
                 onClose={() => setShowResetModal(false)}
                 onConfirm={handleResetTournament}
             />
+            <AuditLogModal 
+                isOpen={showAuditLog} 
+                onClose={() => setShowAuditLog(false)} 
+                log={auditLog} 
+            />
+            <PhotoDatabaseManager
+                isOpen={showPhotoDatabase}
+                onClose={() => setShowPhotoDatabase(false)}
+                players={players}
+                tournamentId={settings?.id}
+                onPhotosUpdated={() => {
+                    // Refresh player data to include photos
+                    fetchTournamentData();
+                }}
+            />
             <Toaster position="top-center" richColors />
             <Header />
             <main className="pt-20 pb-8">
@@ -238,6 +327,41 @@ const TournamentSettingsAdministration = () => {
                                     <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <SystemPreferencesSection />
+                                    
+                                    {/* Audit Log Section */}
+                                    <div className="glass-card p-6">
+                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
+                                            <Icon name="ClipboardList" size={20} className="text-primary" />
+                                            <span>Audit Log</span>
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mb-4">View a detailed log of all tournament actions and changes.</p>
+                                        <Button 
+                                            onClick={() => setShowAuditLog(true)}
+                                            variant="outline"
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Icon name="Eye" className="mr-2" size={16} />
+                                            View Audit Log
+                                        </Button>
+                                    </div>
+
+                                    {/* Photo Database Section */}
+                                    <div className="glass-card p-6">
+                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
+                                            <Icon name="Image" size={20} className="text-primary" />
+                                            <span>Photo Database</span>
+                                        </h3>
+                                        <p className="text-sm text-muted-foreground mb-4">Manage player photos for tournament displays and public pages.</p>
+                                        <Button 
+                                            onClick={() => setShowPhotoDatabase(true)}
+                                            variant="outline"
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Icon name="Upload" className="mr-2" size={16} />
+                                            Manage Photos
+                                        </Button>
+                                    </div>
+
                                     <EmergencyControlsSection onDeleteTournament={() => setShowDeleteModal(true)} onResetTournament={() => setShowResetModal(true)} />
                                 </>
                             )}

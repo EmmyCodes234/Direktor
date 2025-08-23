@@ -19,57 +19,9 @@ import DashboardSidebar from './components/DashboardSidebar';
 import MobileNavBar from './components/MobileNavBar';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import AnnouncementsManager from './components/AnnouncementsManager';
-import PhotoDatabaseManager from '../../components/PhotoDatabaseManager';
 
-const AuditLogModal = ({ isOpen, onClose, log }) => {
-  const isDesktop = useMediaQuery('(min-width: 768px)');
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:justify-end bg-black/40 backdrop-blur-sm"
-          onClick={onClose}
-          aria-modal="true"
-          role="dialog"
-        >
-          <motion.div
-            initial={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
-            animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }}
-            exit={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={
-              isDesktop
-                ? 'glass-card w-full max-w-md h-full md:h-auto md:max-h-[90vh] md:rounded-l-xl shadow-xl p-6 md:mr-0 md:mt-0 md:mb-0 md:ml-0 md:rounded-none border-l border-border flex flex-col'
-                : 'glass-card w-full max-w-lg mx-auto rounded-t-xl shadow-xl p-6 pb-8 mb-0 border-t border-border flex flex-col'
-            }
-            style={isDesktop ? { height: '100vh', maxHeight: '90vh', marginRight: 0 } : {}}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
-              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
-            </div>
-            <div className="overflow-y-auto flex-1 min-h-0 max-h-[60vh] md:max-h-[70vh]">
-              {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
-                <ul className="space-y-2">
-                  {log.map((entry, i) => (
-                    <li key={i} className="p-2 bg-muted/10 rounded text-sm">
-                      <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br/>
-                      <span>{entry.action}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+
+
 
 // Memoized Main Content with custom comparison to ensure updates when players change
 const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }) => {
@@ -320,9 +272,6 @@ const TournamentCommandCenterDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState({ isOpen: false, existingResult: null });
-  const [showAuditLog, setShowAuditLog] = useState(false);
-  const [auditLog, setAuditLog] = useState([]);
-  const [showPhotoDatabase, setShowPhotoDatabase] = useState(false);
   const [pendingScoreAction, setPendingScoreAction] = useState(null); // For confirmation dialog
   const [activeMatchup, setActiveMatchup] = useState(null);
   const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
@@ -838,14 +787,14 @@ const TournamentCommandCenterDashboard = () => {
     setTournamentInfo(updatedTournamentInfo);
     const newRound = updatedTournamentInfo.currentRound;
     const pairingsCount = updatedTournamentInfo.pairing_schedule?.[newRound]?.length || 0;
-    setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Generated pairings for Round ${newRound} (${pairingsCount} matches)` }]);
+
   }, []);
 
   const handleManualPairingsSaved = useCallback((updatedTournamentInfo) => {
     setTournamentInfo(updatedTournamentInfo);
     const newRound = updatedTournamentInfo.currentRound;
     const pairingsCount = updatedTournamentInfo.pairing_schedule?.[newRound]?.length || 0;
-    setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Manual pairings created for Round ${newRound} (${pairingsCount} matches)` }]);
+
   }, []);
 
   const handleUnpairRound = useCallback(() => {
@@ -918,7 +867,7 @@ const TournamentCommandCenterDashboard = () => {
       if (updateError) throw updateError;
 
       toast.success(`Round ${roundToUnpair} has been successfully unpaired.`);
-      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Unpaired Round ${roundToUnpair} and reverted ${resultsToRevert.length} results` }]);
+
       setTournamentInfo(data);
     } catch (error) {
       toast.error(`Failed to unpair round: ${error.message}`);
@@ -1140,7 +1089,7 @@ const TournamentCommandCenterDashboard = () => {
           throw updateError;
         }
         toast.success("Result updated successfully!");
-        setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Edited result: ${player1.name} ${score1} - ${score2} ${player2.name}` }]);
+
         // Optimistically update recentResults for edit
         setRecentResults(prev => [{ ...resultData, id: resultId }, ...prev.filter(r => r.id !== resultId)]);
       } else {
@@ -1148,7 +1097,7 @@ const TournamentCommandCenterDashboard = () => {
         if (insertError) throw insertError;
         insertedResult = inserted || { ...resultData };
         toast.success("Result submitted successfully!");
-        setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Submitted result: ${player1.name} ${score1} - ${score2} ${player2.name}` }]);
+
         // Optimistically update recentResults for insert
         setRecentResults(prev => [insertedResult, ...prev]);
       }
@@ -1228,7 +1177,7 @@ const TournamentCommandCenterDashboard = () => {
         toast.error(`Failed to proceed: ${error.message}`);
         setTournamentInfo(originalTournamentInfo);
       } else {
-        setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: isFinalRound ? `Tournament completed` : `Advanced to Round ${currentRound + 1}` }]);
+
         toast.success(isFinalRound ? 'Tournament Complete!' : `Proceeding to Round ${currentRound + 1}`);
       }
     } catch (error) {
@@ -1337,7 +1286,7 @@ const TournamentCommandCenterDashboard = () => {
         round: pendingResult.round,
       });
       await supabase.from('pending_results').delete().eq('id', pendingResult.id);
-      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Approved pending result: ${pendingResult.player1_name} ${pendingResult.score1} - ${pendingResult.score2} ${pendingResult.player2_name} (Round ${pendingResult.round})` }]);
+
       toast.success("Result has been approved and standings are updated.");
     } catch (error) {
       toast.error(`Failed to approve result: ${error.message}`);
@@ -1351,7 +1300,7 @@ const TournamentCommandCenterDashboard = () => {
     if (error) {
       toast.error(`Failed to reject result: ${error.message}`);
     } else {
-      setAuditLog(log => [...log, { time: new Date().toLocaleString(), action: `Rejected pending result (ID: ${id})` }]);
+
       toast.success("Result has been rejected.");
     }
   }, []);
@@ -1503,7 +1452,6 @@ const TournamentCommandCenterDashboard = () => {
           tournamentType={tournamentInfo?.type}
           currentMatchScore={activeMatchup?.currentMatchScore}
       />
-      <AuditLogModal isOpen={showAuditLog} onClose={() => setShowAuditLog(false)} log={auditLog} />
       <ConfirmationModal
         isOpen={!!pendingScoreAction}
         title={pendingScoreAction?.isEditing ? 'Confirm Edit Result' : 'Confirm Submit Result'}
@@ -1525,48 +1473,8 @@ const TournamentCommandCenterDashboard = () => {
           tournamentId={tournamentInfo?.id}
           matches={matches}
       />
-      <PhotoDatabaseManager
-          isOpen={showPhotoDatabase}
-          onClose={() => setShowPhotoDatabase(false)}
-          players={players}
-          tournamentId={tournamentInfo?.id}
-          onPhotosUpdated={() => {
-              // Refresh player data to include photos
-              fetchTournamentData();
-          }}
-      />
       <main className="layout-mobile-content">
-        {/* Floating Action Buttons */}
-        <div className="fixed bottom-24 sm:bottom-4 right-4 z-40 flex flex-col gap-3">
-          {/* Photo Database Button */}
-          <motion.button
-            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 sm:p-4 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
-            style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
-            onClick={() => setShowPhotoDatabase(true)}
-            aria-label="Manage player photos"
-            initial={{ opacity: 0.7, scale: 1 }}
-            whileHover={{ opacity: 1, scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <Icon name="Image" className="mr-2" size={20} />
-            <span className="hidden sm:inline text-sm">Photos</span>
-          </motion.button>
-          
-          {/* Audit Log Button */}
-          <motion.button
-            className="rounded-full bg-background/95 backdrop-blur-xl shadow-lg border border-border p-3 sm:p-4 flex items-center gap-2 hover:bg-background focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all touch-target"
-            style={{ boxShadow: '0 4px 20px 0 rgba(0,0,0,0.15)' }}
-            onClick={() => setShowAuditLog(true)}
-            aria-label="Open audit log"
-            initial={{ opacity: 0.7, scale: 1 }}
-            whileHover={{ opacity: 1, scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <Icon name="ClipboardList" className="mr-2" size={20} />
-            <span className="hidden sm:inline text-sm">Audit Log</span>
-          </motion.button>
-        </div>
-        <div className="container-mobile">
+        <div className="w-full px-4 sm:px-6 lg:px-8 pb-20 sm:pb-6">
             {isDesktop ? (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
                     <div className="hidden lg:block">
@@ -1577,7 +1485,7 @@ const TournamentCommandCenterDashboard = () => {
                     </div>
                 </div>
             ) : ( 
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-4 sm:space-y-6 w-full">
                     <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches }} />
                 </div>
             )}
