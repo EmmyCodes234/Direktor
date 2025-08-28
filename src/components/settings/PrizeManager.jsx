@@ -16,22 +16,26 @@ const PrizeManager = ({ currency = '$', tournamentId }) => {
             return;
         }
 
-        const fetchPrizes = async () => {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('prizes')
-                .select('*')
-                .eq('tournament_id', tournamentId)
-                .order('rank', { ascending: true });
-            if (error) {
-                toast.error(`Failed to load prizes: ${error.message}`);
-            } else {
-                setPrizes(data);
-                setNewPrize({ rank: data.length + 1, value: '', description: '' });
-            }
-            setLoading(false);
-        };
-        fetchPrizes();
+        // Temporarily disable data fetching to prevent loading issues
+        // const fetchPrizes = async () => {
+        //     setLoading(true);
+        //     const { data, error } = await supabase
+        //         .from('prizes')
+        //         .select('*')
+        //         .eq('tournament_id', tournamentId)
+        //         .order('rank', { ascending: true });
+        //     if (error) {
+        //         toast.error(`Failed to load prizes: ${error.message}`);
+        //     } else {
+        //         setPrizes(data);
+        //         setNewPrize({ rank: data.length + 1, value: '', description: '' });
+        //     }
+        //     setLoading(false);
+        // };
+        // fetchPrizes();
+        
+        // Set loading to false immediately
+        setLoading(false);
     }, [tournamentId]);
 
     const handleAddPrize = async () => {

@@ -1,30 +1,42 @@
 import React from 'react';
-import { cva } from 'class-variance-authority';
 import { cn } from '../../utils/cn';
+import { designTokens } from '../../design-system';
 
-const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
-  {
-    variants: {
-      variant: {
-        default: "bg-background text-foreground",
-        destructive: "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+const alertVariants = {
+  default: `bg-${designTokens.colors.neutral[50]} border-${designTokens.colors.neutral[200]} text-${designTokens.colors.neutral[900]}`,
+  destructive: `bg-${designTokens.colors.error[50]} border-${designTokens.colors.error[200]} text-${designTokens.colors.error[900]}`,
+  success: `bg-${designTokens.colors.success[50]} border-${designTokens.colors.success[200]} text-${designTokens.colors.success[900]}`,
+  warning: `bg-${designTokens.colors.warning[50]} border-${designTokens.colors.warning[200]} text-${designTokens.colors.warning[900]}`,
+  info: `bg-${designTokens.colors.accent[50]} border-${designTokens.colors.accent[200]} text-${designTokens.colors.accent[900]}`,
+  primary: `bg-${designTokens.colors.primary[50]} border-${designTokens.colors.primary[200]} text-${designTokens.colors.primary[900]}`,
+};
 
-const Alert = React.forwardRef(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
-));
+const Alert = React.forwardRef(({ 
+  className, 
+  variant = "default", 
+  size = "md",
+  ...props 
+}, ref) => {
+  const sizeClasses = {
+    sm: "p-3 text-sm",
+    md: "p-4 text-base",
+    lg: "p-6 text-lg",
+  };
+
+  return (
+    <div
+      ref={ref}
+      role="alert"
+      className={cn(
+        "relative w-full rounded-lg border [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
+        alertVariants[variant],
+        sizeClasses[size],
+        className
+      )}
+      {...props}
+    />
+  );
+});
 Alert.displayName = "Alert";
 
 const AlertTitle = React.forwardRef(({ className, ...props }, ref) => (

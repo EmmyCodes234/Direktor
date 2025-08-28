@@ -15,7 +15,15 @@ const PlayerListItem = ({ player, onEdit, onRemove, onWithdraw, isSelected, onSe
       <div className="flex items-center space-x-4 flex-1">
         
         {player.photo_url ? (
-          <img src={player.photo_url} alt={player.name} className="w-10 h-10 rounded-full object-cover" />
+          <img 
+            src={player.photo_url} 
+            alt={player.name} 
+            className="w-10 h-10 rounded-full object-cover"
+            onError={(e) => {
+              console.warn(`Failed to load player photo for ${player.name}:`, e.target.src);
+              e.target.style.display = 'none';
+            }}
+          />
         ) : (
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-medium">
             {player.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { designTokens, cardVariants } from '../../design-system';
 import Icon from '../AppIcon';
 import Button from './Button';
 
@@ -9,7 +10,7 @@ const Modal = ({
   onClose,
   title,
   children,
-  size = 'default',
+  size = 'md',
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
@@ -22,19 +23,13 @@ const Modal = ({
   const modalRef = useRef(null);
   const previousActiveElement = useRef(null);
 
-  // Size variants with mobile-first approach
+  // Size variants with mobile-first approach using design tokens
   const sizeClasses = {
     sm: 'w-full max-w-md mx-4 sm:mx-auto',
-    default: 'w-full max-w-lg mx-4 sm:mx-auto',
+    md: 'w-full max-w-lg mx-4 sm:mx-auto',
     lg: 'w-full max-w-2xl mx-4 sm:mx-auto',
     xl: 'w-full max-w-4xl mx-4 sm:mx-auto',
     full: 'w-full max-w-[95vw] max-h-[95vh] mx-4 sm:mx-auto',
-    // Mobile-specific sizes
-    'mobile-sm': 'w-full max-w-sm mx-4 sm:max-w-md sm:mx-auto',
-    'mobile-default': 'w-full max-w-md mx-4 sm:max-w-lg sm:mx-auto',
-    'mobile-lg': 'w-full max-w-lg mx-4 sm:max-w-2xl sm:mx-auto',
-    'mobile-xl': 'w-full max-w-2xl mx-4 sm:max-w-4xl sm:mx-auto',
-    'mobile-full': 'w-full h-full max-w-none mx-0 rounded-none sm:max-w-[95vw] sm:max-h-[95vh] sm:mx-4 sm:rounded-xl',
   };
 
   // Focus management
@@ -108,9 +103,7 @@ const Modal = ({
   };
 
   // Mobile-specific modal positioning
-  const isMobileSize = size && size.startsWith('mobile-');
-  const actualSize = isMobileSize ? size : size;
-  const isFullScreen = mobileFullScreen || actualSize === 'mobile-full';
+  const isFullScreen = mobileFullScreen || size === 'full';
 
   return (
     <AnimatePresence>
@@ -155,8 +148,9 @@ const Modal = ({
               stiffness: 300 
             }}
             className={cn(
-              "relative bg-card rounded-t-xl sm:rounded-xl shadow-mobile-lg border border-border/20",
-              isFullScreen ? "w-full h-full rounded-none" : sizeClasses[actualSize],
+              cardVariants({ variant: "elevated", padding: "none" }),
+              "relative rounded-t-xl sm:rounded-xl shadow-glow-lg",
+              isFullScreen ? "w-full h-full rounded-none" : sizeClasses[size],
               "max-h-[90vh] sm:max-h-[95vh] overflow-hidden",
               className
             )}
@@ -165,14 +159,14 @@ const Modal = ({
           >
             {/* Header */}
             {title && (
-              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border/10">
+              <div className={`flex items-center justify-between p-4 sm:p-6 border-b border-${designTokens.colors.neutral[200]}/20`}>
                 <h2 className="text-lg sm:text-xl font-semibold text-foreground">
                   {title}
                 </h2>
                 {showCloseButton && (
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="icon-md"
                     onClick={onClose}
                     className="h-10 w-10 touch-target"
                     aria-label="Close modal"
@@ -193,9 +187,9 @@ const Modal = ({
               <div className="absolute top-4 right-4 z-10">
                 <Button
                   variant="ghost"
-                  size="icon"
+                  size="icon-lg"
                   onClick={onClose}
-                  className="h-12 w-12 touch-target bg-background/80 backdrop-blur-sm border border-border/20"
+                  className={`h-12 w-12 touch-target bg-${designTokens.colors.neutral[50]}/80 backdrop-blur-sm border border-${designTokens.colors.neutral[200]}/20`}
                   aria-label="Close modal"
                 >
                   <Icon name="X" size={24} />

@@ -111,7 +111,7 @@ const PairingManagementPage = () => {
         <div className="min-h-screen bg-background">
             <Toaster position="top-center" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                 <div className="max-w-7xl mx-auto px-4 lg:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
                         <DashboardSidebar tournamentSlug={tournamentSlug} />

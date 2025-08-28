@@ -4,24 +4,32 @@ import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { cn } from '../../../utils/cn';
 
-const DashboardSidebar = () => {
+const DashboardSidebar = ({ tournamentInfo, ladderConfig }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { tournamentSlug } = useParams();
 
-  const navItems = [
+  // Base navigation items
+  const baseNavItems = [
     { label: 'Dashboard', path: `/tournament/${tournamentSlug}/dashboard`, icon: 'LayoutDashboard' },
     { label: 'Player Roster', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
     { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
     { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
     { label: 'Reports', path: `/tournament/${tournamentSlug}/reports`, icon: 'FileText' },
-    { label: 'Wall Chart', path: `/tournament/${tournamentSlug}/wall-chart`, icon: 'Table' },
   ];
+
+  // Add Wall Chart only for individual or team modes (not ladder system)
+  const shouldShowWallChart = tournamentInfo?.type === 'individual' || 
+                             tournamentInfo?.type === 'team';
+  
+  const navItems = shouldShowWallChart 
+    ? [...baseNavItems, { label: 'Wall Chart', path: `/tournament/${tournamentSlug}/wall-chart`, icon: 'Table' }]
+    : baseNavItems;
 
   return (
     <aside className="md:col-span-1 md:sticky top-24 self-start">
-      <div className="bg-muted/10 backdrop-blur-sm border border-border/10 rounded-xl p-4">
-        <h3 className="font-semibold text-muted-foreground text-sm mb-4 px-1">Manage Tournament</h3>
+      <div className="hero-card bg-hero-purple/95 backdrop-blur-sm border border-hero-purple/30 rounded-xl p-4 shadow-xl">
+        <h3 className="font-semibold text-hero-primary text-sm mb-4 px-1">Manage Tournament</h3>
         
         <div className="space-y-2">
           {navItems.map((item) => (
@@ -30,8 +38,8 @@ const DashboardSidebar = () => {
               className={cn(
                 "w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 touch-target",
                 location.pathname === item.path 
-                  ? "bg-primary text-white shadow-sm" 
-                  : "text-foreground hover:bg-muted/20"
+                  ? "bg-hero-gradient text-white shadow-lg shadow-hero-purple/25" 
+                  : "text-hero-primary hover:bg-hero-purple/20 dark:hover:bg-hero-purple/30"
               )}
               onClick={() => navigate(item.path)}
             >
@@ -39,7 +47,7 @@ const DashboardSidebar = () => {
                 name={item.icon} 
                 className={cn(
                   "mr-3 transition-colors duration-200",
-                  location.pathname === item.path ? "text-white" : "text-foreground"
+                  location.pathname === item.path ? "text-white" : "text-hero-primary"
                 )}
               />
               {item.label}
@@ -47,12 +55,12 @@ const DashboardSidebar = () => {
           ))}
         </div>
         
-        <div className="border-t border-border/10 mt-4 pt-4">
+        <div className="border-t border-hero-purple/30 mt-4 pt-4">
           <button 
-            className="w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium text-foreground hover:bg-muted/20 transition-all duration-200 touch-target" 
+            className="w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium text-hero-primary hover:bg-hero-purple/20 dark:hover:bg-hero-purple/30 transition-all duration-200 touch-target" 
             onClick={() => navigate('/lobby')}
           >
-            <Icon name="Home" className="mr-3 text-foreground"/>
+            <Icon name="Home" className="mr-3 text-hero-primary"/>
             Lobby
           </button>
         </div>

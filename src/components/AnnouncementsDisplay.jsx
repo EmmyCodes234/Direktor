@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Icon from './AppIcon';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent } from './ui/Card';
+import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
 import { cn } from '../utils/cn';
 
 const AnnouncementsDisplay = () => {
@@ -85,8 +87,8 @@ const AnnouncementsDisplay = () => {
   };
 
   return (
-    <section className="mb-8">
-      <div className="flex items-center justify-between mb-4">
+    <section className={LAYOUT_TEMPLATES.spacing.sectionMd}>
+      <div className={cn("flex items-center justify-between", "mb-4")}>
         <h2 className="font-heading text-xl font-semibold flex items-center">
           <Icon name="Megaphone" className="mr-2 text-primary" size={20} />
           Tournament Announcements
@@ -96,7 +98,7 @@ const AnnouncementsDisplay = () => {
         </span>
       </div>
       
-      <div className="space-y-3">
+      <div className={LAYOUT_TEMPLATES.spacing.content}>
         <AnimatePresence>
           {announcements.map((ann, index) => {
             const style = getAnnouncementStyle(ann.message);
@@ -106,36 +108,43 @@ const AnnouncementsDisplay = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1, duration: 0.3 }}
-                className={cn(
-                  "glass-card p-5 border-l-4 hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer",
-                  style.borderColor
-                )}
               >
-                <div className="flex items-start space-x-4">
-                  <div className={cn(
-                    "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
-                    style.iconColor === 'text-primary' && "bg-primary/10",
-                    style.iconColor === 'text-amber-500' && "bg-amber-500/10",
-                    style.iconColor === 'text-emerald-500' && "bg-emerald-500/10"
-                  )}>
-                    <Icon name={style.icon} className={cn("", style.iconColor)} size={24} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground leading-relaxed font-medium text-base">
-                      {ann.message}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-3 font-mono">
-                      Posted {new Date(ann.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      })}
-                    </p>
-                  </div>
-                </div>
+                <Card 
+                  variant="glass" 
+                  padding="lg" 
+                  className={cn(
+                    "border-l-4 hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer",
+                    style.borderColor
+                  )}
+                >
+                  <CardContent className="p-0">
+                    <div className="flex items-start space-x-4">
+                      <div className={cn(
+                        "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
+                        style.iconColor === 'text-primary' && "bg-primary/10",
+                        style.iconColor === 'text-amber-500' && "bg-amber-500/10",
+                        style.iconColor === 'text-emerald-500' && "bg-emerald-500/10"
+                      )}>
+                        <Icon name={style.icon} className={cn("", style.iconColor)} size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground leading-relaxed font-medium text-base">
+                          {ann.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-3 font-mono">
+                          Posted {new Date(ann.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
           })}

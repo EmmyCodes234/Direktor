@@ -4,6 +4,8 @@ import Icon from '../components/AppIcon';
 import { motion } from 'framer-motion';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/Accordion';
 import Button from '../components/ui/Button';
+import ExpandableTabsJS from '../components/ui/expandable-tabs';
+import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, HelpCircle, Code } from 'lucide-react';
 
 const DocSection = ({ title, id, children }) => (
     <section id={id} className="mb-16 scroll-mt-24">
@@ -56,9 +58,9 @@ const DocumentationPage = () => {
     return (
         <div className="min-h-screen bg-background">
             <Header />
-            <div className="flex pt-24">
+            <div className="flex pt-20">
                 {/* Sidebar Navigation */}
-                <aside className="w-64 fixed left-0 top-24 h-screen overflow-y-auto border-r border-border/10 bg-background/50 backdrop-blur-sm">
+                <aside className="w-64 fixed left-0 top-20 h-screen overflow-y-auto border-r border-hero-purple/20 bg-background/50 backdrop-blur-sm">
                     <nav className="p-4">
                         <div className="space-y-2">
                             {navigationItems.map((item) => (
@@ -67,8 +69,8 @@ const DocumentationPage = () => {
                                     onClick={() => setActiveSection(item.id)}
                                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                                         activeSection === item.id
-                                            ? 'bg-primary/10 text-primary border border-primary/20'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/20'
+                                            ? 'bg-hero-purple/20 text-hero-primary border border-hero-purple/30'
+                                            : 'text-hero-secondary hover:text-hero-primary hover:bg-hero-purple/10'
                                     }`}
                                 >
                                     <Icon name={item.icon} size={16} />
@@ -82,6 +84,35 @@ const DocumentationPage = () => {
                 {/* Main Content */}
                 <main className="flex-1 ml-64">
                     <div className="max-w-4xl mx-auto px-8 lg:px-12 py-8 lg:py-12">
+                        {/* Mobile Navigation */}
+                        <div className="lg:hidden mb-8">
+                            <ExpandableTabsJS 
+                                tabs={[
+                                    { title: "Overview", icon: Home },
+                                    { title: "Getting Started", icon: Play },
+                                    { title: "Tournament Setup", icon: Settings },
+                                    { title: "Player Management", icon: Users },
+                                    { type: "separator" },
+                                    { title: "Pairing Systems", icon: Shuffle },
+                                    { title: "Scoring & Results", icon: BarChart3 },
+                                    { title: "Dashboard", icon: LayoutDashboard },
+                                    { title: "Advanced Features", icon: Zap },
+                                    { title: "Troubleshooting", icon: HelpCircle },
+                                    { title: "API Reference", icon: Code },
+                                ]}
+                                activeColor="text-purple-500"
+                                className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/50 dark:to-pink-950/50"
+                                onChange={(index) => {
+                                    if (index !== null) {
+                                        const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'pairing-systems', 'scoring-results', 'dashboard', 'advanced-features', 'troubleshooting', 'api-reference'];
+                                        if (sections[index]) {
+                                            setActiveSection(sections[index]);
+                                        }
+                                    }
+                                }}
+                            />
+                        </div>
+                        
                         {/* Overview Section */}
                         {activeSection === 'overview' && (
                             <motion.div

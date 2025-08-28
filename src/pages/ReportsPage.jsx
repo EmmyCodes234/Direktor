@@ -59,6 +59,18 @@ const ReportsPage = () => {
               players: playersData || [],
               results: resultsData || [] 
             });
+            
+            // Debug: Log what we're setting
+            console.log('=== REPORTS PAGE DEBUG ===');
+            console.log('Tournament data:', data);
+            console.log('Players data:', playersData);
+            console.log('Results data:', resultsData);
+            console.log('Combined tournament data:', { 
+              ...data, 
+              players: playersData || [],
+              results: resultsData || [] 
+            });
+            console.log('=== REPORTS PAGE DEBUG END ===');
           } catch (error) {
             toast.error("An unexpected error occurred while loading tournament data.");
           } finally {
@@ -72,7 +84,7 @@ const ReportsPage = () => {
         <div className="min-h-screen bg-background">
             <Toaster position="top-center" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                  <div className="max-w-7xl mx-auto px-4 lg:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
                         <DashboardSidebar tournamentSlug={tournamentSlug} />
@@ -87,11 +99,19 @@ const ReportsPage = () => {
                                     <p className="text-muted-foreground">Loading tournament data...</p>
                                 </div>
                             ) : tournamentData ? (
-                                <FileExporter 
-                                    tournamentInfo={tournamentData}
-                                    players={tournamentData.players?.map(tp => tp.players) || []}
-                                    results={tournamentData.results}
-                                />
+                                <>
+                                    {console.log('=== RENDERING FILEEXPORTER ===')}
+                                    {console.log('tournamentData:', tournamentData)}
+                                    {console.log('tournamentData.players:', tournamentData.players)}
+                                    {console.log('tournamentData.results:', tournamentData.results)}
+                                    {console.log('Mapped players:', tournamentData.players?.map(tp => tp.players) || [])}
+                                    {console.log('=== RENDERING FILEEXPORTER END ===')}
+                                    <FileExporter 
+                                        tournamentInfo={tournamentData}
+                                        players={tournamentData.players?.map(tp => tp.players) || []}
+                                        results={tournamentData.results}
+                                    />
+                                </>
                             ) : (
                                 <div className="glass-card p-8 text-center">
                                     <Icon name="AlertCircle" size={48} className="mx-auto text-muted-foreground mb-4" />

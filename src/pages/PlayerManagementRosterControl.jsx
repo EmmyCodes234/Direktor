@@ -139,9 +139,9 @@ const PlayerManagementRosterControl = () => {
         let photoUrl = updatedPlayerData.photo_url;
 
         if (photoFile) {
-            const filePath = `public/${updatedPlayerData.id}/${photoFile.name}`;
+            const filePath = `${tournamentInfo.id}/player-avatars/${updatedPlayerData.id}/${photoFile.name}`;
             const { error: uploadError } = await supabase.storage
-                .from('player-avatars')
+                .from('tournament-photos')
                 .upload(filePath, photoFile, { upsert: true });
 
             if (uploadError) {
@@ -150,7 +150,7 @@ const PlayerManagementRosterControl = () => {
             }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('player-avatars')
+                .from('tournament-photos')
                 .getPublicUrl(filePath);
             photoUrl = publicUrl;
         }
@@ -257,7 +257,7 @@ const PlayerManagementRosterControl = () => {
             />
             <Toaster position="top-right" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         <DashboardSidebar tournamentSlug={tournamentSlug} />

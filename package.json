@@ -60,7 +60,8 @@
     "tailwindcss-animate": "^1.0.7",
     "tailwindcss-elevation": "^2.0.0",
     "tailwindcss-fluid-type": "^2.0.7",
-    "tsparticles-slim": "^2.12.0"
+    "tsparticles-slim": "^2.12.0",
+    "usehooks-ts": "^3.1.1"
   },
   "scripts": {
     "start": "vite",
@@ -91,11 +92,15 @@
     "@tailwindcss/container-queries": "^0.1.1",
     "@tailwindcss/line-clamp": "^0.1.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.8",
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "10.4.2",
     "postcss": "8.5.6",
     "supabase": "^2.31.8",
     "tailwindcss": "3.4.6",
+    "typescript": "^5.9.2",
     "vite": "5.4.19",
     "vite-tsconfig-paths": "3.6.0"
   }

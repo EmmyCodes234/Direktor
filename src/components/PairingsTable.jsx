@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardContent } from './ui/Card';
+import { Skeleton } from './ui/Skeleton';
+import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
+import { cn } from '../utils/cn';
 
 const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
   const [expandedRounds, setExpandedRounds] = useState(new Set());
@@ -80,22 +84,37 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className={LAYOUT_TEMPLATES.spacing.content}>
         {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg p-4"
           >
-            <div className="animate-pulse">
-              <div className="h-6 bg-border/20 rounded mb-3 w-1/3"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-border/20 rounded w-full"></div>
-                <div className="h-4 bg-border/20 rounded w-3/4"></div>
-              </div>
-            </div>
+            <Card variant="glass" padding="md">
+              <CardContent className="p-0">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 bg-muted rounded animate-pulse w-24"></div>
+                    <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+                      <div className="h-3 bg-muted rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="text-center">
+                      <div className="h-6 bg-muted rounded animate-pulse w-8"></div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+                      <div className="h-3 bg-muted rounded animate-pulse w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         ))}
       </div>
@@ -107,7 +126,7 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-12"
+        className={cn("text-center", LAYOUT_TEMPLATES.spacing.sectionLg)}
       >
         <div className="text-muted-foreground text-lg mb-2">
           No pairings available yet
@@ -120,54 +139,61 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={LAYOUT_TEMPLATES.spacing.content}>
       {/* Controls */}
-      <div className="flex flex-wrap gap-3 justify-between items-center">
+      <div className={cn("flex flex-wrap items-center justify-between gap-4", LAYOUT_TEMPLATES.spacing.contentSm)}>
         <div className="text-sm text-muted-foreground">
-          {Object.keys(groupedPairings).length} rounds • {pairings.length} total matches
+          {Object.keys(groupedPairings).length} rounds • {pairings.length} pairings
         </div>
-        <div className="flex gap-2">
+        
+        <div className="flex items-center gap-2">
           <button
             onClick={expandAll}
-            className="px-4 py-2 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors touch-target"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Expand All
           </button>
+          <span className="text-muted-foreground">•</span>
           <button
             onClick={collapseAll}
-            className="px-4 py-2 text-sm bg-border/20 hover:bg-border/30 text-foreground rounded-lg transition-colors touch-target"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Collapse All
           </button>
         </div>
       </div>
 
-      {/* Desktop Pairings */}
-      <div className="hidden md:block space-y-4">
-        {Object.entries(groupedPairings).map(([round, roundPairings], roundIndex) => (
-          <motion.div
-            key={round}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: roundIndex * 0.1 }}
-            className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg overflow-hidden"
-          >
+      {/* Rounds */}
+      {Object.entries(groupedPairings).map(([round, roundPairings]) => (
+        <motion.div
+          key={round}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: parseInt(round) * 0.05 }}
+        >
+          <Card variant="glass" padding="none" className="overflow-hidden">
             {/* Round Header */}
             <button
               onClick={() => toggleRound(round)}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-border/5 transition-colors"
+              className={cn(
+                "w-full px-6 py-4 flex items-center justify-between hover:bg-border/5 transition-colors",
+                LAYOUT_TEMPLATES.flex.between
+              )}
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-medium">
+                <div className={cn(
+                  "w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-medium"
+                )}>
                   {round}
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">Round {round}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {roundPairings.length} match{roundPairings.length !== 1 ? 'es' : ''}
+                    {roundPairings.length} pairing{roundPairings.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
+              
               {expandedRounds.has(round) ? (
                 <ChevronUp className="w-5 h-5 text-muted-foreground" />
               ) : (
@@ -177,162 +203,78 @@ const PairingsTable = ({ pairings, tournamentType, isLoading }) => {
 
             {/* Round Pairings */}
             {expandedRounds.has(round) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="border-t border-border/10"
-              >
-                <div className="p-6 space-y-3">
-                  {roundPairings.map((pairing, matchIndex) => {
-                    return (
-                      <motion.div
-                        key={pairing.key || `${round}-${matchIndex}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: matchIndex * 0.05 }}
-                        className="bg-surface/50 border border-border/10 rounded-lg p-4 hover:bg-surface/70 transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 flex-1">
-                            {/* Match Number */}
-                            <div className="text-sm font-medium text-muted-foreground min-w-[60px]">
-                              Match {matchIndex + 1}
+              <div className="divide-y divide-border/20">
+                {roundPairings.map((pairing, index) => {
+                  const matchStatus = tournamentType === 'best-of-league' 
+                    ? getBestOfLeagueStatus(pairing)
+                    : getMatchStatus(pairing);
+
+                  return (
+                    <motion.div
+                      key={pairing.id || index}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="px-6 py-4 hover:bg-surface/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-4">
+                            {/* Player 1 */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-foreground truncate">
+                                {pairing.player1_name || 'TBD'}
+                              </div>
+                              {tournamentType === 'best-of-league' ? (
+                                <div className="text-sm text-muted-foreground">
+                                  {pairing.player1_wins || 0} wins
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  Score: {pairing.player1_score || '-'}
+                                </div>
+                              )}
                             </div>
 
-                            {/* Players */}
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="flex-1 text-right">
-                                <div className="font-medium text-foreground">
-                                  Player {pairing.player1_id}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                <div className="text-lg font-bold text-muted-foreground">vs</div>
-                              </div>
-
-                              <div className="flex-1 text-left">
-                                <div className="font-medium text-foreground">
-                                  Player {pairing.player2_id}
-                                </div>
-                              </div>
+                            {/* VS */}
+                            <div className="text-center px-4">
+                              <div className="text-2xl font-bold text-muted-foreground">VS</div>
                             </div>
-                          </div>
 
-                          {/* Status */}
-                          <div className="ml-4">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Pending
-                            </span>
+                            {/* Player 2 */}
+                            <div className="flex-1 min-w-0 text-right">
+                              <div className="font-medium text-foreground truncate">
+                                {pairing.player2_name || 'TBD'}
+                              </div>
+                              {tournamentType === 'best-of-league' ? (
+                                <div className="text-sm text-muted-foreground">
+                                  {pairing.player2_wins || 0} wins
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  Score: {pairing.player2_score || '-'}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
-      </div>
 
-      {/* Mobile Pairings */}
-      <div className="md:hidden space-y-4">
-        {Object.entries(groupedPairings).map(([round, roundPairings], roundIndex) => (
-          <motion.div
-            key={round}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: roundIndex * 0.1 }}
-            className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl overflow-hidden"
-          >
-            {/* Round Header */}
-            <button
-              onClick={() => toggleRound(round)}
-              className="w-full px-4 py-4 flex items-center justify-between hover:bg-border/5 transition-colors touch-target"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center text-base font-semibold">
-                  {round}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground text-base">Round {round}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {roundPairings.length} match{roundPairings.length !== 1 ? 'es' : ''}
-                  </p>
-                </div>
+                        {/* Status */}
+                        <div className="ml-4 text-right">
+                          <div className={cn("text-sm font-medium", matchStatus.color)}>
+                            {matchStatus.label}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-              {expandedRounds.has(round) ? (
-                <ChevronUp className="w-6 h-6 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-6 h-6 text-muted-foreground" />
-              )}
-            </button>
-
-            {/* Round Pairings */}
-            {expandedRounds.has(round) && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="border-t border-border/10"
-              >
-                <div className="p-4 space-y-3">
-                  {roundPairings.map((pairing, matchIndex) => {
-                    return (
-                      <motion.div
-                        key={pairing.key || `${round}-${matchIndex}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: matchIndex * 0.05 }}
-                        className="bg-surface/50 border border-border/10 rounded-xl p-4 hover:bg-surface/70 transition-colors"
-                      >
-                        {/* Match Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-sm font-semibold text-primary">
-                            Match {matchIndex + 1}
-                          </div>
-                          <div className="text-sm font-medium text-muted-foreground">
-                            Pending
-                          </div>
-                        </div>
-
-                        {/* Players */}
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                            <div className="font-medium text-foreground text-base">
-                              Player {pairing.player1_id}
-                            </div>
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-semibold text-primary">1</span>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-center">
-                            <div className="text-lg font-bold text-muted-foreground bg-muted/20 px-4 py-1 rounded-full">
-                              vs
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg">
-                            <div className="font-medium text-foreground text-base">
-                              Player {pairing.player2_id}
-                            </div>
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <span className="text-sm font-semibold text-primary">2</span>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </motion.div>
             )}
-          </motion.div>
-        ))}
-      </div>
+          </Card>
+        </motion.div>
+      ))}
     </div>
   );
 };

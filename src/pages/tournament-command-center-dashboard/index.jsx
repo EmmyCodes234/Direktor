@@ -21,6 +21,7 @@ import useMediaQuery from '../../hooks/useMediaQuery';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import CarryoverStandingsTable from '../../components/players/CarryoverStandingsTable';
 import LadderStandingsTable from '../../components/players/LadderStandingsTable';
+import DashboardQuickNav from '../../components/dashboard/DashboardQuickNav';
 
 
 
@@ -54,6 +55,19 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
         <AnnouncementsManager />
         <TournamentStats players={players} recentResults={recentResults} tournamentInfo={tournamentInfo}/>
       </div>
+      
+      {/* Quick Navigation */}
+      <DashboardQuickNav 
+        tournamentSlug={tournamentSlug}
+        tournamentInfo={tournamentInfo}
+        ladderConfig={ladderConfig}
+        onAction={(action) => {
+          if (action === 'announcements') {
+            // Handle announcement action
+            console.log('Announcement action triggered');
+          }
+        }}
+      />
       
       {/* Pending Results Section */}
       {tournamentInfo?.is_remote_submission_enabled && (
@@ -1482,7 +1496,7 @@ const TournamentCommandCenterDashboard = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="h-12 w-12 bg-muted rounded animate-pulse mx-auto"></div>
           <p className="text-muted-foreground">Loading Tournament Dashboard...</p>
         </div>
       </div>
@@ -1543,12 +1557,16 @@ const TournamentCommandCenterDashboard = () => {
           tournamentId={tournamentInfo?.id}
           matches={matches}
       />
-      <main className="layout-mobile-content">
+      <main className="layout-mobile-content pt-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 pb-20 sm:pb-6">
             {isDesktop ? (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
                     <div className="hidden lg:block">
-                      <DashboardSidebar tournamentSlug={tournamentSlug} />
+                      <DashboardSidebar 
+                        tournamentSlug={tournamentSlug} 
+                        tournamentInfo={tournamentInfo}
+                        ladderConfig={ladderConfig}
+                      />
                     </div>
                     <div className="lg:col-span-3">
                       <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }} />
@@ -1561,7 +1579,11 @@ const TournamentCommandCenterDashboard = () => {
             )}
         </div>
       </main>
-      {!isDesktop && <MobileNavBar tournamentSlug={tournamentSlug} />}
+      {!isDesktop && <MobileNavBar 
+        tournamentSlug={tournamentSlug} 
+        tournamentInfo={tournamentInfo}
+        ladderConfig={ladderConfig}
+      />}
     </div>
   );
 };

@@ -4,14 +4,17 @@ import { store } from "./store";
 import Routes from "./Routes";
 import { OnboardingProvider } from "./components/onboarding/OnboardingProvider";
 import OnboardingModal from "./components/onboarding/OnboardingModal";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   return (
     <Provider store={store}>
-      <OnboardingProvider>
-        <Routes />
-        <OnboardingModal />
-      </OnboardingProvider>
+      <ThemeProvider>
+        <OnboardingProvider>
+          <Routes />
+          <OnboardingModal />
+        </OnboardingProvider>
+      </ThemeProvider>
     </Provider>
   );
 }

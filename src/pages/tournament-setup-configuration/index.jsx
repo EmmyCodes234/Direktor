@@ -436,7 +436,7 @@ const TournamentSetupConfiguration = () => {
           />
         )}
       </AnimatePresence>
-      <main className="pt-20 pb-12">
+              <main className="pt-16 pb-12">
         <div className="max-w-4xl mx-auto px-4 lg:px-6">
           <div className="text-center mb-12 lg:mb-16">
             <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gradient mb-4">

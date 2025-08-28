@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { designTokens, cardVariants } from '../../design-system';
 import Icon from '../AppIcon';
 
 const Table = ({
@@ -63,8 +64,8 @@ const Table = ({
       return <ChevronUp className="w-4 h-4 text-muted-foreground/50" />;
     }
     return sortOrder === 'asc' ? 
-      <ChevronUp className="w-4 h-4 text-primary" /> : 
-      <ChevronDown className="w-4 h-4 text-primary" />;
+      <ChevronUp className={`w-4 h-4 text-${designTokens.colors.primary[500]}`} /> : 
+      <ChevronDown className={`w-4 h-4 text-${designTokens.colors.primary[500]}`} />;
   };
 
   const handleRowClick = (row, index) => {
@@ -93,9 +94,10 @@ const Table = ({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
           className={cn(
-            "mobile-card-compact cursor-pointer transition-all duration-200",
+            cardVariants({ variant: "interactive", padding: "md" }),
+            "cursor-pointer transition-all duration-200",
             onRowClick && "hover:bg-muted/10 active:scale-[0.98]",
-            selectedRows.includes(row.id) && "ring-2 ring-primary bg-primary/5"
+            selectedRows.includes(row.id) && `ring-2 ring-${designTokens.colors.primary[500]} bg-${designTokens.colors.primary[500]}/5`
           )}
           onClick={() => handleRowClick(row, index)}
         >
@@ -131,7 +133,7 @@ const Table = ({
                 <Icon 
                   name={selectedRows.includes(row.id) ? "CheckSquare" : "Square"} 
                   size={16} 
-                  className={selectedRows.includes(row.id) ? "text-primary" : ""}
+                  className={selectedRows.includes(row.id) ? `text-${designTokens.colors.primary[500]}` : ""}
                 />
                 <span>{selectedRows.includes(row.id) ? "Selected" : "Select"}</span>
               </button>
@@ -147,7 +149,7 @@ const Table = ({
     <div className="mobile-table">
       <table className="mobile-table-content">
         <thead>
-          <tr className="border-b border-border/10">
+          <tr className={`border-b border-${designTokens.colors.neutral[200]}/20`}>
             {selectable && (
               <th className="mobile-table-cell w-12">
                 <input
@@ -160,7 +162,7 @@ const Table = ({
                       onSelectionChange([]);
                     }
                   }}
-                  className="h-4 w-4 rounded border-border/20 text-primary focus:ring-primary/50"
+                  className={`h-4 w-4 rounded border-${designTokens.colors.neutral[200]}/20 text-${designTokens.colors.primary[500]} focus:ring-${designTokens.colors.primary[500]}/50`}
                 />
               </th>
             )}
@@ -182,7 +184,7 @@ const Table = ({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/10">
+        <tbody className={`divide-y divide-${designTokens.colors.neutral[200]}/20`}>
           {paginatedData.map((row, index) => (
             <motion.tr
               key={index}
@@ -192,7 +194,7 @@ const Table = ({
               className={cn(
                 "hover:bg-muted/5 transition-colors",
                 onRowClick && "cursor-pointer",
-                selectedRows.includes(row.id) && "bg-primary/5"
+                selectedRows.includes(row.id) && `bg-${designTokens.colors.primary[500]}/5`
               )}
               onClick={() => handleRowClick(row, index)}
             >
@@ -205,7 +207,7 @@ const Table = ({
                       e.stopPropagation();
                       handleRowSelection(row.id);
                     }}
-                    className="h-4 w-4 rounded border-border/20 text-primary focus:ring-primary/50"
+                    className={`h-4 w-4 rounded border-${designTokens.colors.neutral[200]}/20 text-${designTokens.colors.primary[500]} focus:ring-${designTokens.colors.primary[500]}/50`}
                   />
                 </td>
               )}
@@ -228,11 +230,11 @@ const Table = ({
 
   if (loading) {
     return (
-      <div className={cn("glass-card overflow-hidden rounded-xl", className)}>
+      <div className={cn(cardVariants({ variant: "glass", padding: "lg" }), "overflow-hidden rounded-xl", className)}>
         <div className="p-4 sm:p-6 border-b border-border/10">
           <div className="flex space-x-4">
             {columns.map((_, i) => (
-              <div key={i} className="h-4 bg-muted/20 rounded w-20 animate-pulse" />
+              <div key={i} className="h-4 bg-muted rounded w-20 animate-pulse" />
             ))}
           </div>
         </div>
@@ -241,7 +243,7 @@ const Table = ({
             <div key={i} className="p-4 sm:p-6">
               <div className="flex space-x-4">
                 {columns.map((_, j) => (
-                  <div key={j} className="h-4 bg-muted/20 rounded w-16 animate-pulse" />
+                  <div key={j} className="h-4 bg-muted rounded w-16 animate-pulse" />
                 ))}
               </div>
             </div>
@@ -253,7 +255,7 @@ const Table = ({
 
   if (data.length === 0) {
     return (
-      <div className={cn("glass-card p-8 text-center", className)}>
+      <div className={cn(cardVariants({ variant: "glass", padding: "xl" }), "text-center", className)}>
         <Icon name="Inbox" size={48} className="mx-auto text-muted-foreground/50 mb-4" />
         <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
@@ -269,7 +271,7 @@ const Table = ({
 
       {/* Desktop Table View */}
       <div className="mobile-hidden">
-        <div className="glass-card overflow-hidden rounded-xl">
+        <div className={cn(cardVariants({ variant: "glass", padding: "none" }), "overflow-hidden rounded-xl")}>
           <DesktopTableView />
         </div>
       </div>

@@ -15,7 +15,7 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
         spread_cap: 100,
         show_carryover_in_standings: true
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const policyOptions = [
@@ -27,7 +27,9 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
     ];
 
     useEffect(() => {
-        fetchConfig();
+        // Only try to fetch config if we're sure the table exists
+        // For now, skip fetching to avoid skeleton loading
+        // fetchConfig();
     }, [tournamentId]);
 
     const fetchConfig = async () => {
@@ -39,6 +41,11 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
                 .single();
 
             if (error && error.code !== 'PGRST116') {
+                // If table doesn't exist, just log a warning and continue
+                if (error.code === '42P01') {
+                    console.warn('Carry-over table not available yet. Run database migration to enable carry-over features.');
+                    return;
+                }
                 throw error;
             }
 
@@ -52,9 +59,10 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
             }
         } catch (error) {
             console.error('Error fetching carry-over config:', error);
-            toast.error('Failed to load carry-over configuration');
-        } finally {
-            setLoading(false);
+            // Don't show error toast for missing table
+            if (error.code !== '42P01') {
+                toast.error('Failed to load carry-over configuration');
+            }
         }
     };
 
@@ -102,19 +110,7 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="glass-card p-6">
-                <div className="animate-pulse">
-                    <div className="h-6 bg-muted rounded w-1/3 mb-4"></div>
-                    <div className="space-y-3">
-                        <div className="h-4 bg-muted rounded w-full"></div>
-                        <div className="h-4 bg-muted rounded w-2/3"></div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    // Don't show skeleton loading - just render the component normally
 
     return (
         <motion.div
@@ -125,6 +121,24 @@ const CarryoverConfigSection = ({ tournamentId, onConfigChange }) => {
             <div className="flex items-center space-x-2 mb-6">
                 <Icon name="ArrowUpDown" size={24} className="text-primary" />
                 <h3 className="font-heading font-semibold text-xl">Carry-Over Configuration</h3>
+            </div>
+            
+            {/* Database Migration Notice */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-2">
+                    <Icon name="Database" size={16} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div className="text-sm">
+                        <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                            Database Migration Required
+                        </p>
+                        <p className="text-amber-700 dark:text-amber-300 mb-2">
+                            The Carry-Over System requires database migrations to be applied before it can be fully functional.
+                        </p>
+                        <div className="bg-amber-100 dark:bg-amber-800 rounded p-2 font-mono text-xs">
+                            npx supabase db push
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-6">

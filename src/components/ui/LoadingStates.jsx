@@ -100,22 +100,31 @@ const Bar = ({ className }) => {
   );
 };
 
-// Skeleton components
-export const Skeleton = ({ className, ...props }) => {
+// Skeleton components - Replaced with simple loading
+export const Skeleton = ({ size = LoadingSizes.MD, className, ...props }) => {
+  const sizeClasses = {
+    [LoadingSizes.SM]: 'h-4 w-4',
+    [LoadingSizes.MD]: 'h-6 w-6',
+    [LoadingSizes.LG]: 'h-8 w-8',
+    [LoadingSizes.XL]: 'h-12 w-12',
+  };
+
   return (
-    <div
-      className={cn('animate-pulse bg-muted rounded', className)}
-      {...props}
-    />
+    <div className={cn('flex items-center justify-center py-4', className)} {...props}>
+      <div className={cn('animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full', sizeClasses[size])}></div>
+    </div>
   );
 };
 
 export const CardSkeleton = ({ className }) => {
   return (
-    <div className={cn('glass-card p-6 space-y-4', className)}>
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
-      <Skeleton className="h-3 w-2/3" />
+    <div className={cn('glass-card p-6', className)}>
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -136,7 +145,7 @@ export const TableSkeleton = ({ rows = 5, columns = 4, className }) => {
 
 // Main loading component
 const Loading = ({ 
-  type = LoadingTypes.SPINNER, 
+  type = LoadingTypes.SKELETON, 
   size = LoadingSizes.MD, 
   text = 'Loading...',
   className,
@@ -145,6 +154,8 @@ const Loading = ({
 }) => {
   const renderLoader = () => {
     switch (type) {
+      case LoadingTypes.SKELETON:
+        return <Skeleton size={size} />;
       case LoadingTypes.SPINNER:
         return <Spinner size={size} />;
       case LoadingTypes.DOTS:
@@ -154,7 +165,7 @@ const Loading = ({
       case LoadingTypes.BAR:
         return <Bar />;
       default:
-        return <Spinner size={size} />;
+        return <Skeleton size={size} />;
     }
   };
 
@@ -190,10 +201,10 @@ const Loading = ({
 export const LoadingWrapper = ({ 
   loading, 
   children, 
-  type = LoadingTypes.SPINNER,
+  type = LoadingTypes.SKELETON,
   size = LoadingSizes.MD,
   text = 'Loading...',
-  skeleton = false,
+  skeleton = true,
   skeletonProps = {},
   className,
 }) => {
@@ -218,7 +229,7 @@ export const LoadingWrapper = ({
 export const PageLoading = ({ text = 'Loading page...' }) => {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <Loading type={LoadingTypes.SPINNER} size={LoadingSizes.LG} text={text} />
+      <Loading type={LoadingTypes.SKELETON} size={LoadingSizes.LG} text={text} />
     </div>
   );
 };
@@ -227,27 +238,21 @@ export const PageLoading = ({ text = 'Loading page...' }) => {
 export const InlineLoading = ({ text = 'Loading...' }) => {
   return (
     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-      <Spinner size={LoadingSizes.SM} />
+      <Skeleton size={LoadingSizes.SM} />
       <span>{text}</span>
     </div>
   );
 };
 
-// Enhanced Loading Components
+// Enhanced Loading Components - Now using skeleton loading
 const LoadingCard = ({ className = "", lines = 3, showIcon = true }) => (
     <div className={cn("glass-card p-6", className)}>
-        {showIcon && (
-            <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-muted/20 rounded-lg animate-pulse" />
-                <div className="h-4 bg-muted/20 rounded w-24 animate-pulse" />
-            </div>
-        )}
-        <div className="space-y-2">
+        <div className="space-y-4">
+            {showIcon && (
+                <div className="h-6 bg-muted rounded animate-pulse w-1/4"></div>
+            )}
             {Array.from({ length: lines }).map((_, i) => (
-                <div
-                    key={i}
-                    className="h-4 bg-muted/20 rounded animate-pulse"
-                />
+                <div key={i} className="h-4 bg-muted rounded animate-pulse w-full"></div>
             ))}
         </div>
     </div>
@@ -255,21 +260,12 @@ const LoadingCard = ({ className = "", lines = 3, showIcon = true }) => (
 
 const LoadingTable = ({ rows = 5, columns = 4 }) => (
     <div className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-border/10">
-            <div className="flex space-x-4">
-                {Array.from({ length: columns }).map((_, i) => (
-                    <div key={i} className="h-4 bg-muted/20 rounded w-20 animate-pulse" />
-                ))}
-            </div>
-        </div>
-        <div className="divide-y divide-border/10">
+        <div className="space-y-4 p-6">
             {Array.from({ length: rows }).map((_, i) => (
-                <div key={i} className="p-4">
-                    <div className="flex space-x-4">
-                        {Array.from({ length: columns }).map((_, j) => (
-                            <div key={j} className="h-4 bg-muted/20 rounded w-16 animate-pulse" />
-                        ))}
-                    </div>
+                <div key={i} className="flex space-x-4">
+                    {Array.from({ length: columns }).map((_, j) => (
+                        <div key={j} className="h-4 bg-muted rounded animate-pulse flex-1"></div>
+                    ))}
                 </div>
             ))}
         </div>
@@ -277,7 +273,7 @@ const LoadingTable = ({ rows = 5, columns = 4 }) => (
 );
 
 const LoadingButton = ({ className = "" }) => (
-    <div className={cn("h-10 bg-muted/20 rounded-lg animate-pulse", className)} />
+    <div className={cn("h-10 bg-muted rounded-lg animate-pulse", className)} />
 );
 
 const EmptyState = ({ icon, title, description, action, className = "" }) => (
@@ -289,14 +285,4 @@ const EmptyState = ({ icon, title, description, action, className = "" }) => (
     </div>
 );
 
-export default Loading;
-export { 
-    Spinner, 
-    Dots, 
-    Pulse, 
-    Bar, 
-    LoadingCard, 
-    LoadingTable, 
-          LoadingButton, 
-      EmptyState 
-    }; 
+export default Loading; 

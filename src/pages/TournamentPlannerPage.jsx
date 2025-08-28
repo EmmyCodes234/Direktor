@@ -76,7 +76,7 @@ const TournamentPlannerPage = () => {
         <div className="min-h-screen bg-background">
             <Toaster position="top-center" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                 <div className="max-w-2xl mx-auto px-6">
                     <div className="text-center mb-8">
                         <Icon name="Bot" size={48} className="mx-auto text-primary mb-4" />
@@ -104,9 +104,9 @@ const TournamentPlannerPage = () => {
                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-3">
                                         <Icon name="Bot" className="text-primary mt-1 shrink-0" />
                                         <div className="max-w-sm p-3 rounded-lg bg-muted/30 flex items-center space-x-2">
-                                            <span className="w-2 h-2 bg-foreground rounded-full animate-pulse delay-0"></span>
-                                            <span className="w-2 h-2 bg-foreground rounded-full animate-pulse delay-150"></span>
-                                            <span className="w-2 h-2 bg-foreground rounded-full animate-pulse delay-300"></span>
+                                            <div className="w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
+                                            <div className="w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
+                                            <div className="w-2 h-2 bg-foreground rounded-full animate-pulse"></div>
                                         </div>
                                     </motion.div>
                                 )}

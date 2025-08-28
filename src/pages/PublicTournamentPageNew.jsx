@@ -32,6 +32,7 @@ const PublicTournamentPageNew = () => {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [showSubmissionModal, setShowSubmissionModal] = useState(false);
     const [showPairingsDropdown, setShowPairingsDropdown] = useState(true);
+    const [selectedPlayerForStats, setSelectedPlayerForStats] = useState(null);
     const isMobile = !useMediaQuery('(min-width: 1024px)');
 
     // Simple recalculate ranks function
@@ -168,7 +169,7 @@ const PublicTournamentPageNew = () => {
             console.log('👥 Step 2: Getting players...');
             const { data: playersData, error: playersError } = await supabase
                 .from('tournament_players')
-                .select('*, players(id, name, rating, slug)')
+                .select('*, players(id, name, rating, slug, photo_url)')
                 .eq('tournament_id', tournamentData.id);
             
             if (playersError) throw playersError;
@@ -202,7 +203,15 @@ const PublicTournamentPageNew = () => {
                 name: p.name,
                 wins: p.wins,
                 match_wins: p.match_wins,
-                rank: p.rank
+                rank: p.rank,
+                photo_url: p.photo_url
+            })));
+            
+            // Debug photo URLs
+            console.log('📸 Photo URL Debug:', combinedPlayers.map(p => ({
+                name: p.name,
+                photo_url: p.photo_url,
+                has_photo: !!p.photo_url
             })));
             
         } catch (error) {
@@ -220,8 +229,8 @@ const PublicTournamentPageNew = () => {
 
     const handlePlayerClick = (e, player) => {
         e.preventDefault();
-        if (player?.slug) {
-            navigate(`/players/${player.slug}`);
+        if (player) {
+            setSelectedPlayerForStats(player);
         }
     };
 
@@ -273,14 +282,120 @@ const PublicTournamentPageNew = () => {
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-            <div className="text-center">
-                <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-muted-foreground text-sm">Loading Tournament Portal...</p>
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-background text-foreground">
+                {/* Skeleton Header */}
+                <div className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border/20 shadow-lg">
+                    <div className="p-4">
+                        <div className="h-8 bg-muted rounded animate-pulse w-1/3 mx-auto"></div>
+                    </div>
+                </div>
+                
+                {/* Skeleton Ticker */}
+                <div className="fixed top-20 left-0 right-0 z-[90] bg-card border-b border-border/20 shadow-md">
+                    <div className="p-3">
+                        <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                    </div>
+                </div>
+                
+                {/* Skeleton Content */}
+                <main className="pt-28 pb-20 lg:pt-24 lg:pb-10">
+                    <div className="w-full px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
+                        <div className="space-y-6">
+                            {/* Skeleton Announcements */}
+                            <div className="bg-card border border-border/20 rounded-lg p-6">
+                                <div className="space-y-3">
+                                    <div className="h-6 bg-muted rounded animate-pulse w-1/4"></div>
+                                    <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+                                    <div className="h-4 bg-muted rounded animate-pulse w-3/4"></div>
+                                </div>
+                            </div>
+                            
+                            {/* Skeleton Standings */}
+                            <div className="bg-card border border-border/20 rounded-lg p-6">
+                                <div className="space-y-4">
+                                    <div className="h-6 bg-muted rounded animate-pulse w-1/3 mx-auto"></div>
+                                    {[...Array(5)].map((_, i) => (
+                                        <div key={i} className="flex items-center space-x-4 p-4 border border-border/20 rounded-lg">
+                                            <div className="w-12 h-12 bg-muted rounded-full animate-pulse"></div>
+                                            <div className="flex-1 space-y-2">
+                                                <div className="h-4 bg-muted rounded animate-pulse w-1/2"></div>
+                                                <div className="h-3 bg-muted rounded animate-pulse w-1/4"></div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                                                <div className="h-4 bg-muted rounded animate-pulse w-20"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Skeleton Pairings */}
+                            <div className="bg-card border border-border/20 rounded-lg p-6">
+                                <div className="space-y-4">
+                                    <div className="h-6 bg-muted rounded animate-pulse w-1/4 mx-auto"></div>
+                                    {[...Array(3)].map((_, i) => (
+                                        <div key={i} className="bg-muted/10 border border-border/20 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="h-4 bg-muted rounded animate-pulse w-20"></div>
+                                                <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                                            </div>
+                                            <div className="flex items-center justify-center space-x-4">
+                                                <div className="flex-1 text-center space-y-2">
+                                                    <div className="h-4 bg-muted rounded animate-pulse w-3/4 mx-auto"></div>
+                                                    <div className="h-3 bg-muted rounded animate-pulse w-1/2 mx-auto"></div>
+                                                </div>
+                                                <div className="mx-4">
+                                                    <div className="h-6 bg-muted rounded animate-pulse w-8"></div>
+                                                </div>
+                                                <div className="flex-1 text-center space-y-2">
+                                                    <div className="h-4 bg-muted rounded animate-pulse w-3/4 mx-auto"></div>
+                                                    <div className="h-3 bg-muted rounded animate-pulse w-1/2 mx-auto"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Skeleton Roster */}
+                            <div className="bg-card border border-border/20 rounded-lg p-6">
+                                <div className="space-y-4">
+                                    <div className="h-6 bg-muted rounded animate-pulse w-1/4 mx-auto"></div>
+                                    <div className="space-y-2">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="flex items-center space-x-4 p-4 border border-border/20 rounded-lg">
+                                                <div className="w-12 h-12 bg-muted rounded-full animate-pulse"></div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="h-4 bg-muted rounded animate-pulse w-1/2"></div>
+                                                    <div className="h-3 bg-muted rounded animate-pulse w-1/4"></div>
+                                                </div>
+                                                <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                
+                {/* Skeleton Mobile Navigation */}
+                <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card border-t border-border/20 shadow-lg">
+                    <div className="flex justify-around p-4">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="flex flex-col items-center space-y-2">
+                                <div className="w-6 h-6 bg-muted rounded animate-pulse"></div>
+                                <div className="h-3 bg-muted rounded animate-pulse w-12"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
     
     if (!tournament) return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center p-4">
@@ -298,48 +413,58 @@ const PublicTournamentPageNew = () => {
         <div className="min-h-screen bg-background text-foreground">
             <Toaster position="top-center" richColors />
             <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} players={players} />
+            <PlayerStatsModal 
+                player={selectedPlayerForStats} 
+                results={results} 
+                onClose={() => setSelectedPlayerForStats(null)} 
+                onSelectPlayer={(name) => setSelectedPlayerForStats(players.find(p => p.name === name))} 
+                players={players}
+                tournamentType={tournament?.type}
+                tournamentId={tournament?.id}
+                matches={matches}
+            />
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
 
             {/* Mobile Header */}
-            <header className="fixed top-0 left-0 right-0 z-[9999] bg-background border-b border-border/20">
+            <header className="fixed top-0 left-0 right-0 z-[9999] bg-card border-b border-border/20 shadow-lg">
                 <div className="w-full px-4 py-4">
                     <div className="text-center">
-                        <h1 className="text-xl font-bold text-blue-400 leading-tight truncate">{tournament.name}</h1>
+                        <h1 className="text-xl font-bold text-primary leading-tight truncate">{tournament.name}</h1>
                         <p className="text-sm text-muted-foreground leading-relaxed truncate mt-1">{tournament.venue} • {formattedDate}</p>
                     </div>
                 </div>
             </header>
             
             {/* Mobile Bottom Navigation */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-background border-t border-border/20 pb-safe">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[9998] bg-card border-t border-border/20 pb-safe shadow-lg">
                 <div className="px-4 py-3">
                     <div className={`grid gap-2 ${tournament.is_remote_submission_enabled ? 'grid-cols-5' : 'grid-cols-4'}`}>
                         <button 
                             onClick={() => scrollToRef({ current: document.getElementById('standings') })}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation"
                         >
                             <Icon name="Trophy" size={20} className="text-primary mb-1"/>
                             <span className="text-xs font-medium text-foreground">Standings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef({ current: document.getElementById('pairings') })}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation"
                         >
                             <Icon name="Swords" size={20} className="text-primary mb-1"/>
                             <span className="text-xs font-medium text-foreground">Pairings</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef({ current: document.getElementById('roster') })}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation"
                         >
                             <Icon name="Users" size={20} className="text-primary mb-1"/>
                             <span className="text-xs font-medium text-foreground">Roster</span>
                         </button>
                         <button 
                             onClick={() => scrollToRef({ current: document.getElementById('stats') })}
-                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-muted/20 active:bg-muted/30 transition-colors touch-manipulation"
+                            className="flex flex-col items-center justify-center py-2 px-1 rounded-lg hover:bg-primary/10 active:bg-primary/20 transition-colors touch-manipulation"
                         >
                             <Icon name="BarChart2" size={20} className="text-primary mb-1"/>
                             <span className="text-xs font-medium text-foreground">Stats</span>
@@ -347,9 +472,9 @@ const PublicTournamentPageNew = () => {
                         {tournament.is_remote_submission_enabled && (
                             <button 
                                 onClick={() => setShowSubmissionModal(true)}
-                                className="flex flex-col items-center justify-center py-2 px-1 rounded-lg bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors touch-manipulation"
+                                className="flex flex-col items-center justify-center py-2 px-1 rounded-lg bg-accent/20 hover:bg-accent/30 active:bg-accent/40 transition-colors touch-manipulation"
                             >
-                                <Icon name="Send" size={20} className="text-primary mb-1"/>
+                                <Icon name="Send" size={20} className="text-accent mb-1"/>
                                 <span className="text-xs font-medium text-foreground">Submit</span>
                             </button>
                         )}
@@ -358,12 +483,12 @@ const PublicTournamentPageNew = () => {
             </nav>
             
             {/* Ticker */}
-            <div className="fixed top-20 left-0 right-0 z-[90] bg-background border-b border-border/20">
+            <div className="fixed top-20 left-0 right-0 z-[90] bg-card border-b border-border/20 shadow-md">
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
             {/* Main Content */}
-            <main className="pt-32 pb-20 lg:pt-28 lg:pb-10">
+            <main className="pt-28 pb-20 lg:pt-24 lg:pb-10">
                 <div className="w-full px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
                     <div className="space-y-6">
                         <AnnouncementsDisplay />
@@ -379,6 +504,7 @@ const PublicTournamentPageNew = () => {
                                 players={players} 
                                 tournamentType={tournament?.type} 
                                 isLoading={loading}
+                                onPlayerClick={(player) => setSelectedPlayerForStats(player)}
                             />
                         </section>
 
@@ -430,17 +556,17 @@ const PublicTournamentPageNew = () => {
                                                                 <span className="text-sm text-muted-foreground">{division}</span>
                                                             </div>
                                                             <div className="flex items-center justify-center space-x-4 mt-3">
-                                                                <a href={`/players/${player1?.slug}`} onClick={(e) => handlePlayerClick(e, player1)} className="flex-1 text-center hover:underline">
+                                                                <div className="flex-1 text-center">
                                                                     <div className="font-medium text-base">{player1Name}</div>
                                                                     <div className="text-sm text-muted-foreground">Seed #{player1?.seed || 'TBD'}</div>
-                                                                </a>
+                                                                </div>
                                                                 <div className="mx-4">
                                                                     <span className="text-lg font-bold text-muted-foreground bg-muted/20 px-3 py-1 rounded">VS</span>
                                                                 </div>
-                                                                <a href={`/players/${player2?.slug}`} onClick={(e) => handlePlayerClick(e, player2)} className="flex-1 text-center hover:underline">
+                                                                <div className="flex-1 text-center">
                                                                     <div className="font-medium text-base">{player2Name}</div>
                                                                     <div className="text-sm text-muted-foreground">Seed #{player2?.seed || 'TBD'}</div>
-                                                                </a>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     );
@@ -464,50 +590,94 @@ const PublicTournamentPageNew = () => {
                         </section>
 
                         <section id="roster">
-                            <h2 className="text-xl font-bold mb-4 flex items-center justify-center">
-                                <Icon name="Users" className="mr-2 text-primary" size={20}/>Player Roster
-                            </h2>
-                            <div className="bg-card border border-border/20 rounded-lg overflow-hidden">
-                                <div className="divide-y divide-border/20">
-                                    {sortedRoster.map((p, index) => (
-                                        <div key={p.id} className="p-4">
-                                            <div className="flex items-center justify-center space-x-4">
-                                                <span className="text-sm font-mono text-muted-foreground bg-muted/20 px-2 py-1 rounded">{index + 1}</span>
-                                                <div className="text-center">
-                                                    <a href={`/players/${p.slug}`} onClick={(e) => handlePlayerClick(e, p)} className="font-medium hover:underline text-base">{p.name}</a>
-                                                    {tournament.type === 'team' && p.team_id && (
-                                                        <div className="text-sm text-accent">{teamMap.get(p.team_id) || 'Unknown Team'}</div>
-                                                    )}
-                                                </div>
-                                                <span className="text-sm font-mono text-muted-foreground bg-primary/10 px-2 py-1 rounded">{p.rating}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-foreground mb-4 flex items-center justify-center">
+                                    <Icon name="Users" className="mr-3 text-primary" size={24}/>
+                                    Player Roster
+                                </h2>
+                                <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
+                                    Meet the talented players competing in this tournament.
+                                </p>
                             </div>
+                            
+                            {/* Simple Table Layout */}
+                            <div className="bg-card border border-border/20 rounded-xl overflow-hidden">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-border/20">
+                                            <th className="text-left p-6 font-semibold text-foreground">Seed</th>
+                                            <th className="text-left p-6 font-semibold text-foreground">Player</th>
+                                            <th className="text-right p-6 font-semibold text-foreground">Rating</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {(() => {
+                                            const sortedPlayers = sortedRoster.sort((a, b) => (a.seed || 999) - (b.seed || 999));
+                                            console.log('🎯 Roster Debug - First 3 players:', sortedPlayers.slice(0, 3).map(p => ({
+                                                name: p.name,
+                                                photo_url: p.photo_url,
+                                                has_photo: !!p.photo_url
+                                            })));
+                                            return sortedPlayers.map((p, index) => (
+                                            <tr key={p.id} className="border-b border-border/20 hover:bg-muted/5 transition-colors duration-200">
+                                                <td className="p-6">
+                                                    <span className="text-lg font-mono text-muted-foreground bg-muted/20 px-4 py-2 rounded-lg font-semibold">
+                                                        {p.seed || index + 1}
+                                                    </span>
+                                                </td>
+                                                <td className="p-6">
+                                                    <div className="flex items-center space-x-4">
+                                                        {/* Player Avatar */}
+                                                        {p.photo_url ? (
+                                                            <img 
+                                                                src={p.photo_url} 
+                                                                alt={p.name} 
+                                                                className="w-12 h-12 rounded-full object-cover"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                    e.target.nextSibling.style.display = 'flex';
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg ${p.photo_url ? 'hidden' : ''}`}>
+                                                            {p.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                                        </div>
+                                                        {/* Player Name */}
+                                                        <a 
+                                                            href={`/players/${p.slug}`} 
+                                                            onClick={(e) => handlePlayerClick(e, p)} 
+                                                            className="font-semibold text-lg hover:text-primary transition-colors cursor-pointer"
+                                                        >
+                                                            {p.name}
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                                <td className="p-6 text-right">
+                                                    <span className="text-lg font-mono text-primary font-bold">
+                                                        {p.rating}
+                                                    </span>
+                                                </td>
+                                                                                         </tr>
+                                         ));
+                                         })()}
+                                     </tbody>
+                                </table>
+                            </div>
+                            
+                            {/* Empty State */}
+                            {sortedRoster.length === 0 && (
+                                <div className="text-center py-16">
+                                    <Icon name="Users" size={64} className="mx-auto text-muted-foreground/50 mb-4" />
+                                    <h3 className="text-xl font-semibold text-foreground mb-2">No Players Found</h3>
+                                    <p className="text-muted-foreground">The tournament roster is currently empty.</p>
+                                </div>
+                            )}
                         </section>
                     </div>
                 </div>
             </main>
 
-            {/* Desktop Floating Share Button */}
-            <div className="hidden lg:block fixed bottom-6 right-6 z-50">
-                <ShareButton
-                    variant="default"
-                    size="default"
-                    shareData={{
-                        type: 'tournament',
-                        data: {
-                            shareTournament: () => tournamentSharing.shareTournament(tournament, window.location.href, players)
-                        }
-                    }}
-                    platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
-                    position="top-left"
-                    className="shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                    <Icon name="Share2" size={20} />
-                </ShareButton>
-            </div>
+
         </div>
     );
 };

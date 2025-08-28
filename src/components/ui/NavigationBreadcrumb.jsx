@@ -51,18 +51,18 @@ const NavigationBreadcrumb = () => {
   };
 
   return (
-    <nav className="flex items-center space-x-2 px-6 py-3 text-sm text-muted-foreground">
-      <Icon name="Home" size={14} className="text-muted-foreground" />
+    <nav className="flex items-center space-x-2 px-6 py-3 text-sm text-hero-secondary">
+      <Icon name="Home" size={14} className="text-hero-secondary" />
       {breadcrumbs.map((crumb, index) => (
         <React.Fragment key={crumb.path || index}>
-          <Icon name="ChevronRight" size={14} className="text-muted-foreground/50" />
+          <Icon name="ChevronRight" size={14} className="text-hero-secondary/50" />
           <button
             onClick={() => handleBreadcrumbClick(crumb.path)}
             className={`
               font-medium transition-colors duration-200
               ${index === breadcrumbs.length - 1
-                ? 'text-foreground cursor-default'
-                : 'text-muted-foreground hover:text-foreground cursor-pointer'
+                ? 'text-hero-primary cursor-default'
+                : 'text-hero-secondary hover:text-hero-primary cursor-pointer'
               }
             `}
             disabled={index === breadcrumbs.length - 1}

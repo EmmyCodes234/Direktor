@@ -7,7 +7,10 @@ const LadderSystemStatus = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        checkLadderSystemStatus();
+        // Skip checking status for now to avoid loading states
+        // checkLadderSystemStatus();
+        setStatus('unavailable');
+        setLoading(false);
     }, []);
 
     const checkLadderSystemStatus = async () => {

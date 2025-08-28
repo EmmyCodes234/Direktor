@@ -589,12 +589,12 @@ const PhotoDatabaseManager = ({
                       >
                         {isUploading ? (
                           <>
-                            <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                            <div className="mr-2 h-4 w-4 bg-muted rounded animate-pulse" />
                             Uploading... {uploadProgress}%
                           </>
                         ) : isProcessing ? (
                           <>
-                            <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                            <div className="mr-2 h-4 w-4 bg-muted rounded animate-pulse" />
                             Processing Photos...
                           </>
                         ) : (

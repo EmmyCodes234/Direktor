@@ -1,6 +1,7 @@
 import React from "react";
 import { Check, Minus } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { designTokens } from "../../design-system";
 
 const Checkbox = React.forwardRef(({
     className,
@@ -12,18 +13,19 @@ const Checkbox = React.forwardRef(({
     label,
     description,
     error,
-    size = "default",
+    size = "md",
     onCheckedChange, // Destructure the onCheckedChange prop
     ...props
 }, ref) => {
     // Generate unique ID if not provided
     const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Size variants
+    // Size variants using design tokens
     const sizeClasses = {
         sm: "h-4 w-4",
-        default: "h-4 w-4",
-        lg: "h-5 w-5"
+        md: "h-4 w-4",
+        lg: "h-5 w-5",
+        xl: "h-6 w-6"
     };
 
     return (
@@ -45,11 +47,15 @@ const Checkbox = React.forwardRef(({
                 <label
                     htmlFor={checkboxId}
                     className={cn(
-                        "peer shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground cursor-pointer transition-colors flex items-center justify-center", // Added flex centering
+                        "peer shrink-0 rounded-sm border ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground cursor-pointer transition-colors flex items-center justify-center",
+                        // Use design tokens for colors
+                        `border-${designTokens.colors.primary[500]}`,
+                        `focus-visible:ring-${designTokens.colors.primary[500]}/50`,
+                        `focus-visible:ring-offset-${designTokens.colors.neutral[50]}`,
                         sizeClasses[size],
-                        checked && "bg-primary text-primary-foreground border-primary",
-                        indeterminate && "bg-primary text-primary-foreground border-primary",
-                        error && "border-destructive",
+                        checked && `bg-${designTokens.colors.primary[500]} text-white border-${designTokens.colors.primary[500]}`,
+                        indeterminate && `bg-${designTokens.colors.primary[500]} text-white border-${designTokens.colors.primary[500]}`,
+                        error && `border-${designTokens.colors.error[500]}`,
                         disabled && "cursor-not-allowed opacity-50"
                     )}
                 >
@@ -69,11 +75,11 @@ const Checkbox = React.forwardRef(({
                             htmlFor={checkboxId}
                             className={cn(
                                 "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer",
-                                error ? "text-destructive" : "text-foreground"
+                                error ? `text-${designTokens.colors.error[500]}` : "text-foreground"
                             )}
                         >
                             {label}
-                            {required && <span className="text-destructive ml-1">*</span>}
+                            {required && <span className={`text-${designTokens.colors.error[500]} ml-1`}>*</span>}
                         </label>
                     )}
 
@@ -84,7 +90,7 @@ const Checkbox = React.forwardRef(({
                     )}
 
                     {error && (
-                        <p className="text-sm text-destructive">
+                        <p className={`text-sm text-${designTokens.colors.error[500]}`}>
                             {error}
                         </p>
                     )}
@@ -117,10 +123,10 @@ const CheckboxGroup = React.forwardRef(({
             {label && (
                 <legend className={cn(
                     "text-sm font-medium",
-                    error ? "text-destructive" : "text-foreground"
+                    error ? `text-${designTokens.colors.error[500]}` : "text-foreground"
                 )}>
                     {label}
-                    {required && <span className="text-destructive ml-1">*</span>}
+                    {required && <span className={`text-${designTokens.colors.error[500]} ml-1`}>*</span>}
                 </legend>
             )}
 
@@ -135,7 +141,7 @@ const CheckboxGroup = React.forwardRef(({
             </div>
 
             {error && (
-                <p className="text-sm text-destructive">
+                <p className={`text-sm text-${designTokens.colors.error[500]}`}>
                     {error}
                 </p>
             )}

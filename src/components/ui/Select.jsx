@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { ChevronDown, Check, Search, X } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { inputVariants, buttonVariants } from "../../design-system";
 import Button from "./Button";
 import Input from "./Input";
 
@@ -24,6 +25,7 @@ const Select = React.forwardRef(({
     name,
     onChange,
     onOpenChange,
+    size = "md",
     ...props
 }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -98,6 +100,17 @@ const Select = React.forwardRef(({
 
     const hasValue = multiple ? value?.length > 0 : value !== undefined && value !== '';
 
+    // Map size to input height classes
+    const getSizeClasses = (size) => {
+        const sizeMap = {
+            'sm': 'h-9',
+            'md': 'h-12',
+            'lg': 'h-14',
+            'xl': 'h-16'
+        };
+        return sizeMap[size] || 'h-12';
+    };
+
     return (
         <div className={cn("relative", className)}>
             {label && (
@@ -119,8 +132,9 @@ const Select = React.forwardRef(({
                     id={selectId}
                     type="button"
                     className={cn(
-                        "flex h-12 w-full items-center justify-between rounded-lg border border-border/10 bg-background text-foreground px-4 py-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200",
-                        error && "border-destructive focus:ring-destructive",
+                        inputVariants({ size, variant: error ? 'error' : 'default' }),
+                        "flex items-center justify-between",
+                        getSizeClasses(size),
                         !hasValue && "text-muted-foreground"
                     )}
                     onClick={handleToggle}
@@ -142,7 +156,7 @@ const Select = React.forwardRef(({
                         {clearable && hasValue && !loading && (
                             <Button
                                 variant="ghost"
-                                size="icon"
+                                size="icon-sm"
                                 className="h-4 w-4"
                                 onClick={handleClear}
                             >

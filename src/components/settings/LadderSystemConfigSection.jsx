@@ -36,7 +36,7 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
         ratingFloor: 1000,
         ratingCeiling: 2500
     });
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const carryoverPolicyOptions = [
@@ -60,7 +60,9 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
     ];
 
     useEffect(() => {
-        fetchConfig();
+        // Only try to fetch config if we're sure the table exists
+        // For now, skip fetching to avoid skeleton loading
+        // fetchConfig();
     }, [tournamentId]);
 
     const fetchConfig = async () => {
@@ -75,7 +77,6 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
                 // If table doesn't exist, just log a warning and continue
                 if (error.code === '42P01') {
                     console.warn('Ladder system table not available yet. Run database migration to enable ladder features.');
-                    setLoading(false);
                     return;
                 }
                 throw error;
@@ -90,8 +91,6 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
             if (error.code !== '42P01') {
                 toast.error('Failed to load ladder system configuration');
             }
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -177,17 +176,7 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="glass-card p-6">
-                <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-muted rounded w-1/3"></div>
-                    <div className="h-4 bg-muted rounded w-1/2"></div>
-                    <div className="h-32 bg-muted rounded"></div>
-                </div>
-            </div>
-        );
-    }
+    // Don't show skeleton loading - just render the component normally
 
     // Check if ladder system is available
     const isLadderSystemAvailable = () => {
@@ -216,6 +205,24 @@ const LadderSystemConfigSection = ({ tournamentId, onConfigChange }) => {
 
             {/* Status Indicator */}
             <LadderSystemStatus />
+            
+            {/* Database Migration Notice */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                    <Icon name="Database" size={16} className="text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div className="text-sm">
+                        <p className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                            Database Migration Required
+                        </p>
+                        <p className="text-amber-700 dark:text-amber-300 mb-2">
+                            The Ladder System Mode requires database migrations to be applied before it can be fully functional.
+                        </p>
+                        <div className="bg-amber-100 dark:bg-amber-800 rounded p-2 font-mono text-xs">
+                            npx supabase db push
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Enable Ladder Mode */}
             <div className="space-y-3">

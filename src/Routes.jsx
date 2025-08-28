@@ -23,8 +23,7 @@ import PlayerManagementRosterControl from "./pages/PlayerManagementRosterControl
 import TournamentSettingsAdministration from "./pages/TournamentSettingsAdministration";
 import ReportsPage from "./pages/ReportsPage";
 import PairingManagementPage from "./pages/PairingManagementPage";
-import WallChartPage from "./pages/WallChartPage";
-import PlayerProfilePage from "./pages/PlayerProfilePage"; // Import the new page
+import WallChartPage from "pages/WallChartPage";
 import PublicTournamentPageNew from "pages/PublicTournamentPageNew";
 
 const Routes = () => {
@@ -51,7 +50,6 @@ const Routes = () => {
         <Route path="/tournament/:tournamentSlug/standings" element={<PublicTournamentStandings />} />
         <Route path="/tournament/:tournamentSlug/roster" element={<PublicTournamentRoster />} />
         <Route path="/tournament/:tournamentSlug/public-pairings" element={<PublicTournamentPairings />} />
-        <Route path="/players/:playerSlug" element={<PlayerProfilePage />} />
         
         {/* Admin/Dashboard Routes */}
         <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />

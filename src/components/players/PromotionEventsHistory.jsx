@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { supabase } from '../../supabaseClient';
 import Table from '../ui/Table';
 import Icon from '../AppIcon';
+import Loading from '../ui/Loading';
 import { cn } from '../../utils/cn';
 
 const PromotionEventsHistory = ({ tournamentId, isOpen, onClose }) => {
@@ -11,7 +12,7 @@ const PromotionEventsHistory = ({ tournamentId, isOpen, onClose }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && tournamentId) {
             fetchEvents();
         }
     }, [isOpen, tournamentId]);
@@ -236,68 +237,88 @@ const PromotionEventsHistory = ({ tournamentId, isOpen, onClose }) => {
         </div>
     );
 
-    if (loading) {
-        return (
-            <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                    <div key={i} className="bg-muted/10 rounded-lg p-4 animate-pulse">
-                        <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
+    if (!isOpen) return null;
 
     return (
-        <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-heading font-semibold">Promotion Events History</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Track all player movements and carry-over applications
-                    </p>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <Icon name="X" size={20} />
-                </button>
-            </div>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={onClose}
+            aria-modal="true"
+            role="dialog"
+        >
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="glass-card w-full max-w-6xl max-h-[90vh] m-4 p-6 overflow-hidden flex flex-col"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between flex-shrink-0">
+                        <div>
+                            <h3 className="text-lg font-heading font-semibold">Promotion Events History</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Track all player movements and carry-over applications
+                            </p>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <Icon name="X" size={20} />
+                        </button>
+                    </div>
 
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-muted/10 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-green-600">
-                        {events.filter(e => e.event_type === 'promotion').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Promotions</div>
-                </div>
-                <div className="bg-muted/10 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-red-600">
-                        {events.filter(e => e.event_type === 'demotion').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Demotions</div>
-                </div>
-                <div className="bg-muted/10 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-blue-600">
-                        {events.filter(e => e.event_type === 'initial_placement').length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Initial Placements</div>
-                </div>
-            </div>
+                    {loading ? (
+                        <Loading 
+                            text="Loading promotion history..." 
+                            className="py-12 flex-1"
+                        />
+                    ) : (
+                        <>
 
-            {/* Events Table */}
-            <Table
-                data={events}
-                columns={columns}
-                mobileCardView={mobileCardView}
-                emptyMessage="No promotion events found"
-                className="w-full"
-            />
-        </div>
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-shrink-0">
+                        <div className="bg-muted/10 rounded-lg p-4">
+                            <div className="text-2xl font-bold text-green-600">
+                                {events.filter(e => e.event_type === 'promotion').length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Promotions</div>
+                        </div>
+                        <div className="bg-muted/10 rounded-lg p-4">
+                            <div className="text-2xl font-bold text-red-600">
+                                {events.filter(e => e.event_type === 'demotion').length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Demotions</div>
+                        </div>
+                        <div className="bg-muted/10 rounded-lg p-4">
+                            <div className="text-2xl font-bold text-blue-600">
+                                {events.filter(e => e.event_type === 'initial_placement').length}
+                            </div>
+                            <div className="text-sm text-muted-foreground">Initial Placements</div>
+                        </div>
+                    </div>
+
+                        {/* Events Table */}
+                        <div className="flex-1 overflow-hidden">
+                            <Table
+                                data={events}
+                                columns={columns}
+                                mobileCardView={mobileCardView}
+                                emptyMessage="No promotion events found"
+                                className="w-full h-full"
+                            />
+                        </div>
+                    </>
+                    )}
+                </div>
+            </motion.div>
+        </motion.div>
     );
 };
 

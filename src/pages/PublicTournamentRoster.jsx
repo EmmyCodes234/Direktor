@@ -33,7 +33,7 @@ const PublicTournamentRoster = () => {
             if (tError) throw tError;
             setTournament(tournamentData);
 
-            // Fetch players
+            // Fetch players with photos
             const { data: playersData, error: pError } = await supabase
                 .from('tournament_players')
                 .select(`
@@ -44,13 +44,24 @@ const PublicTournamentRoster = () => {
                 .order('seed', { ascending: true });
 
             if (pError) throw pError;
-            const enrichedPlayers = playersData.map(tp => ({
-                ...tp.players,
-                player_id: tp.players.id,
-                seed: tp.seed,
-                team_id: tp.team_id,
-                status: tp.status
-            }));
+            
+            // Debug: Log the raw data to understand the structure
+            console.log('Raw players data:', playersData);
+            
+            const enrichedPlayers = playersData.map(tp => {
+                const photoUrl = tp.players.photo_url;
+                console.log(`Player ${tp.players.name}: photo_url = ${photoUrl}`);
+                
+                return {
+                    ...tp.players,
+                    player_id: tp.players.id,
+                    seed: tp.seed,
+                    team_id: tp.team_id,
+                    status: tp.status,
+                    // Photo URL is directly in the players table
+                    photo_url: photoUrl
+                };
+            });
             setPlayers(enrichedPlayers);
 
             // Fetch teams if team tournament
@@ -291,37 +302,63 @@ const PublicTournamentRoster = () => {
 
                     {/* Players Grid */}
                     <motion.div 
-                        className="space-y-4"
+                        className="space-y-6"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.8, duration: 0.6 }}
                     >
                         {filteredAndSortedPlayers.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredAndSortedPlayers.map((player, index) => (
-                                    <div 
-                                        key={player.id}
-                                        onClick={(e) => handlePlayerClick(e, player)}
-                                        className="cursor-pointer"
-                                    >
-                                        <PlayerCard
-                                            player={player}
-                                            index={index}
-                                            tournamentType={tournament.type}
-                                        />
+                            <>
+                                {/* Results Summary */}
+                                <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-2xl p-4 shadow-lg">
+                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                        <span>Showing {filteredAndSortedPlayers.length} of {players.length} players</span>
+                                        <span>Sorted by {sortBy === 'seed' ? 'Seed' : sortBy === 'name' ? 'Name' : 'Rating'}</span>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+
+                                {/* Players Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    {filteredAndSortedPlayers.map((player, index) => (
+                                        <motion.div 
+                                            key={player.id}
+                                            onClick={(e) => handlePlayerClick(e, player)}
+                                            className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            whileHover={{ y: -2 }}
+                                        >
+                                            <PlayerCard
+                                                player={player}
+                                                index={index}
+                                                tournamentType={tournament.type}
+                                            />
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </>
                         ) : (
                             <motion.div 
-                                className="text-center py-12"
+                                className="text-center py-16"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.9, duration: 0.6 }}
                             >
-                                <Icon name="SearchX" className="mx-auto mb-4 text-muted-foreground" size={48} />
-                                <h3 className="text-lg font-semibold text-foreground mb-2">No players found</h3>
-                                <p className="text-muted-foreground">Try adjusting your search criteria</p>
+                                <div className="w-20 h-20 mx-auto mb-6 bg-muted/20 rounded-full flex items-center justify-center">
+                                    <Icon name="SearchX" className="text-muted-foreground" size={40} />
+                                </div>
+                                <h3 className="text-xl font-bold text-foreground mb-2">No players found</h3>
+                                <p className="text-muted-foreground mb-4">Try adjusting your search criteria or filters</p>
+                                <Button 
+                                    variant="outline" 
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setSortBy('seed');
+                                    }}
+                                >
+                                    Clear Filters
+                                </Button>
                             </motion.div>
                         )}
                     </motion.div>

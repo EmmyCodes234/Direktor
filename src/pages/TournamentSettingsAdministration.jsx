@@ -14,6 +14,7 @@ import PhotoDatabaseManager from '../components/PhotoDatabaseManager';
 import CarryoverConfigSection from '../components/settings/CarryoverConfigSection';
 import PromotionEventsHistory from '../components/players/PromotionEventsHistory';
 import LadderSystemConfigSection from '../components/settings/LadderSystemConfigSection';
+import SettingsNavigation from '../components/settings/SettingsNavigation';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
@@ -299,17 +300,19 @@ const TournamentSettingsAdministration = () => {
                     fetchTournamentData();
                 }}
             />
-            <PromotionEventsHistory
-                tournamentId={settings?.id}
-                isOpen={showPromotionHistory}
-                onClose={() => setShowPromotionHistory(false)}
-            />
+            <AnimatePresence>
+                <PromotionEventsHistory
+                    tournamentId={settings?.id}
+                    isOpen={showPromotionHistory}
+                    onClose={() => setShowPromotionHistory(false)}
+                />
+            </AnimatePresence>
             <Toaster position="top-center" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                  <div className="max-w-7xl mx-auto px-4 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        {isDesktop && (
+                        {isDesktop && !loading && (
                             <div className="md:col-span-1">
                                 <DashboardSidebar tournamentSlug={tournamentSlug} />
                             </div>
@@ -327,16 +330,36 @@ const TournamentSettingsAdministration = () => {
                                 )}
                             </div>
                             {loading || !settings ? (
-                                <p className="text-muted-foreground">Loading settings...</p>
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="text-center">
+                                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                                        <p className="text-muted-foreground">Loading settings...</p>
+                                    </div>
+                                </div>
                             ) : (
                                 <>
                                     <ShareSection tournamentSlug={settings.slug} />
+                                    
+                                    {/* Settings Navigation */}
+                                    <SettingsNavigation 
+                                        onSectionChange={(section) => {
+                                            // Scroll to section or handle navigation
+                                            console.log('Navigate to section:', section);
+                                        }}
+                                    />
+                                    
                                     <TournamentConfigSection settings={settings} onSettingsChange={handleSettingsChange} onBannerFileChange={handleBannerFileChange} />
                                     <PrizeManager currency={settings.currency} tournamentId={settings.id} />
                                     <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
                                     <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
-                                    <LadderSystemConfigSection tournamentId={settings.id} />
-                                    <CarryoverConfigSection tournamentId={settings.id} />
+                                    
+                                    {/* Ladder and Carryover sections only for individual and team modes */}
+                                    {(settings.mode === 'individual' || settings.mode === 'team') && (
+                                        <>
+                                            <LadderSystemConfigSection tournamentId={settings.id} />
+                                            <CarryoverConfigSection tournamentId={settings.id} />
+                                        </>
+                                    )}
                                     
                                     {/* Promotion Events History Section */}
                                     <div className="glass-card p-6">

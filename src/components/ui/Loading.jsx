@@ -4,7 +4,7 @@ import Icon from '../AppIcon';
 
 const Loading = ({ 
   size = 'default', 
-  variant = 'spinner',
+  variant = 'skeleton',
   text = null,
   className = '',
   fullScreen = false,
@@ -46,7 +46,7 @@ const Loading = ({
         <div
           key={i}
           className={cn(
-            "rounded-full bg-current animate-pulse",
+            "rounded-full bg-current",
             size === 'sm' ? 'h-1 w-1' : 
             size === 'lg' ? 'h-3 w-3' : 
             size === 'xl' ? 'h-4 w-4' : 'h-2 w-2'
@@ -69,12 +69,16 @@ const Loading = ({
 
   const renderLoader = () => {
     switch (variant) {
+      case 'skeleton':
+        return <Skeleton />;
       case 'dots':
         return <Dots />;
       case 'pulse':
         return <Pulse />;
-      default:
+      case 'spinner':
         return <Spinner />;
+      default:
+        return <Skeleton />;
     }
   };
 
@@ -88,7 +92,7 @@ const Loading = ({
         {renderLoader()}
       </div>
       {text && (
-        <p className="text-sm text-muted-foreground animate-pulse">
+        <p className="text-sm text-muted-foreground">
           {text}
         </p>
       )}
@@ -109,31 +113,25 @@ const Loading = ({
   return content;
 };
 
-// Skeleton loader for content placeholders
+// Simple loading placeholder - now uses skeleton styling
 export const Skeleton = ({ className, ...props }) => (
   <div
     className={cn(
-      "animate-pulse rounded-md bg-muted/20",
+      "animate-pulse bg-muted rounded",
       className
     )}
     {...props}
   />
 );
 
-// Card skeleton for loading states
+// Card loading state - now uses skeleton styling
 export const CardSkeleton = () => (
-  <div className="glass-card p-6 space-y-4">
-    <div className="flex items-center space-x-4">
-      <Skeleton className="h-12 w-12 rounded-full" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-[200px]" />
-        <Skeleton className="h-4 w-[150px]" />
-      </div>
-    </div>
-    <div className="space-y-2">
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-[80%]" />
-      <Skeleton className="h-4 w-[60%]" />
+  <div className="glass-card p-6">
+    <div className="space-y-4">
+      <div className="h-6 bg-muted rounded animate-pulse w-3/4"></div>
+      <div className="h-4 bg-muted rounded animate-pulse w-1/2"></div>
+      <div className="h-4 bg-muted rounded animate-pulse w-full"></div>
+      <div className="h-4 bg-muted rounded animate-pulse w-2/3"></div>
     </div>
   </div>
 );

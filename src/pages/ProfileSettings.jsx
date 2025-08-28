@@ -68,7 +68,7 @@ const ProfileSettings = () => {
         <div className="min-h-screen bg-background">
             <Toaster position="top-center" richColors />
             <Header />
-            <main className="pt-20 pb-8">
+            <main className="pt-16 pb-8">
                 <div className="max-w-xl mx-auto px-6">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

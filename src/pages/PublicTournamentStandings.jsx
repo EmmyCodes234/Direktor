@@ -32,7 +32,7 @@ const PublicTournamentStandings = () => {
             if (tError) throw tError;
             setTournament(tournamentData);
 
-            // Fetch players
+            // Fetch players with photos
             const { data: playersData, error: pError } = await supabase
                 .from('tournament_players')
                 .select(`
@@ -43,13 +43,24 @@ const PublicTournamentStandings = () => {
                 .order('seed', { ascending: true });
 
             if (pError) throw pError;
-            const enrichedPlayers = playersData.map(tp => ({
-                ...tp.players,
-                player_id: tp.players.id,
-                seed: tp.seed,
-                team_id: tp.team_id,
-                status: tp.status
-            }));
+            
+            // Debug: Log the raw data to understand the structure
+            console.log('Raw players data:', playersData);
+            
+            const enrichedPlayers = playersData.map(tp => {
+                const photoUrl = tp.players.photo_url;
+                console.log(`Player ${tp.players.name}: photo_url = ${photoUrl}`);
+                
+                return {
+                    ...tp.players,
+                    player_id: tp.players.id,
+                    seed: tp.seed,
+                    team_id: tp.team_id,
+                    status: tp.status,
+                    // Photo URL is directly in the players table
+                    photo_url: photoUrl
+                };
+            });
             setPlayers(enrichedPlayers);
 
             // Fetch results
@@ -154,14 +165,12 @@ const PublicTournamentStandings = () => {
         return (
             <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
                 <motion.div 
-                    className="text-center"
+                    className="text-center space-y-4"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="w-16 h-16 mx-auto mb-6">
-                        <Icon name="Loader" className="animate-spin text-primary" size={64} />
-                    </div>
+                    <div className="w-16 h-16 bg-muted rounded animate-pulse mx-auto"></div>
                     <p className="text-lg text-foreground/80 font-medium">Loading standings...</p>
                 </motion.div>
             </div>
@@ -322,6 +331,17 @@ const PublicTournamentStandings = () => {
                         </div>
                         
                         <div className="p-6">
+                            {players.length > 0 && (
+                                <div className="mb-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center justify-between">
+                                        <span>Live standings for {players.length} players</span>
+                                        <span className="flex items-center gap-1">
+                                            <Icon name="Clock" size={14} />
+                                            Last updated: {new Date().toLocaleTimeString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                             <StandingsTable 
                                 players={players} 
                                 tournamentType={tournament?.type} 

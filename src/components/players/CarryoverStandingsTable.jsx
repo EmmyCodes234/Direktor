@@ -304,12 +304,12 @@ const CarryoverStandingsTable = ({
     if (loading) {
         return (
             <div className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                    <div key={i} className="bg-muted/10 rounded-lg p-4 animate-pulse">
-                        <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-muted-foreground">Loading carryover standings...</p>
                     </div>
-                ))}
+                </div>
             </div>
         );
     }
