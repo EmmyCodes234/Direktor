@@ -468,6 +468,138 @@
     min-height: 100dvh;
     /* Prevent zoom on input focus (iOS) */
     font-size: 16px;
+    /* Prevent mobile layout shifts */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    /* Smooth scrolling for iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent horizontal scroll on mobile */
+    max-width: 100vw;
+    /* Optimize for mobile performance */
+    will-change: auto;
+    /* Prevent mobile font loading shifts */
+    font-display: swap;
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    body {
+      /* Reduce animations on mobile for better performance */
+      --animation-duration: 0.2s;
+      --animation-timing: ease-out;
+    }
+    
+    /* Prevent mobile layout shifts */
+    * {
+      box-sizing: border-box;
+    }
+    
+    /* Optimize images for mobile */
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+    
+    /* Prevent mobile text wrapping issues */
+    h1, h2, h3, h4, h5, h6 {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    
+    /* Mobile button optimizations */
+    button, [role="button"] {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    /* Mobile input optimizations */
+    input, textarea, select {
+      font-size: 16px; /* Prevent iOS zoom */
+      -webkit-appearance: none;
+      border-radius: 0;
+    }
+    
+    /* Mobile scroll optimizations */
+    .mobile-scroll {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+      overscroll-behavior: contain;
+    }
+    
+    /* Mobile animation optimizations */
+    .mobile-reduce-motion {
+      animation: none !important;
+      transition: none !important;
+    }
+    
+    /* Mobile layout stability */
+    .mobile-stable {
+      contain: layout style paint;
+    }
+  }
+
+  /* High DPI mobile optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    /* Optimize for retina displays */
+    .mobile-retina {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+
+  /* Mobile orientation optimizations */
+  @media (orientation: portrait) {
+    .mobile-portrait-only {
+      display: block;
+    }
+    
+    .mobile-landscape-only {
+      display: none;
+    }
+  }
+  
+  @media (orientation: landscape) {
+    .mobile-portrait-only {
+      display: none;
+    }
+    
+    .mobile-landscape-only {
+      display: block;
+    }
+  }
+
+  /* Mobile performance optimizations */
+  .mobile-performance {
+    /* Reduce repaints */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    /* Optimize animations */
+    will-change: transform;
+  }
+
+  /* Mobile touch optimizations */
+  .mobile-touch-optimized {
+    /* Prevent text selection on touch */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* Optimize touch response */
+    touch-action: manipulation;
+    /* Prevent tap highlight */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile layout stability */
+  .mobile-layout-stable {
+    /* Prevent layout shifts */
+    contain: layout;
+    /* Stable sizing */
+    min-height: 0;
+    min-width: 0;
+    /* Prevent overflow */
+    overflow: hidden;
   }
 
   /* Enhanced Typography System - Mobile First */

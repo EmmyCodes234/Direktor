@@ -100,44 +100,31 @@ const FileExporter = ({ tournamentInfo, players, results }) => {
     return name;
   };
 
-  // Game result encoding for AUPAIR.EXE format
-  const encodeGameResult = (playerScore, opponentScore, opponentId) => {
-    if (opponentScore === null || opponentScore === undefined) {
-      // Bye or forfeit
-      if (playerScore > 0) {
-        return ` 2${String(1).padStart(3, ' ')}${String(opponentId).padStart(4, ' ')}`;      // Winning bye
-      } else if (playerScore === 0) {
-        return ` 1${String(0).padStart(3, ' ')}${String(opponentId).padStart(4, ' ')}`;       // Tied bye
-      } else {
-        return ` 0${String(0).padStart(3, ' ')}${String(opponentId).padStart(4, ' ')}`;       // Forfeit loss
-      }
-    } else {
-      // Regular game - determine win/loss/tie
-      if (playerScore > opponentScore) {
-        // Win - add + after score
-        return ` 2${String(playerScore).padStart(3, ' ')}+${String(opponentId).padStart(4, ' ')}`;
-      } else if (playerScore < opponentScore) {
-        // Loss - no + symbol
-        return ` 0${String(playerScore).padStart(3, ' ')}${String(opponentId).padStart(4, ' ')}`;
-      } else {
-        // Tie - no + symbol
-        return ` 1${String(playerScore).padStart(3, ' ')}${String(opponentId).padStart(4, ' ')}`;
-      }
-    }
-  };
-
   // Generate player line for AUPAIR.EXE format
   const generatePlayerLine = (player, rounds, playerIdMapping, results, players) => {
     // Format player name (20 characters, left-aligned)
     const formattedName = formatPlayerName(player.name);
     let line = formattedName.padEnd(20);
     
-    // Add game results for each round
-    for (let roundNum = 1; roundNum <= rounds; roundNum++) {
+    console.log(`Generating line for player: ${player.name}`);
+    console.log(`Total rounds: ${rounds}`);
+    console.log(`Total results: ${results.length}`);
+    
+    // Get the actual completed rounds from the results
+    const completedRounds = [...new Set(results.map(r => r.round))].sort((a, b) => a - b);
+    console.log(`Completed rounds: ${completedRounds}`);
+    
+    // Process each completed round
+    for (let roundNum of completedRounds) {
       const roundResults = results.filter(r => 
         (r.player1_name === player.name || r.player2_name === player.name) && 
         r.round === roundNum
       );
+      
+      console.log(`Round ${roundNum}: Found ${roundResults.length} results for ${player.name}`);
+      if (roundResults.length > 0) {
+        console.log(`Round ${roundNum} result:`, roundResults[0]);
+      }
       
       if (roundResults.length > 0) {
         const result = roundResults[0];
@@ -153,20 +140,42 @@ const FileExporter = ({ tournamentInfo, players, results }) => {
           opponentName = result.player1_name;
         }
         
+        console.log(`Round ${roundNum}: ${player.name} vs ${opponentName}, Score: ${playerScore}-${opponentScore}`);
+        
         // Find opponent in player list
         const opponent = players.find(p => p.name === opponentName);
         if (opponent) {
           const opponentId = playerIdMapping.get(opponent.name);
           if (opponentId) {
-            line += encodeGameResult(playerScore, opponentScore, opponentId);
+            // AUPAIR.EXE format: {Result}{Score}{Space}{OpponentID}
+            // Result: 2=Win, 1=Tie, 0=Loss
+            let resultCode;
+            if (playerScore > opponentScore) {
+              resultCode = '2'; // Win
+            } else if (playerScore < opponentScore) {
+              resultCode = '0'; // Loss
+            } else {
+              resultCode = '1'; // Tie
+            }
+            
+            // Format: {Result}{Score}{Space}{OpponentID}
+            // Score: 3 digits right-aligned, OpponentID: 4 digits right-aligned
+            const gameResult = `${resultCode}${playerScore.toString().padStart(3, '0')} ${opponentId.toString().padStart(4, ' ')}`;
+            line += gameResult;
+            console.log(`Round ${roundNum} game result: "${gameResult}"`);
           }
         }
       } else {
         // Handle bye/forfeit - no result for this round
-        line += `    0${String(0).padStart(3, ' ')}${String(playerIdMapping.get(player.name)).padStart(4, ' ')}`;
+        // Bye format: 2001 +{player_id} (winning bye against self)
+        const playerId = playerIdMapping.get(player.name);
+        const byeResult = `2001 +${playerId.toString().padStart(3, ' ')}`;
+        line += byeResult;
+        console.log(`Round ${roundNum} bye result: "${byeResult}"`);
       }
     }
     
+    console.log(`Final line for ${player.name}: "${line.trim()}"`);
     return line + '\r\n';
   };
 
@@ -238,9 +247,9 @@ const FileExporter = ({ tournamentInfo, players, results }) => {
       }
       
       fileContent += `*${division}\r\n`;
-      fileContent += "                                      0\r\n";
+      fileContent += `0\r\n`;
       console.log('Added division header:', `*${division}`);
-      console.log('Added spacing line:', "                                      0");
+      console.log('Added info line:', `0`);
       
       // Filter players for this division
       let divisionPlayers = players;
