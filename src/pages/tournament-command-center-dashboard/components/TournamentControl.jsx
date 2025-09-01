@@ -1032,8 +1032,21 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     setIsLoading(true);
     toast.info("Generating all league matches...");
 
+    console.log('🔍 DEBUG: Generating league matches for:', {
+      playerCount: players.length,
+      tournamentType: tournamentInfo?.type,
+      availableSchedules: Object.keys(roundRobinSchedules),
+      players: players.map(p => ({ id: p.player_id, name: p.name, seed: p.seed }))
+    });
+
     const playersBySeed = [...players].sort((a, b) => a.seed - b.seed);
     const scheduleTemplate = roundRobinSchedules[players.length];
+
+    console.log('🔍 DEBUG: Schedule template:', {
+      playerCount: players.length,
+      scheduleTemplate,
+      playersBySeed: playersBySeed.map(p => ({ id: p.player_id, name: p.name, seed: p.seed }))
+    });
 
     if (!scheduleTemplate) {
       toast.error(`Round Robin is not supported for ${players.length} players. Please use 3-15 players.`);
@@ -1042,21 +1055,28 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     }
 
     const allMatches = [];
+    console.log('🔍 DEBUG: Starting match generation loop');
+    
     for (let round = 1; round <= scheduleTemplate.length; round++) {
       const roundSchedule = scheduleTemplate[round - 1];
       const pairedPlayers = new Set();
       
+      console.log(`🔍 DEBUG: Round ${round}:`, {
+        roundSchedule,
+        roundScheduleLength: roundSchedule.length,
+        playerCount: players.length
+      });
+      
       // For odd numbers, the last player gets a bye
       if (players.length % 2 !== 0 && roundSchedule.length < players.length - 1) {
         const byePlayer = playersBySeed[playersBySeed.length - 1];
+        console.log(`🔍 DEBUG: Adding bye for player:`, byePlayer);
         allMatches.push({
           tournament_id: tournamentInfo.id,
           round: round,
           player1_id: byePlayer.player_id,
           player2_id: null, // BYE
-          table: 'BYE',
-          status: 'complete',
-          winner_id: byePlayer.player_id
+          status: 'complete'
         });
       }
       
@@ -1069,40 +1089,65 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           const player1 = playersBySeed.find(p => p.seed === player1Seed);
           const player2 = playersBySeed.find(p => p.seed === player2Seed);
           
+          console.log(`🔍 DEBUG: Pairing ${i}:`, {
+            player1Seed,
+            player2Seed,
+            player1: player1 ? { id: player1.player_id, name: player1.name, seed: player1.seed } : null,
+            player2: player2 ? { id: player2.player_id, name: player2.name, seed: player2.seed } : null
+          });
+          
           if (player1 && player2 && !pairedPlayers.has(player1.player_id) && !pairedPlayers.has(player2.player_id)) {
             allMatches.push({
               tournament_id: tournamentInfo.id,
               round: round,
               player1_id: player1.player_id,
               player2_id: player2.player_id,
-              table: Math.floor(i / 2) + 1,
               status: 'pending'
             });
             pairedPlayers.add(player1.player_id);
             pairedPlayers.add(player2.player_id);
+            console.log(`🔍 DEBUG: Added match: ${player1.name} vs ${player2.name} on round ${round}`);
           }
         }
       }
     }
+    
+    console.log('🔍 DEBUG: Generated matches:', {
+      totalMatches: allMatches.length,
+      matches: allMatches.map(m => ({
+        round: m.round,
+        player1: m.player1_id,
+        player2: m.player2_id,
+        table: m.table,
+        status: m.status
+      }))
+    });
 
     // Insert all matches
+    console.log('🔍 DEBUG: Attempting to insert matches into database:', {
+      tournamentId: tournamentInfo.id,
+      matchCount: allMatches.length,
+      firstMatch: allMatches[0]
+    });
+    
     const { error: insertError } = await supabase
       .from('matches')
       .insert(allMatches);
 
     if (insertError) {
-      console.error('Error inserting matches:', insertError);
+      console.error('❌ Error inserting matches:', insertError);
+      console.error('❌ Error details:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      });
       toast.error('Failed to generate league matches.');
     } else {
+      console.log('✅ Successfully inserted matches into database');
       toast.success(`Generated ${allMatches.length} league matches successfully!`);
-      // Refresh matches data
-      const { data: newMatches } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('tournament_id', tournamentInfo.id);
-      if (newMatches) {
-        setMatches(newMatches);
-      }
+      // Note: Parent component should refresh matches data if needed
+      console.log('✅ Generated matches:', allMatches.length, 'matches for tournament');
     }
     setIsLoading(false);
   };
