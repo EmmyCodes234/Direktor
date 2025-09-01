@@ -46,6 +46,23 @@ const PlayerManagement = ({ players, onRemovePlayer, onAddPlayer }) => {
     return { status: 'waiting', label: 'Waiting', color: 'text-muted-foreground' };
   };
 
+  const formatRecord = (player) => {
+    const wins = player.wins || 0;
+    const losses = player.losses || 0;
+    const ties = player.ties || 0;
+    
+    // Add 0.5 to both wins and losses for each draw
+    const adjustedWins = wins + (ties * 0.5);
+    const adjustedLosses = losses + (ties * 0.5);
+    
+    // Only show decimals if there are draws
+    if (ties > 0) {
+      return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
+    } else {
+      return `${adjustedWins}-${adjustedLosses}`;
+    }
+  };
+
   return (
     <div className="backdrop-blur-lg bg-card/80 h-full flex flex-col">
       <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
@@ -144,7 +161,7 @@ const PlayerManagement = ({ players, onRemovePlayer, onAddPlayer }) => {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-foreground truncate">{player.name}</div>
                       <div className="flex items-center space-x-3 text-xs text-muted-foreground">
-                        <span className="font-mono">{player.wins}W-{player.losses}L</span>
+                        <span className="font-mono">{formatRecord(player)}</span>
                         <span className={`font-mono ${
                           player.spread > 0 ? 'text-success' : 
                           player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'

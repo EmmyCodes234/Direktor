@@ -45,11 +45,17 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     const wins = player.wins || 0;
     const losses = player.losses || 0;
     const ties = player.ties || 0;
-
+    
+    // Add 0.5 to both wins and losses for each draw
+    const adjustedWins = wins + (ties * 0.5);
+    const adjustedLosses = losses + (ties * 0.5);
+    
+    // Only show decimals if there are draws
     if (ties > 0) {
-      return `${wins} - ${losses} - ${ties}`;
+      return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
+    } else {
+      return `${adjustedWins}-${adjustedLosses}`;
     }
-    return `${wins} - ${losses}`;
   };
 
   const handlePlayerClick = (e, player) => {
@@ -179,13 +185,21 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {isBestOfLeague && (
-                    <div className="bg-muted/10 rounded-lg p-3">
-                      <div className="text-xs text-muted-foreground font-medium mb-1">Match Wins</div>
-                      <div className="font-mono font-bold text-lg text-foreground">{matchWins}</div>
-                    </div>
+                    <>
+                      <div className="bg-muted/10 rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground font-medium mb-1">Match Wins</div>
+                        <div className="font-mono font-bold text-lg text-foreground">{matchWins}</div>
+                      </div>
+                      <div className="bg-muted/10 rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground font-medium mb-1">Match Losses</div>
+                        <div className="font-mono font-bold text-lg text-foreground">{matchLosses}</div>
+                      </div>
+                    </>
                   )}
                   <div className="bg-muted/10 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground font-medium mb-1">Record</div>
+                    <div className="text-xs text-muted-foreground font-medium mb-1">
+                      {isBestOfLeague ? 'Game Record' : 'Record'}
+                    </div>
                     <div className="font-mono font-bold text-lg text-foreground">{getRecordDisplay(player)}</div>
                   </div>
                   <div className="bg-muted/10 rounded-lg p-3">
@@ -197,10 +211,12 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                       {player.spread > 0 ? '+' : ''}{player.spread || 0}
                     </div>
                   </div>
-                  <div className="bg-muted/10 rounded-lg p-3">
-                    <div className="text-xs text-muted-foreground font-medium mb-1">Points</div>
-                    <div className="font-mono font-bold text-lg text-foreground">{player.points || 0}</div>
-                  </div>
+                  {!isBestOfLeague && (
+                    <div className="bg-muted/10 rounded-lg p-3">
+                      <div className="text-xs text-muted-foreground font-medium mb-1">Points</div>
+                      <div className="font-mono font-bold text-lg text-foreground">{player.points || 0}</div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );
@@ -241,23 +257,20 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
-              <th className="p-4 w-[40%] text-left font-semibold text-foreground">Player</th>
-              <th className="p-4 text-left font-semibold text-foreground">
-                    {isBestOfLeague ? 'Match Wins' : 'Wins'}
-                  </th>
-                  <th className="p-4 text-left font-semibold text-foreground">
-                    {isBestOfLeague ? 'Match Losses' : 'Losses'}
-                  </th>
-                  <th className="p-4 text-left font-semibold text-foreground">
-                    Spread
-                  </th>
-                  <th className="p-4 text-left font-semibold text-foreground">
-                    Status
-                  </th>
-                  <th className="p-4 text-left font-semibold text-foreground">
-                    Actions
-                  </th>
+              <th className="p-4 w-[8%] text-left font-semibold text-foreground">Rank</th>
+              <th className="p-4 w-[35%] text-left font-semibold text-foreground">Player</th>
+              {isBestOfLeague && (
+                <>
+                  <th className="p-4 w-[12%] text-center font-semibold text-foreground">Match Wins</th>
+                  <th className="p-4 w-[12%] text-center font-semibold text-foreground">Match Losses</th>
+                </>
+              )}
+              <th className="p-4 w-[15%] text-center font-semibold text-foreground">
+                {isBestOfLeague ? 'Game Record' : 'Record'}
+              </th>
+              <th className="p-4 w-[12%] text-center font-semibold text-foreground">Spread</th>
+              <th className="p-4 w-[10%] text-center font-semibold text-foreground">Status</th>
+              <th className="p-4 w-[8%] text-center font-semibold text-foreground">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -275,7 +288,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 <tr key={player.id} className={`border-b border-border/50 hover:bg-muted/5 transition-colors group ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
                   aria-label={isComplete ? 'Player matches complete' : undefined}
                 >
-                  <td className="p-4 font-mono font-bold text-lg text-primary flex items-center gap-2">
+                  <td className="p-4 font-mono font-bold text-lg text-primary">
                     {player.rank}
                     {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
                   </td>
@@ -284,16 +297,21 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                       {player.name}
                     </a>
                   </td>
-                  {isBestOfLeague && <td className="p-4 text-center font-mono">{matchWins}</td>}
+                  {isBestOfLeague && (
+                    <>
+                      <td className="p-4 text-center font-mono">{matchWins}</td>
+                      <td className="p-4 text-center font-mono">{matchLosses}</td>
+                    </>
+                  )}
                   <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
                   <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                     {player.spread > 0 ? '+' : ''}{player.spread || 0}
                   </td>
-                  <td className="p-4">
+                  <td className="p-4 text-center">
                     {getStatusBadge(player.status)}
                   </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
+                  <td className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={(e) => handleModalClick(e, player)}
                         className="p-1 text-muted-foreground hover:text-foreground transition-colors touch-target"

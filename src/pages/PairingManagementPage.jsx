@@ -48,13 +48,13 @@ const PairingManagementPage = () => {
             if (data.advanced_pairing_modes) {
                 for (let i = 1; i <= data.rounds; i++) {
                     if (!advanced_modes[i]) {
-                        advanced_modes[i] = { system: 'lito', base_round: i - 1, allow_rematches: true };
+                        advanced_modes[i] = { system: 'enhanced_swiss', base_round: i - 1, allow_rematches: true };
                     }
                 }
             }
 
             setSettings({
-                pairing_system: data.pairing_system || 'lito',
+                pairing_system: data.pairing_system || 'enhanced_swiss',
                 gibson_rule_enabled: data.gibson_rule_enabled || false,
                 advanced_pairing_enabled: !!data.advanced_pairing_modes,
                 advanced_pairing_modes: advanced_modes
@@ -100,7 +100,7 @@ const PairingManagementPage = () => {
             advanced_pairing_modes: {
                 ...prev.advanced_pairing_modes,
                 [round]: {
-                    ...(prev.advanced_pairing_modes[round] || { system: 'lito', base_round: round - 1, allow_rematches: true }),
+                    ...(prev.advanced_pairing_modes[round] || { system: 'enhanced_swiss', base_round: round - 1, allow_rematches: true }),
                     [field]: value
                 }
             }

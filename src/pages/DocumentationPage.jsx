@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/Accordion';
 import Button from '../components/ui/Button';
 import ExpandableTabsJS from '../components/ui/expandable-tabs';
-import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, HelpCircle, Code } from 'lucide-react';
+import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, HelpCircle, Code, Database, Image, Shield, Smartphone } from 'lucide-react';
 
 const DocSection = ({ title, id, children }) => (
     <section id={id} className="mb-16 scroll-mt-24">
@@ -47,10 +47,13 @@ const DocumentationPage = () => {
         { id: 'getting-started', label: 'Getting Started', icon: 'Play' },
         { id: 'tournament-setup', label: 'Tournament Setup', icon: 'Settings' },
         { id: 'player-management', label: 'Player Management', icon: 'Users' },
+        { id: 'photo-system', label: 'Photo System', icon: 'Image' },
         { id: 'pairing-systems', label: 'Pairing Systems', icon: 'Shuffle' },
         { id: 'scoring-results', label: 'Scoring & Results', icon: 'BarChart3' },
         { id: 'dashboard', label: 'Tournament Dashboard', icon: 'LayoutDashboard' },
+        { id: 'mobile-optimization', label: 'Mobile Features', icon: 'Smartphone' },
         { id: 'advanced-features', label: 'Advanced Features', icon: 'Zap' },
+        { id: 'security', label: 'Security & Privacy', icon: 'Shield' },
         { id: 'troubleshooting', label: 'Troubleshooting', icon: 'HelpCircle' },
         { id: 'api-reference', label: 'API Reference', icon: 'Code' }
     ];
@@ -92,27 +95,25 @@ const DocumentationPage = () => {
                                     { title: "Getting Started", icon: Play },
                                     { title: "Tournament Setup", icon: Settings },
                                     { title: "Player Management", icon: Users },
-                                    { type: "separator" },
+                                    { title: "Photo System", icon: Image },
                                     { title: "Pairing Systems", icon: Shuffle },
                                     { title: "Scoring & Results", icon: BarChart3 },
                                     { title: "Dashboard", icon: LayoutDashboard },
+                                    { title: "Mobile Features", icon: Smartphone },
                                     { title: "Advanced Features", icon: Zap },
+                                    { title: "Security", icon: Shield },
                                     { title: "Troubleshooting", icon: HelpCircle },
                                     { title: "API Reference", icon: Code },
                                 ]}
                                 activeColor="text-purple-500"
-                                className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/50 dark:to-pink-950/50"
+                                className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-pink-950/50"
                                 onChange={(index) => {
-                                    if (index !== null) {
-                                        const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'pairing-systems', 'scoring-results', 'dashboard', 'advanced-features', 'troubleshooting', 'api-reference'];
-                                        if (sections[index]) {
-                                            setActiveSection(sections[index]);
-                                        }
-                                    }
+                                    const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'];
+                                    setActiveSection(sections[index]);
                                 }}
                             />
                         </div>
-                        
+
                         {/* Overview Section */}
                         {activeSection === 'overview' && (
                             <motion.div
@@ -138,81 +139,69 @@ const DocumentationPage = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                                         <FeatureCard
                                             icon="Zap"
-                                            title="Guided Workflow"
-                                            description="The system analyzes your tournament's current state and presents only relevant actions and information for each moment."
+                                            title="Smart Automation"
+                                            description="Intelligent pairing systems, automated scoring, and real-time result tracking eliminate manual work."
                                         />
                                         <FeatureCard
-                                            icon="Shield"
-                                            title="Data Security"
-                                            description="Enterprise-grade security with Row Level Security (RLS) ensuring each user only sees their own tournament data."
+                                            icon="Users"
+                                            title="Player Management"
+                                            description="Comprehensive player database with ratings, history, and photo management for easy identification."
                                         />
                                         <FeatureCard
-                                            icon="Database"
-                                            title="Master Player Library"
-                                            description="Centralized player database that prevents duplicates and maintains player history across all tournaments."
+                                            icon="BarChart3"
+                                            title="Advanced Analytics"
+                                            description="Detailed statistics, performance metrics, and insights to improve tournament quality."
                                         />
                                         <FeatureCard
-                                            icon="Globe"
-                                            title="Web-Based"
-                                            description="Access from anywhere, no downloads required. Works seamlessly on desktop, tablet, and mobile devices."
+                                            icon="Smartphone"
+                                            title="Mobile-First Design"
+                                            description="Optimized for mobile devices with touch-friendly controls and responsive layouts."
                                         />
                                     </div>
                                 </DocSection>
 
                                 <DocSection title="Key Features" id="key-features">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <FeatureCard
-                                            icon="Settings"
-                                            title="Smart Tournament Setup"
-                                            description="3-step wizard with intelligent defaults and recommendations based on player count and tournament type."
-                                        />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <FeatureCard
                                             icon="Shuffle"
-                                            title="Advanced Pairing Systems"
-                                            description="Support for Swiss, King of the Hill, Round Robin, and custom pairing algorithms with Gibson Rule support."
+                                            title="Multiple Pairing Systems"
+                                            description="Swiss, Round Robin, King of the Hill, and custom pairing algorithms with intelligent optimization."
                                         />
                                         <FeatureCard
-                                            icon="BarChart3"
-                                            title="Real-time Scoring"
-                                            description="Live score entry with automatic standings updates and comprehensive tournament statistics."
+                                            icon="Image"
+                                            title="Photo Management System"
+                                            description="Bulk photo upload, intelligent player matching, and secure storage for tournament identification."
                                         />
                                         <FeatureCard
-                                            icon="Users"
-                                            title="Player Management"
-                                            description="Comprehensive player profiles with photos, ratings, and tournament history tracking."
+                                            icon="Database"
+                                            title="Master Player Library"
+                                            description="Centralized player database with ratings, history, and cross-tournament statistics."
                                         />
                                         <FeatureCard
-                                            icon="Share2"
-                                            title="Public Tournament Pages"
-                                            description="Share live standings and results with players and spectators through public tournament URLs."
-                                        />
-                                        <FeatureCard
-                                            icon="Download"
-                                            title="Export & Reporting"
-                                            description="Export tournament data in multiple formats and generate detailed reports for tournament analysis."
+                                            icon="LayoutDashboard"
+                                            title="Real-Time Dashboard"
+                                            description="Live tournament status, current pairings, and instant result updates."
                                         />
                                     </div>
                                 </DocSection>
 
-                                <DocSection title="System Requirements" id="system-requirements">
-                                    <div className="bg-muted/20 rounded-lg p-6">
-                                        <h4 className="font-semibold text-foreground mb-4">Browser Compatibility</h4>
-                                        <ul className="space-y-2 text-sm">
-                                            <li>• <strong>Chrome/Edge:</strong> Version 90 or later</li>
-                                            <li>• <strong>Firefox:</strong> Version 88 or later</li>
-                                            <li>• <strong>Safari:</strong> Version 14 or later</li>
-                                            <li>• <strong>Mobile:</strong> iOS Safari 14+, Chrome Mobile 90+</li>
-                                        </ul>
-                                        
-                                        <h4 className="font-semibold text-foreground mt-6 mb-4">Internet Connection</h4>
-                                        <p className="text-sm">Stable internet connection required for real-time updates and data synchronization.</p>
-                                        
-                                        <h4 className="font-semibold text-foreground mt-6 mb-4">Recommended</h4>
-                                        <ul className="space-y-2 text-sm">
-                                            <li>• <strong>Screen Size:</strong> 1024px or wider for optimal experience</li>
-                                            <li>• <strong>RAM:</strong> 4GB or more for smooth performance</li>
-                                            <li>• <strong>Storage:</strong> No local storage required (cloud-based)</li>
-                                        </ul>
+                                <DocSection title="Technology Stack" id="technology-stack">
+                                    <p className="text-lg mb-6">
+                                        Direktor is built with modern, scalable technologies to ensure reliability and performance:
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                            <h4 className="font-semibold text-foreground mb-2">Frontend</h4>
+                                            <p className="text-sm text-muted-foreground">React Native, Framer Motion, Tailwind CSS</p>
+                                        </div>
+                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                            <h4 className="font-semibold text-foreground mb-2">Backend</h4>
+                                            <p className="text-sm text-muted-foreground">Supabase, PostgreSQL, Row Level Security</p>
+                                        </div>
+                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                            <h4 className="font-semibold text-foreground mb-2">Storage</h4>
+                                            <p className="text-sm text-muted-foreground">Supabase Storage, Image optimization, CDN</p>
+                                        </div>
                                     </div>
                                 </DocSection>
                             </motion.div>
@@ -261,11 +250,10 @@ const DocumentationPage = () => {
                                     </DocSubSection>
 
                                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mt-8">
-                                        <h4 className="font-semibold text-primary mb-3">💡 Pro Tip</h4>
-                                        <p className="text-sm">
-                                            Take advantage of the <strong>Master Player Library</strong> from the start. Even if you're running your first tournament, 
-                                            entering player details properly will save you significant time in future tournaments as the system will 
-                                            automatically recognize returning players.
+                                        <h4 className="font-semibold text-foreground mb-3">💡 Pro Tip</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Take advantage of the guided workflow system. Direktor will suggest the next logical step 
+                                            based on your current tournament state, making it impossible to miss critical steps.
                                         </p>
                                     </div>
                                 </DocSection>
@@ -281,173 +269,536 @@ const DocumentationPage = () => {
                             >
                                 <DocSection title="Tournament Setup" id="tournament-setup">
                                     <p className="text-lg mb-6">
-                                        The tournament setup process is designed to be intuitive and comprehensive. Follow this step-by-step guide to create your tournament.
+                                        Learn how to configure and customize your tournaments with Direktor's flexible setup options.
                                     </p>
 
-                                    <DocSubSection title="Step 1: Tournament Details">
-                                        <p>Begin by providing the essential information for your event:</p>
-                                        <div className="bg-muted/20 rounded-lg p-6 mt-4">
-                                            <h4 className="font-semibold text-foreground mb-3">Required Information</h4>
-                                            <ul className="space-y-2 text-sm">
-                                                <li><strong>Tournament Name:</strong> The official name of your event (e.g., "Lagos International Scrabble Open 2025")</li>
-                                                <li><strong>Venue:</strong> Physical location or online platform where the tournament will be held</li>
-                                                <li><strong>Tournament Date:</strong> The start date of the event</li>
-                                                <li><strong>Description:</strong> Optional details about the tournament format, prizes, or special rules</li>
-                                            </ul>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Step 2: Player Roster Management">
-                                        <p>Direktor features a powerful <strong>Master Player Library</strong> that prevents duplicate profiles and maintains player history:</p>
-                                        
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Adding Players</h4>
-                                        <p>You can add players using multiple methods:</p>
+                                    <DocSubSection title="Tournament Configuration">
+                                        <p>Essential tournament settings that define your event:</p>
                                         <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Manual Entry:</strong> Add players one by one with full details</li>
-                                            <li><strong>Bulk Import:</strong> Paste a list of players in the format: <code>Player Name, Rating</code></li>
-                                            <li><strong>CSV Upload:</strong> Import from a CSV file with player data</li>
-                                            <li><strong>Existing Players:</strong> Search and add players already in the Master Library</li>
+                                            <li><strong>Basic Information:</strong> Name, venue, date, and description</li>
+                                            <li><strong>Tournament Format:</strong> Number of rounds, time controls, and scoring system</li>
+                                            <li><strong>Pairing System:</strong> Swiss, Round Robin, or custom algorithms</li>
+                                            <li><strong>Divisions:</strong> Multiple skill divisions with separate pairings</li>
                                         </ul>
-
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Player Reconciliation</h4>
-                                        <p>After importing players, the system will automatically check for potential matches in the Master Library:</p>
-                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
-                                            <ul className="space-y-2 text-sm">
-                                                <li><strong>Link to Existing:</strong> Connect to an existing player profile if a match is found</li>
-                                                <li><strong>Create New:</strong> Generate a new profile for first-time players</li>
-                                                <li><strong>Review Details:</strong> Update player information and upload photos</li>
-                                            </ul>
-                                        </div>
                                     </DocSubSection>
 
-                                    <DocSubSection title="Step 3: Tournament Configuration">
-                                        <p>Configure the tournament structure and pairing settings:</p>
-                                        
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Rounds Configuration</h4>
+                                    <DocSubSection title="Advanced Settings">
+                                        <p>Customize your tournament experience with advanced options:</p>
                                         <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Number of Rounds:</strong> Set the total rounds (system provides recommendations based on player count)</li>
-                                            <li><strong>Time Controls:</strong> Configure game time limits and overtime rules</li>
-                                            <li><strong>Scoring System:</strong> Choose between traditional scoring or custom point systems</li>
+                                            <li><strong>Rating Systems:</strong> NASPA, WESPA, or custom rating calculations</li>
+                                            <li><strong>Bye Handling:</strong> Configure how byes are distributed and scored</li>
+                                            <li><strong>Time Controls:</strong> Set game time limits and overtime rules</li>
+                                            <li><strong>Scoring Rules:</strong> Customize point values and bonus systems</li>
                                         </ul>
-
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Pairing Strategy</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            <div className="bg-muted/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Basic Mode</h5>
-                                                <p className="text-sm">Single pairing system for the entire tournament (e.g., Swiss for all rounds)</p>
-                                            </div>
-                                            <div className="bg-muted/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Advanced Mode</h5>
-                                                <p className="text-sm">Configure different pairing systems for each round with custom rules</p>
-                                            </div>
-                                        </div>
                                     </DocSubSection>
 
-                                    <DocSubSection title="Step 4: Final Review & Launch">
-                                        <p>Before launching your tournament, review all settings:</p>
-                                        <div className="bg-muted/20 rounded-lg p-6 mt-4">
-                                            <h4 className="font-semibold text-foreground mb-4">Pre-Launch Checklist</h4>
-                                            <ul className="space-y-2 text-sm">
-                                                <li>✓ Tournament details are complete and accurate</li>
-                                                <li>✓ All players have been added and reconciled</li>
-                                                <li>✓ Round configuration matches your tournament format</li>
-                                                <li>✓ Pairing strategy is configured correctly</li>
-                                                <li>✓ Scoring parameters are set appropriately</li>
-                                                <li>✓ Public tournament page settings are configured (if needed)</li>
-                                            </ul>
-                                        </div>
+                                    <DocSubSection title="Tournament Templates">
+                                        <p>Save and reuse tournament configurations for consistency:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Quick Start:</strong> Use predefined templates for common tournament types</li>
+                                            <li><strong>Custom Templates:</strong> Save your own configurations for future use</li>
+                                            <li><strong>Template Sharing:</strong> Share templates with other tournament directors</li>
+                                        </ul>
                                     </DocSubSection>
                                 </DocSection>
                             </motion.div>
                         )}
 
                         {/* Player Management Section */}
-                        {activeSection === 'player-management' && (
+                                {activeSection === 'player-management' && (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <DocSection title="Player Management" id="player-management">
+                    <p className="text-lg mb-6">
+                        Manage tournament participants efficiently with our comprehensive player management system.
+                    </p>
+
+                    <DocSubSection title="Adding Players">
+                        <p>Multiple ways to add players to your tournament:</p>
+                        <ul className="list-disc pl-5 space-y-2">
+                            <li><strong>Master Library:</strong> Search and add players from the central database</li>
+                            <li><strong>Bulk Import:</strong> Upload CSV files with multiple players</li>
+                            <li><strong>Manual Entry:</strong> Add individual players with custom information</li>
+                            <li><strong>Quick Add:</strong> Fast entry for last-minute registrations</li>
+                        </ul>
+                    </DocSubSection>
+
+                    <DocSubSection title="Player Information">
+                        <p>Comprehensive player profiles with essential details:</p>
+                        <ul className="list-disc pl-5 space-y-2">
+                            <li><strong>Basic Details:</strong> Name, email, phone, and emergency contact</li>
+                            <li><strong>Rating Information:</strong> Current rating, rating history, and rating system</li>
+                            <li><strong>Tournament History:</strong> Previous tournaments, results, and statistics</li>
+                            <li><strong>Preferences:</strong> Pairing preferences, bye preferences, and special needs</li>
+                        </ul>
+                    </DocSubSection>
+
+                    <DocSubSection title="Player Organization">
+                        <p>Organize players effectively for smooth tournament operation:</p>
+                        <ul className="list-disc pl-5 space-y-2">
+                            <li><strong>Divisions:</strong> Group players by skill level or rating</li>
+                            <li><strong>Seeding:</strong> Automatic or manual seeding based on ratings</li>
+                            <li><strong>Status Tracking:</strong> Monitor player registration and participation</li>
+                            <li><strong>Communication:</strong> Send announcements and updates to players</li>
+                        </ul>
+                    </DocSubSection>
+                </DocSection>
+            </motion.div>
+        )}
+
+
+
+                        {/* Photo System Section */}
+                        {activeSection === 'photo-system' && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
-                                <DocSection title="Player Management" id="player-management">
+                                <DocSection title="Photo Management System" id="photo-system">
                                     <p className="text-lg mb-6">
-                                        Comprehensive player management tools to handle tournament participants efficiently and maintain accurate player data.
+                                        The Photo Management System allows tournament directors to upload, manage, and display player photos 
+                                        for easy identification during tournaments.
                                     </p>
 
-                                    <DocSubSection title="Master Player Library">
-                                        <p>The Master Player Library is the foundation of Direktor's player management system:</p>
+                                    <DocSubSection title="System Overview">
+                                        <p>The photo system provides comprehensive photo management capabilities:</p>
                                         <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Centralized Database:</strong> All player information stored in one location</li>
-                                            <li><strong>Duplicate Prevention:</strong> Automatic detection and merging of duplicate profiles</li>
-                                            <li><strong>Historical Data:</strong> Complete tournament history and performance tracking</li>
-                                            <li><strong>Cross-Tournament Access:</strong> Players available across all your tournaments</li>
+                                            <li><strong>Bulk Upload:</strong> Upload ZIP files containing multiple player photos</li>
+                                            <li><strong>Intelligent Matching:</strong> Automatic player matching using filename recognition</li>
+                                            <li><strong>Secure Storage:</strong> Supabase storage with proper access controls</li>
+                                            <li><strong>Mobile Optimization:</strong> Touch-friendly interface for mobile devices</li>
                                         </ul>
                                     </DocSubSection>
 
-                                    <DocSubSection title="Adding Players to Tournaments">
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Methods of Player Addition</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                            <div className="glass-card p-6 rounded-xl">
-                                                <h5 className="font-semibold text-foreground mb-3">Individual Addition</h5>
-                                                <ul className="space-y-2 text-sm">
-                                                    <li>• Manual entry with full details</li>
-                                                    <li>• Photo upload capability</li>
-                                                    <li>• Rating and location information</li>
-                                                    <li>• Contact details (optional)</li>
+                                    <DocSubSection title="Photo Upload Process">
+                                        <p>Step-by-step guide to uploading player photos:</p>
+                                        <ol className="list-decimal pl-5 space-y-2">
+                                            <li><strong>Prepare Photos:</strong> Organize photos in a ZIP file with clear naming</li>
+                                            <li><strong>Upload ZIP:</strong> Use the PhotoDatabaseManager to upload your ZIP file</li>
+                                            <li><strong>Automatic Processing:</strong> System extracts, compresses, and matches photos</li>
+                                            <li><strong>Review Matches:</strong> Check automatic matching results</li>
+                                            <li><strong>Manual Matching:</strong> Assign unmatched photos to players manually</li>
+                                        </ol>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Photo Naming Conventions">
+                                        <p>Best practices for naming photos to ensure accurate matching:</p>
+                                        <div className="bg-muted/20 rounded-lg p-4 mb-4">
+                                            <h5 className="font-semibold text-foreground mb-2">Recommended Formats:</h5>
+                                            <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                <li><code>John Smith.jpg</code> - Exact player name</li>
+                                                <li><code>John_Smith.jpg</code> - With underscores</li>
+                                                <li><code>John-Smith.jpg</code> - With hyphens</li>
+                                                <li><code>john smith.jpg</code> - Lowercase (will be matched)</li>
+                                            </ul>
+                                        </div>
+                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                                            <h5 className="font-semibold text-foreground mb-2">Avoid These:</h5>
+                                            <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                <li><code>IMG_001.jpg</code> - Unclear naming</li>
+                                                <li><code>Photo1.png</code> - Generic names</li>
+                                                <li><code>DSC_1234.jpeg</code> - Camera default names</li>
+                                            </ul>
+                                        </div>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Supported File Formats">
+                                        <p>The system supports various image formats with automatic optimization:</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                                <h5 className="font-semibold text-foreground mb-2">Image Formats:</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                    <li>JPEG/JPG - Best for photos</li>
+                                                    <li>PNG - Good for graphics</li>
+                                                    <li>GIF - Animated images</li>
+                                                    <li>WebP - Modern format</li>
                                                 </ul>
                                             </div>
-                                            <div className="glass-card p-6 rounded-xl">
-                                                <h5 className="font-semibold text-foreground mb-3">Bulk Import</h5>
-                                                <ul className="space-y-2 text-sm">
-                                                    <li>• CSV file upload</li>
-                                                    <li>• Text area paste functionality</li>
-                                                    <li>• Automatic format detection</li>
-                                                    <li>• Batch reconciliation process</li>
+                                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                                <h5 className="font-semibold text-foreground mb-2">Upload Format:</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                    <li>ZIP files only</li>
+                                                    <li>Max 50MB total</li>
+                                                    <li>Max 10MB per photo</li>
+                                                    <li>Automatic compression</li>
                                                 </ul>
                                             </div>
                                         </div>
                                     </DocSubSection>
 
-                                    <DocSubSection title="Player Profiles & Data">
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Profile Information</h4>
-                                        <div className="bg-muted/20 rounded-lg p-6 mt-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div>
-                                                    <h5 className="font-semibold text-foreground mb-3">Basic Information</h5>
-                                                    <ul className="space-y-2 text-sm">
-                                                        <li>• Full name and display name</li>
-                                                        <li>• Profile photo</li>
-                                                        <li>• Current rating</li>
-                                                        <li>• Location/country</li>
-                                                    </ul>
-                                                </div>
-                                                <div>
-                                                    <h5 className="font-semibold text-foreground mb-3">Tournament Data</h5>
-                                                    <ul className="space-y-2 text-sm">
-                                                        <li>• Tournament participation history</li>
-                                                        <li>• Performance statistics</li>
-                                                        <li>• Win/loss records</li>
-                                                        <li>• Rating progression</li>
-                                                    </ul>
-                                                </div>
+                                    <DocSubSection title="Player Matching Algorithm">
+                                        <p>How the system automatically matches photos to players:</p>
+                                        <ol className="list-decimal pl-5 space-y-2">
+                                            <li><strong>Exact Match:</strong> Filename exactly matches player name</li>
+                                            <li><strong>Normalized Match:</strong> Handles spaces, underscores, and hyphens</li>
+                                            <li><strong>Partial Match:</strong> Filename contains unique player identifier</li>
+                                            <li><strong>Word Match:</strong> Multiple words match between filename and player name</li>
+                                        </ol>
+                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-4">
+                                            <p className="text-sm text-muted-foreground">
+                                                <strong>Note:</strong> If automatic matching fails, you can manually assign photos to players 
+                                                using the manual matching interface.
+                                            </p>
+                                        </div>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Photo Management Features">
+                                        <p>Comprehensive tools for managing uploaded photos:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Photo Viewing:</strong> Browse all uploaded photos with player details</li>
+                                            <li><strong>Photo Editing:</strong> Replace photos for existing players</li>
+                                            <li><strong>Bulk Operations:</strong> Select and manage multiple photos at once</li>
+                                            <li><strong>Photo Removal:</strong> Delete individual or multiple photos</li>
+                                            <li><strong>Export Functionality:</strong> Download photo database as CSV</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Security & Privacy">
+                                        <p>How your photos are protected and secured:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Access Control:</strong> Only tournament owners can manage photos</li>
+                                            <li><strong>Row Level Security:</strong> Database-level access control</li>
+                                            <li><strong>Secure Storage:</strong> Encrypted storage with Supabase</li>
+                                            <li><strong>Public Access:</strong> Photos are publicly viewable for tournament identification</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Mobile Optimization">
+                                        <p>Mobile-first design for tournament directors on the go:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Touch Interface:</strong> 44px+ touch targets for all controls</li>
+                                            <li><strong>Responsive Design:</strong> Adapts to all screen sizes</li>
+                                            <li><strong>Mobile Upload:</strong> Easy photo upload from mobile devices</li>
+                                            <li><strong>Performance:</strong> Optimized for mobile bandwidth and processing</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Pairing Systems Section */}
+                        {activeSection === 'pairing-systems' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Pairing Systems" id="pairing-systems">
+                                    <p className="text-lg mb-6">
+                                        Direktor offers multiple pairing algorithms to suit different tournament formats and preferences.
+                                    </p>
+
+                                    <DocSubSection title="Swiss System">
+                                        <p>The most common pairing system for competitive tournaments:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Automatic Pairing:</strong> Players are paired based on current score</li>
+                                            <li><strong>Color Balance:</strong> System maintains equal white/black distribution</li>
+                                            <li><strong>Bye Handling:</strong> Automatic bye distribution for odd numbers</li>
+                                            <li><strong>Pairing Rules:</strong> Configurable rules for maximum flexibility</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Round Robin">
+                                        <p>Complete round-robin system for smaller tournaments:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>All vs All:</strong> Every player faces every other player</li>
+                                            <li><strong>Optimal Scheduling:</strong> Minimizes waiting time between rounds</li>
+                                            <li><strong>Color Balance:</strong> Equal white and black games for each player</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="King of the Hill">
+                                        <p>Dynamic pairing system for competitive play:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Performance Based:</strong> Winners play winners, losers play losers</li>
+                                            <li><strong>Rapid Advancement:</strong> Strong players advance quickly</li>
+                                            <li><strong>Engaging Matches:</strong> Keeps all players competitive</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Scoring & Results Section */}
+                        {activeSection === 'scoring-results' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Scoring & Results" id="scoring-results">
+                                    <p className="text-lg mb-6">
+                                        Track scores, calculate standings, and generate comprehensive tournament results.
+                                    </p>
+
+                                    <DocSubSection title="Score Entry">
+                                        <p>Multiple ways to enter and manage game scores:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Individual Entry:</strong> Enter scores game by game</li>
+                                            <li><strong>Bulk Entry:</strong> Upload multiple scores at once</li>
+                                            <li><strong>Mobile Entry:</strong> Enter scores from mobile devices</li>
+                                            <li><strong>Validation:</strong> Automatic score validation and error checking</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Standings Calculation">
+                                        <p>Automatic calculation of tournament standings:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Score Points:</strong> Game points and bonus points</li>
+                                            <li><strong>Game Points:</strong> Win/loss/draw records</li>
+                                            <li><strong>Tiebreakers:</strong> Multiple tiebreaking methods</li>
+                                            <li><strong>Real-time Updates:</strong> Instant standings updates</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Dashboard Section */}
+                        {activeSection === 'dashboard' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Tournament Dashboard" id="dashboard">
+                                    <p className="text-lg mb-6">
+                                        The tournament dashboard provides real-time information and control over your active tournament.
+                                    </p>
+
+                                    <DocSubSection title="Live Information">
+                                        <p>Real-time tournament status and updates:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Current Round:</strong> Active round status and progress</li>
+                                            <li><strong>Player Status:</strong> Who's playing, finished, or waiting</li>
+                                            <li><strong>Game Results:</strong> Live score updates and game completion</li>
+                                            <li><strong>Pairing Status:</strong> Current pairings and next round preparation</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Control Center">
+                                        <p>Manage tournament flow and operations:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Round Management:</strong> Start, pause, and complete rounds</li>
+                                            <li><strong>Pairing Generation:</strong> Create new pairings for next round</li>
+                                            <li><strong>Result Processing:</strong> Process completed games and update standings</li>
+                                            <li><strong>Tournament Control:</strong> Pause, resume, or end tournament</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Mobile Optimization Section */}
+                        {activeSection === 'mobile-optimization' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Mobile Features & Optimization" id="mobile-optimization">
+                                    <p className="text-lg mb-6">
+                                        Direktor is optimized for mobile devices, allowing tournament directors to manage events from anywhere.
+                                    </p>
+
+                                    <DocSubSection title="Mobile-First Design">
+                                        <p>Built from the ground up for mobile devices:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Touch Interface:</strong> All controls optimized for touch interaction</li>
+                                            <li><strong>Responsive Layout:</strong> Adapts to all screen sizes and orientations</li>
+                                            <li><strong>Mobile Navigation:</strong> Intuitive navigation designed for mobile</li>
+                                            <li><strong>Performance:</strong> Optimized for mobile bandwidth and processing</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Mobile-Specific Features">
+                                        <p>Features designed specifically for mobile tournament management:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Photo Upload:</strong> Easy photo capture and upload from mobile cameras</li>
+                                            <li><strong>Score Entry:</strong> Quick score entry with mobile-optimized forms</li>
+                                            <li><strong>Player Check-in:</strong> Mobile check-in for tournament participants</li>
+                                            <li><strong>Real-time Updates:</strong> Push notifications for important events</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Performance Optimization">
+                                        <p>Mobile-specific performance enhancements:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Image Compression:</strong> Automatic compression for mobile uploads</li>
+                                            <li><strong>Lazy Loading:</strong> Load content as needed to save bandwidth</li>
+                                            <li><strong>Offline Support:</strong> Basic functionality without internet connection</li>
+                                            <li><strong>Battery Optimization:</strong> Efficient power usage during long tournaments</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Advanced Features Section */}
+                        {activeSection === 'advanced-features' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Advanced Features" id="advanced-features">
+                                    <p className="text-lg mb-6">
+                                        Explore advanced features that make Direktor the most powerful tournament management platform available.
+                                    </p>
+
+                                    <DocSubSection title="Export & Reporting">
+                                        <p>Comprehensive data export and reporting capabilities:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Tournament Reports:</strong> Detailed tournament summaries and statistics</li>
+                                            <li><strong>Player Reports:</strong> Individual player performance and history</li>
+                                            <li><strong>Data Export:</strong> Export data in multiple formats (CSV, JSON, PDF)</li>
+                                            <li><strong>Custom Reports:</strong> Create custom reports for specific needs</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Integration & APIs">
+                                        <p>Connect Direktor with other systems and services:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Rating Systems:</strong> Integration with NASPA, WESPA, and custom systems</li>
+                                            <li><strong>Tournament Software:</strong> Export data for other tournament software</li>
+                                            <li><strong>Communication Tools:</strong> Integration with email and messaging services</li>
+                                            <li><strong>Analytics Platforms:</strong> Connect with external analytics tools</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Security Section */}
+                        {activeSection === 'security' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Security & Privacy" id="security">
+                                    <p className="text-lg mb-6">
+                                        Direktor implements enterprise-grade security measures to protect your tournament data and player information.
+                                    </p>
+
+                                    <DocSubSection title="Data Protection">
+                                        <p>Comprehensive data security and privacy measures:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Encryption:</strong> All data encrypted in transit and at rest</li>
+                                            <li><strong>Access Control:</strong> Role-based access control for all users</li>
+                                            <li><strong>Audit Logging:</strong> Complete audit trail of all system activities</li>
+                                            <li><strong>Data Backup:</strong> Regular automated backups with point-in-time recovery</li>
+                                        </ul>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Privacy Compliance">
+                                        <p>Compliance with privacy regulations and best practices:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>GDPR Compliance:</strong> European privacy regulation compliance</li>
+                                            <li><strong>Data Minimization:</strong> Only collect necessary data</li>
+                                            <li><strong>User Consent:</strong> Clear consent for data collection and use</li>
+                                            <li><strong>Data Portability:</strong> Users can export their data</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* Troubleshooting Section */}
+                        {activeSection === 'troubleshooting' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Troubleshooting" id="troubleshooting">
+                                    <p className="text-lg mb-6">
+                                        Common issues and solutions to help you resolve problems quickly and get back to managing your tournament.
+                                    </p>
+
+                                    <DocSubSection title="Common Issues">
+                                        <div className="space-y-4">
+                                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+                                                <h5 className="font-semibold text-foreground mb-2">Photo Upload Issues</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                    <li><strong>ZIP file not uploading:</strong> Check file size (max 50MB) and format (.zip only)</li>
+                                                    <li><strong>Photos not matching:</strong> Ensure filenames follow naming conventions</li>
+                                                    <li><strong>Upload errors:</strong> Check internet connection and try again</li>
+                                                </ul>
+                                            </div>
+                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                                                <h5 className="font-semibold text-foreground mb-2">Tournament Management Issues</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                                    <li><strong>Can't start tournament:</strong> Verify all players are added and rounds configured</li>
+                                                    <li><strong>Pairing errors:</strong> Check player count and pairing system settings</li>
+                                                    <li><strong>Score entry issues:</strong> Ensure games are properly created before entering scores</li>
+                                                </ul>
                                             </div>
                                         </div>
                                     </DocSubSection>
 
-                                    <DocSubSection title="Player Management Tools">
-                                        <h4 className="text-lg font-heading font-semibold text-foreground mt-6 mb-3">Available Actions</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                            <div className="bg-muted/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Edit Player</h5>
-                                                <p className="text-sm">Update player information, photos, and tournament-specific details</p>
-                                            </div>
-                                            <div className="bg-muted/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Remove Player</h5>
-                                                <p className="text-sm">Remove players from current tournament (doesn't delete from Master Library)</p>
-                                            </div>
-                                            <div className="bg-muted/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Player Statistics</h5>
-                                                <p className="text-sm">View detailed performance data and tournament history</p>
-                                            </div>
+                                    <DocSubSection title="Getting Help">
+                                        <p>When you need additional assistance:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Documentation:</strong> Check this guide for detailed information</li>
+                                            <li><strong>Community Support:</strong> Join our community forums for peer support</li>
+                                            <li><strong>Technical Support:</strong> Contact our support team for technical issues</li>
+                                            <li><strong>Feature Requests:</strong> Submit suggestions for new features</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
+
+                        {/* API Reference Section */}
+                        {activeSection === 'api-reference' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="API Reference" id="api-reference">
+                                    <p className="text-lg mb-6">
+                                        Technical documentation for developers and advanced users who want to integrate with Direktor.
+                                    </p>
+
+                                    <DocSubSection title="Component Props">
+                                        <p>Key component interfaces and properties:</p>
+                                        <div className="bg-muted/20 rounded-lg p-4">
+                                            <h5 className="font-semibold text-foreground mb-2">PhotoDatabaseManager Props</h5>
+                                            <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
+{`interface PhotoDatabaseManagerProps {
+  isOpen: boolean;                    // Modal open state
+  onClose: () => void;               // Close handler
+  players: Player[];                  // Tournament players
+  tournamentId: number;               // Tournament ID
+  onPhotosUpdated?: () => void;      // Callback when photos updated
+}`}
+                                            </pre>
+                                        </div>
+                                    </DocSubSection>
+
+                                    <DocSubSection title="Database Schema">
+                                        <p>Key database tables and relationships:</p>
+                                        <div className="bg-muted/20 rounded-lg p-4">
+                                            <h5 className="font-semibold text-foreground mb-2">Player Photos Table</h5>
+                                            <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
+{`CREATE TABLE player_photos (
+    id BIGSERIAL PRIMARY KEY,
+    tournament_id BIGINT NOT NULL REFERENCES tournaments(id),
+    player_id BIGINT NOT NULL REFERENCES players(id),
+    photo_url TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(tournament_id, player_id)
+);`}
+                                            </pre>
                                         </div>
                                     </DocSubSection>
                                 </DocSection>
@@ -455,7 +806,7 @@ const DocumentationPage = () => {
                         )}
 
                         {/* Continue with other sections... */}
-                        {!['overview', 'getting-started', 'tournament-setup', 'player-management'].includes(activeSection) && (
+                        {!['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'].includes(activeSection) && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}

@@ -9,14 +9,14 @@ import { cn } from '../utils/cn';
 
 const PlayerCard = ({ player, index, tournamentType }) => {
   const getPlayerStats = () => {
-    if (!player) return { wins: 0, losses: 0, draws: 0, points: 0, gamesPlayed: 0 };
+    if (!player) return { wins: 0, losses: 0, ties: 0, points: 0, gamesPlayed: 0 };
     
     return {
       wins: player.wins || 0,
       losses: player.losses || 0,
-      draws: player.draws || 0,
+      ties: player.ties || 0,
       points: player.points || 0,
-      gamesPlayed: (player.wins || 0) + (player.losses || 0) + (player.draws || 0)
+      gamesPlayed: (player.wins || 0) + (player.losses || 0) + (player.ties || 0)
     };
   };
 
@@ -172,10 +172,10 @@ const PlayerCard = ({ player, index, tournamentType }) => {
                 "font-bold text-blue-600",
                 "text-xl sm:text-lg"
               )}>
-                {stats.draws}
+                {stats.ties}
               </div>
               <div className="text-xs text-blue-600/80 font-medium">
-                Draws
+                Ties
               </div>
             </div>
             

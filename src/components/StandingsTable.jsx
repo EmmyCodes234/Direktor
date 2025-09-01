@@ -39,14 +39,18 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
           bValue = b.losses || 0;
           break;
         case 'draws':
-          aValue = a.draws || 0;
-          bValue = b.draws || 0;
+          aValue = a.ties || 0;
+          bValue = b.ties || 0;
           break;
         case 'winRate':
-          const aGames = (a.wins || 0) + (a.losses || 0) + (a.draws || 0);
-          const bGames = (b.wins || 0) + (b.losses || 0) + (b.draws || 0);
+          const aGames = (a.wins || 0) + (a.losses || 0) + (a.ties || 0);
+          const bGames = (b.wins || 0) + (b.losses || 0) + (b.ties || 0);
           aValue = aGames > 0 ? (a.wins || 0) / aGames : 0;
           bValue = bGames > 0 ? (b.wins || 0) / bGames : 0;
+          break;
+        case 'spread':
+          aValue = a.spread || 0;
+          bValue = b.spread || 0;
           break;
         default:
           aValue = a.rank || 999;
@@ -93,6 +97,24 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
     if (rank === 2) return 'text-gray-400';
     if (rank === 3) return 'text-amber-600';
     return 'text-foreground';
+  };
+
+  // Format record as "wins.5-losses.5" where draws are split as 0.5 each
+  const formatRecord = (player) => {
+    const wins = player.wins || 0;
+    const losses = player.losses || 0;
+    const ties = player.ties || 0;
+    
+    // Add 0.5 to both wins and losses for each draw
+    const adjustedWins = wins + (ties * 0.5);
+    const adjustedLosses = losses + (ties * 0.5);
+    
+    // Only show decimals if there are draws
+    if (ties > 0) {
+      return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
+    } else {
+      return `${adjustedWins}-${adjustedLosses}`;
+    }
   };
 
   if (isLoading) {
@@ -171,39 +193,33 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                 Player {getSortIcon('name')}
               </button>
             </div>
-            <div className="col-span-1 text-center">
-              <button
-                onClick={() => handleSort('matchWins')}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                Match Wins {getSortIcon('matchWins')}
-              </button>
-            </div>
-            <div className="col-span-1 text-center">
+            {tournamentType === 'best_of_league' && (
+              <div className="col-span-1 text-center">
+                <button
+                  onClick={() => handleSort('matchWins')}
+                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                >
+                  Match Wins {getSortIcon('matchWins')}
+                </button>
+              </div>
+            )}
+            <div className={cn("text-center", tournamentType === 'best_of_league' ? "col-span-2" : "col-span-2")}>
               <button
                 onClick={() => handleSort('wins')}
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
               >
-                W {getSortIcon('wins')}
+                Record {getSortIcon('wins')}
               </button>
             </div>
-            <div className="col-span-1 text-center">
+            <div className="col-span-2 text-center">
               <button
-                onClick={() => handleSort('losses')}
+                onClick={() => handleSort('spread')}
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
               >
-                L {getSortIcon('losses')}
+                Spread {getSortIcon('spread')}
               </button>
             </div>
-            <div className="col-span-1 text-center">
-              <button
-                onClick={() => handleSort('draws')}
-                className="flex items-center gap-1 hover:text-foreground transition-colors"
-              >
-                D {getSortIcon('draws')}
-              </button>
-            </div>
-            <div className="col-span-1 text-center">
+            <div className="col-span-2 text-center">
               <button
                 onClick={() => handleSort('winRate')}
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -211,7 +227,7 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                 % {getSortIcon('winRate')}
               </button>
             </div>
-            <div className="col-span-2 text-center">
+            <div className="col-span-1 text-center">
               Games
             </div>
           </div>
@@ -219,7 +235,7 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
           {/* Desktop Table Body */}
           <div className="divide-y divide-border/20">
             {sortedPlayers.map((player, index) => {
-              const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.draws || 0);
+              const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.ties || 0);
               const winRate = gamesPlayed > 0 ? ((player.wins || 0) / gamesPlayed * 100).toFixed(1) : 0;
 
               return (
@@ -265,42 +281,37 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                   </div>
 
                   {/* Match Wins */}
-                  <div className="col-span-1 text-center">
-                    <span className="font-bold text-primary">
-                      {player.match_wins || 0}
+                  {tournamentType === 'best_of_league' && (
+                    <div className="col-span-1 text-center">
+                      <span className="font-bold text-primary">
+                        {player.match_wins || 0}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Record */}
+                  <div className="col-span-2 text-center">
+                    <span className="font-mono font-medium text-foreground">
+                      {formatRecord(player)}
                     </span>
                   </div>
 
-                  {/* Wins */}
-                  <div className="col-span-1 text-center">
-                    <span className="text-green-500 font-medium">
-                      {player.wins || 0}
-                    </span>
-                  </div>
-
-                  {/* Losses */}
-                  <div className="col-span-1 text-center">
-                    <span className="text-red-500 font-medium">
-                      {player.losses || 0}
-                    </span>
-                  </div>
-
-                  {/* Draws */}
-                  <div className="col-span-1 text-center">
-                    <span className="text-blue-500 font-medium">
-                      {player.draws || 0}
+                  {/* Spread */}
+                  <div className="col-span-2 text-center">
+                    <span className="text-sm font-medium">
+                      {player.spread || 0}
                     </span>
                   </div>
 
                   {/* Win Rate */}
-                  <div className="col-span-1 text-center">
+                  <div className="col-span-2 text-center">
                     <span className="text-sm font-medium">
                       {winRate}%
                     </span>
                   </div>
 
                   {/* Games Played */}
-                  <div className="col-span-2 text-center">
+                  <div className="col-span-1 text-center">
                     <span className="text-sm text-muted-foreground">
                       {gamesPlayed}
                     </span>
@@ -315,7 +326,7 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
       {/* Mobile Standings Cards */}
       <div className={cn("md:hidden", LAYOUT_TEMPLATES.spacing.content)}>
         {sortedPlayers.map((player, index) => {
-          const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.draws || 0);
+          const gamesPlayed = (player.wins || 0) + (player.losses || 0) + (player.ties || 0);
           const winRate = gamesPlayed > 0 ? ((player.wins || 0) / gamesPlayed * 100).toFixed(1) : 0;
 
           return (
@@ -360,15 +371,19 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-primary">
-                        {player.match_wins || 0}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Match Wins</div>
+                      {tournamentType === 'best_of_league' && (
+                        <>
+                          <div className="text-lg font-bold text-primary">
+                            {player.match_wins || 0}
+                          </div>
+                          <div className="text-xs text-muted-foreground">Match Wins</div>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-4 gap-3 text-center">
+                  <div className={cn("grid gap-3 text-center", tournamentType === 'best_of_league' ? "grid-cols-5" : "grid-cols-5")}>
                     <div className="bg-green-500/10 rounded-lg p-2">
                       <div className="text-lg font-bold text-green-500">
                         {player.wins || 0}
@@ -383,15 +398,21 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                     </div>
                     <div className="bg-blue-500/10 rounded-lg p-2">
                       <div className="text-lg font-bold text-blue-500">
-                        {player.draws || 0}
+                        {player.ties || 0}
                       </div>
-                      <div className="text-xs text-muted-foreground">Draws</div>
+                      <div className="text-xs text-muted-foreground">Ties</div>
                     </div>
                     <div className="bg-primary/10 rounded-lg p-2">
                       <div className="text-lg font-bold text-primary">
                         {winRate}%
                       </div>
                       <div className="text-xs text-muted-foreground">Win Rate</div>
+                    </div>
+                    <div className="bg-orange-500/10 rounded-lg p-2">
+                      <div className="text-lg font-bold text-orange-500">
+                        {player.spread || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Spread</div>
                     </div>
                   </div>
 
@@ -426,14 +447,14 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-500">
-                {players.reduce((sum, p) => sum + (p.draws || 0), 0)}
+                {players.reduce((sum, p) => sum + (p.ties || 0), 0)}
               </div>
-              <div className="text-sm text-muted-foreground">Total Draws</div>
+              <div className="text-sm text-muted-foreground">Total Ties</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-muted-foreground">
                 {players.reduce((sum, p) => {
-                  const games = (p.wins || 0) + (p.losses || 0) + (p.draws || 0);
+                  const games = (p.wins || 0) + (p.losses || 0) + (p.ties || 0);
                   return sum + games;
                 }, 0)}
               </div>

@@ -110,16 +110,14 @@ const NewLandingPage = () => {
 
             {/* Hero Section */}
             <HeroSection
-                title="Professional Tournament Management"
+                title="Run World-Class Scrabble Tournaments — with Direktor."
                 subtitle={{
-                    regular: "Streamline your Scrabble tournaments with ",
-                    gradient: "powerful automation tools."
+                    regular: "Powerful. Professional. ",
+                    gradient: "Effortless."
                 }}
-                description="From player registration to final standings, Direktor handles every aspect of tournament organization with precision and ease. Built by tournament directors, for tournament directors."
-                ctaText="Start Your Tournament"
-                secondaryCtaText="View Demo"
+                description="Join tournament directors worldwide who trust Direktor for their competitive Scrabble events. Advanced algorithms, real-time updates, and professional-grade features — all in one platform."
+                ctaText="Sign Up"
                 onCtaClick={() => navigate('/signup')}
-                onSecondaryCtaClick={() => navigate('/demo')}
 
                 gridOptions={{
                     angle: 65,
@@ -130,6 +128,36 @@ const NewLandingPage = () => {
                 }}
                 className="pt-16"
             />
+
+            {/* Feature Highlights */}
+            <section className="py-16 sm:py-20">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                        {[
+                            { title: "AI-Powered Pairings", icon: "Network" },
+                            { title: "Live Standings", icon: "BarChart3" },
+                            { title: "Gibsonization", icon: "Settings" },
+                            { title: "Professional Results", icon: "FileText" }
+                        ].map((feature, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.1 }}
+                                className="text-center p-4 sm:p-6 bg-card/50 backdrop-blur-sm rounded-xl border border-border/20 hover:bg-card/80 transition-all duration-300 group"
+                            >
+                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-primary/20 transition-colors">
+                                    <Icon name={feature.icon} size={24} className="text-primary" />
+                                </div>
+                                <h3 className="text-sm sm:text-base font-medium text-foreground group-hover:text-primary transition-colors">
+                                    {feature.title}
+                                </h3>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
             {/* Features Section */}
             <section className="py-24 bg-muted/30">

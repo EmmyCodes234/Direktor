@@ -1,10 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../supabaseClient';
 import Table from '../ui/Table';
 import Icon from '../AppIcon';
 import { cn } from '../../utils/cn';
 import useMediaQuery from '../../hooks/useMediaQuery';
+
+// Format record as "wins.5-losses.5" where draws are split as 0.5 each
+const formatRecord = (player) => {
+  const wins = player.current_wins || player.wins || 0;
+  const losses = player.current_losses || player.losses || 0;
+  const ties = player.current_ties || player.ties || 0;
+  
+  // Add 0.5 to both wins and losses for each draw
+  const adjustedWins = wins + (ties * 0.5);
+  const adjustedLosses = losses + (ties * 0.5);
+  
+  // Only show decimals if there are draws
+  if (ties > 0) {
+    return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
+  } else {
+    return `${adjustedWins}-${adjustedLosses}`;
+  }
+};
 
 const LadderStandingsTable = ({ 
     tournamentId, 
@@ -184,7 +202,7 @@ const LadderStandingsTable = ({
                 accessorKey: 'record',
                 cell: ({ row }) => (
                     <div className="text-sm">
-                        {row.original.current_wins || 0}-{row.original.current_losses || 0}-{row.original.current_ties || 0}
+                        {formatRecord(row.original)}
                     </div>
                 )
             }
@@ -290,7 +308,7 @@ const LadderStandingsTable = ({
             <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <div className="text-muted-foreground">Record</div>
-                    <div>{player.current_wins || 0}-{player.current_losses || 0}-{player.current_ties || 0}</div>
+                    <div>{formatRecord(player)}</div>
                 </div>
                 <div>
                     <div className="text-muted-foreground">Spread</div>

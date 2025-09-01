@@ -88,7 +88,7 @@ const HeroSection = React.forwardRef(({
                                     </button>
                                 </div>
                             </span>
-                            {secondaryCtaText && (
+                            {secondaryCtaText && onSecondaryCtaClick && (
                                 <button
                                     onClick={onSecondaryCtaClick}
                                     className="hero-button-secondary inline-flex rounded-full text-center group items-center w-full justify-center transition-all sm:w-auto py-3 sm:py-4 px-6 sm:px-10 min-h-[44px] text-sm sm:text-base"

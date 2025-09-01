@@ -40,6 +40,13 @@ const PublicTournamentPageNew = () => {
         if (!playerList) return [];
         let enrichedPlayers = playerList;
         
+        console.log('🔍 DEBUG: Recalculating ranks with:', {
+            playerCount: playerList?.length,
+            tournamentType,
+            resultsCount: resultsList?.length,
+            matchesCount: matchesList?.length
+        });
+        
         if (tournamentType === 'best_of_league') {
             // Calculate match_wins by grouping results by match-up and counting majority wins
             const bestOf = 15; // Default to 15, or get from tournament settings if available
@@ -96,19 +103,25 @@ const PublicTournamentPageNew = () => {
                 };
             });
         } else {
+            // For individual tournaments, calculate stats directly from results
+            // This ensures consistency with the dashboard and real-time accuracy
             enrichedPlayers = playerList.map(player => {
                 let wins = 0, losses = 0, ties = 0, spread = 0;
+                
                 (resultsList || []).forEach(result => {
                     if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
                         let isP1 = result.player1_id === player.player_id;
                         let myScore = isP1 ? result.score1 : result.score2;
                         let oppScore = isP1 ? result.score2 : result.score1;
+                        
                         if (myScore > oppScore) wins++;
                         else if (myScore < oppScore) losses++;
                         else ties++;
+                        
                         spread += (myScore - oppScore);
                     }
                 });
+                
                 return {
                     ...player,
                     wins,
@@ -118,13 +131,55 @@ const PublicTournamentPageNew = () => {
                 };
             });
         }
-        return [...enrichedPlayers].sort((a, b) => {
+        
+        const finalStandings = [...enrichedPlayers].sort((a, b) => {
             if (tournamentType === 'best_of_league') {
                 if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
             }
-            if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
-            return (b.spread || 0) - (a.spread || 0);
+            
+            // Primary sort: Game wins + 0.5 * ties
+            const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
+            const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
+            if (aGameScore !== bGameScore) return bGameScore - aGameScore;
+            
+            // Secondary sort: Spread
+            if ((a.spread || 0) !== (b.spread || 0)) return (b.spread || 0) - (a.spread || 0);
+            
+            // Tertiary sort: Head-to-head (if they've played)
+            const headToHeadGames = resultsList.filter(r => 
+                (r.player1_id === a.player_id && r.player2_id === b.player_id) ||
+                (r.player1_id === b.player_id && r.player2_id === a.player_id)
+            );
+            
+            if (headToHeadGames.length > 0) {
+                let aWins = 0, bWins = 0;
+                headToHeadGames.forEach(game => {
+                    if (game.player1_id === a.player_id) {
+                        if (game.score1 > game.score2) aWins++;
+                        else if (game.score2 > game.score1) bWins++;
+                    } else {
+                        if (game.score2 > game.score1) aWins++;
+                        else if (game.score1 > game.score2) bWins++;
+                    }
+                });
+                if (aWins !== bWins) return bWins - aWins;
+            }
+            
+            // Quaternary sort: Higher seed (lower number)
+            return (a.seed || 999) - (b.seed || 999);
         }).map((player, index) => ({ ...player, rank: index + 1 }));
+        
+        console.log('🏆 DEBUG: Final standings:', finalStandings.map(p => ({
+            name: p.name,
+            rank: p.rank,
+            wins: p.wins,
+            losses: p.losses,
+            ties: p.ties,
+            spread: p.spread,
+            gameScore: (p.wins || 0) + (p.ties || 0) * 0.5
+        })));
+        
+        return finalStandings;
     }, []);
 
     // Fetch tournament data - FRESH APPROACH
@@ -147,6 +202,7 @@ const PublicTournamentPageNew = () => {
                 .single();
             
             console.log('📊 Tournament query result:', { data: tournamentData, error: tournamentError });
+            console.log('🔧 Remote submission enabled:', tournamentData?.is_remote_submission_enabled);
             
             if (tournamentError) {
                 console.error('❌ Tournament query failed:', tournamentError);
@@ -427,12 +483,28 @@ const PublicTournamentPageNew = () => {
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
 
-            {/* Mobile Header */}
+            {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-[9999] bg-card border-b border-border/20 shadow-lg">
                 <div className="w-full px-4 py-4">
-                    <div className="text-center">
-                        <h1 className="text-xl font-bold text-primary leading-tight truncate">{tournament.name}</h1>
-                        <p className="text-sm text-muted-foreground leading-relaxed truncate mt-1">{tournament.venue} • {formattedDate}</p>
+                    <div className="flex items-center justify-between">
+                        {/* Tournament Info */}
+                        <div className="flex-1 text-center lg:text-left">
+                            <h1 className="text-xl font-bold text-primary leading-tight truncate">{tournament.name}</h1>
+                            <p className="text-sm text-muted-foreground leading-relaxed truncate mt-1">{tournament.venue} • {formattedDate}</p>
+                        </div>
+                        
+                        {/* Desktop Submit Button */}
+                        {tournament.is_remote_submission_enabled && (
+                            <div className="hidden lg:block">
+                                <Button
+                                    onClick={() => setShowSubmissionModal(true)}
+                                    className="bg-accent hover:bg-accent/90 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2"
+                                >
+                                    <Icon name="Send" size={18} />
+                                    Submit Score
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -487,6 +559,19 @@ const PublicTournamentPageNew = () => {
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
+            {/* Floating Submit Button (visible on all screens when enabled) */}
+            {tournament.is_remote_submission_enabled && (
+                <div className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9997]">
+                    <Button
+                        onClick={() => setShowSubmissionModal(true)}
+                        className="bg-accent hover:bg-accent/90 text-white font-medium px-4 py-3 lg:px-6 lg:py-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 lg:gap-3"
+                    >
+                        <Icon name="Send" size={20} />
+                        <span className="hidden lg:inline">Submit Score</span>
+                    </Button>
+                </div>
+            )}
+
             {/* Main Content */}
             <main className="pt-28 pb-20 lg:pt-24 lg:pb-10">
                 <div className="w-full px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">

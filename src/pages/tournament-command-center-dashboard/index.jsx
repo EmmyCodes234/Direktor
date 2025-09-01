@@ -200,7 +200,7 @@ const MainContent = React.memo(({ tournamentInfo, players, recentResults, pendin
                             {team.players.map(p => (
                               <li key={p.player_id} className="flex items-center gap-2 text-sm">
                                 <span className="font-medium text-foreground">{p.name}</span>
-                                <span className="text-muted-foreground text-xs">({p.wins || 0}-{p.losses || 0}-{p.ties || 0}, {p.spread > 0 ? '+' : ''}{p.spread || 0})</span>
+                                <span className="text-muted-foreground text-xs">({formatRecord(p)}, {p.spread > 0 ? '+' : ''}{p.spread || 0})</span>
                               </li>
                             ))}
                           </ul>
@@ -322,6 +322,34 @@ const TournamentCommandCenterDashboard = () => {
   const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
   const [carryoverConfig, setCarryoverConfig] = useState(null);
   const [ladderConfig, setLadderConfig] = useState(null);
+
+  // Update selectedPlayerModal when players state changes to ensure it has latest data
+  useEffect(() => {
+    if (selectedPlayerModal) {
+      const updatedPlayer = players.find(p => p.player_id === selectedPlayerModal.player_id);
+      if (updatedPlayer && JSON.stringify(updatedPlayer) !== JSON.stringify(selectedPlayerModal)) {
+        setSelectedPlayerModal(updatedPlayer);
+      }
+    }
+  }, [players, selectedPlayerModal]);
+
+  // Format record as "wins.5-losses.5" where draws are split as 0.5 each
+  const formatRecord = (player) => {
+    const wins = player.wins || 0;
+    const losses = player.losses || 0;
+    const ties = player.ties || 0;
+    
+    // Add 0.5 to both wins and losses for each draw
+    const adjustedWins = wins + (ties * 0.5);
+    const adjustedLosses = losses + (ties * 0.5);
+    
+    // Only show decimals if there are draws
+    if (ties > 0) {
+      return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
+    } else {
+      return `${adjustedWins}-${adjustedLosses}`;
+    }
+  };
 
   // Fetch carry-over configuration
   useEffect(() => {
@@ -714,9 +742,60 @@ const TournamentCommandCenterDashboard = () => {
     setRankingUpdateCounter(prev => prev + 1);
   }, []);
   
+  // Helper function to calculate head-to-head result
+  const calculateHeadToHead = useCallback((playerA, playerB, results) => {
+    const headToHeadGames = results.filter(r => 
+      (r.player1_id === playerA.player_id && r.player2_id === playerB.player_id) ||
+      (r.player1_id === playerB.player_id && r.player2_id === playerA.player_id)
+    );
+    
+    if (headToHeadGames.length === 0) return 0;
+    
+    let aWins = 0, bWins = 0;
+    headToHeadGames.forEach(game => {
+      if (game.player1_id === playerA.player_id) {
+        if (game.score1 > game.score2) aWins++;
+        else if (game.score2 > game.score1) bWins++;
+      } else {
+        if (game.score2 > game.score1) aWins++;
+        else if (game.score1 > game.score2) bWins++;
+      }
+    });
+    
+    return aWins - bWins;
+  }, []);
+
+  // Helper function to calculate opponent's win percentage
+  const calculateOpponentWinPercentage = useCallback((player, results, allPlayers) => {
+    const opponents = new Set();
+    results.forEach(r => {
+      if (r.player1_id === player.player_id) {
+        opponents.add(r.player2_id);
+      } else if (r.player2_id === player.player_id) {
+        opponents.add(r.player1_id);
+      }
+    });
+    
+    if (opponents.size === 0) return 0;
+    
+    let totalOpponentWins = 0;
+    let totalOpponentGames = 0;
+    
+    opponents.forEach(opponentId => {
+      const opponent = allPlayers.find(p => p.player_id === opponentId);
+      if (opponent) {
+        totalOpponentWins += (opponent.wins || 0);
+        totalOpponentGames += ((opponent.wins || 0) + (opponent.losses || 0) + (opponent.ties || 0));
+      }
+    });
+    
+    return totalOpponentGames > 0 ? totalOpponentWins / totalOpponentGames : 0;
+  }, []);
+
   const rankedPlayers = useMemo(() => {
-    // Always recalculate match_wins for best_of_league using results only (majority wins per match-up)
+    // Always recalculate stats using results only for consistency
     let enrichedPlayers = players;
+    
     if (tournamentInfo?.type === 'best_of_league') {
       // Use best_of_value from tournamentInfo if available, else default to 15
       const bestOf = tournamentInfo?.best_of_value ? parseInt(tournamentInfo.best_of_value, 10) : 15;
@@ -731,8 +810,10 @@ const TournamentCommandCenterDashboard = () => {
         matchupMap[key].push(result);
       });
       enrichedPlayers = players.map(player => {
-        let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
-        // Per-game stats
+        let match_wins = 0;
+        let wins = 0, losses = 0, ties = 0, spread = 0;
+        
+        // Calculate game stats from results
         (recentResults || []).forEach(result => {
           if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
             let isP1 = result.player1_id === player.player_id;
@@ -744,23 +825,20 @@ const TournamentCommandCenterDashboard = () => {
             spread += (myScore - oppScore);
           }
         });
-        // Calculate match_wins: for each match-up, if player has majority, count as match win
-        Object.entries(matchupMap).forEach(([key, results]) => {
-          if (!key.split('-').includes(String(player.player_id))) return;
-          const [id1, id2] = key.split('-').map(Number);
-          let p1Wins = 0, p2Wins = 0;
-          results.forEach(r => {
-            if (r.score1 > r.score2) {
-              if (r.player1_id === id1) p1Wins++;
-              else p2Wins++;
-            } else if (r.score2 > r.score1) {
-              if (r.player2_id === id1) p1Wins++;
-              else p2Wins++;
-            }
-          });
-          if (id1 === player.player_id && p1Wins >= majority) match_wins++;
-          if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+        
+        // Calculate match wins for best_of_league
+        Object.values(matchupMap).forEach(matchResults => {
+          const hasPlayer = matchResults.some(r => r.player1_id === player.player_id || r.player2_id === player.player_id);
+          if (hasPlayer) {
+            const playerWins = matchResults.filter(r => {
+              if (r.player1_id === player.player_id) return r.score1 > r.score2;
+              if (r.player2_id === player.player_id) return r.score2 > r.score1;
+              return false;
+            }).length;
+            if (playerWins >= majority) match_wins++;
+          }
         });
+        
         return {
           ...player,
           wins,
@@ -768,6 +846,32 @@ const TournamentCommandCenterDashboard = () => {
           ties,
           spread,
           match_wins
+        };
+      });
+    } else {
+      // For individual tournaments, calculate stats directly from results (same as best_of_league)
+      enrichedPlayers = players.map(player => {
+        let wins = 0, losses = 0, ties = 0, spread = 0;
+        
+        // Calculate stats from results (same logic as best_of_league)
+        (recentResults || []).forEach(result => {
+          if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+            let isP1 = result.player1_id === player.player_id;
+            let myScore = isP1 ? result.score1 : result.score2;
+            let oppScore = isP1 ? result.score2 : result.score1;
+            if (myScore > oppScore) wins++;
+            else if (myScore < oppScore) losses++;
+            else ties++;
+            spread += (myScore - oppScore);
+          }
+        });
+        
+        return {
+          ...player,
+          wins,
+          losses,
+          ties,
+          spread
         };
       });
     }
@@ -805,55 +909,7 @@ const TournamentCommandCenterDashboard = () => {
     return ranked;
   }, [players, tournamentInfo, rankingUpdateCounter, recentResults, matches]);
 
-  // Helper function to calculate head-to-head result
-  const calculateHeadToHead = (playerA, playerB, results) => {
-    const headToHeadGames = results.filter(r => 
-      (r.player1_id === playerA.player_id && r.player2_id === playerB.player_id) ||
-      (r.player1_id === playerB.player_id && r.player2_id === playerA.player_id)
-    );
-    
-    if (headToHeadGames.length === 0) return 0;
-    
-    let aWins = 0, bWins = 0;
-    headToHeadGames.forEach(game => {
-      if (game.player1_id === playerA.player_id) {
-        if (game.score1 > game.score2) aWins++;
-        else if (game.score2 > game.score1) bWins++;
-      } else {
-        if (game.score2 > game.score1) aWins++;
-        else if (game.score1 > game.score2) bWins++;
-      }
-    });
-    
-    return aWins - bWins;
-  };
 
-  // Helper function to calculate opponent's win percentage
-  const calculateOpponentWinPercentage = (player, results, allPlayers) => {
-    const opponents = new Set();
-    results.forEach(r => {
-      if (r.player1_id === player.player_id) {
-        opponents.add(r.player2_id);
-      } else if (r.player2_id === player.player_id) {
-        opponents.add(r.player1_id);
-      }
-    });
-    
-    if (opponents.size === 0) return 0;
-    
-    let totalOpponentWins = 0;
-    let totalOpponentGames = 0;
-    
-    opponents.forEach(opponentId => {
-      const opponent = allPlayers.find(p => p.player_id === opponentId);
-      if (opponent) {
-        totalOpponentWins += (opponent.wins || 0);
-        totalOpponentGames += (opponent.wins || 0) + (opponent.losses || 0) + (opponent.ties || 0);
-      }
-    });
-    
-    return totalOpponentGames > 0 ? totalOpponentWins / totalOpponentGames : 0;
-  };
 
   const lastPairedRound = useMemo(() => {
     const schedule = tournamentInfo?.pairing_schedule || {};
@@ -1089,12 +1145,84 @@ const TournamentCommandCenterDashboard = () => {
     setIsSubmitting(true);
     let { result, isEditing } = pendingScoreAction;
     let originalResult = result.existingResult || null;
+    
+    console.log('doScoreAction received result:', result);
+    
     try {
-      const player1 = players.find(p => p.name === result.player1);
-      const player2 = players.find(p => p.name === result.player2);
-      if (!player1 || !player2) throw new Error("Could not find players.");
+      console.log('doScoreAction debug:', {
+        result,
+        playersCount: players.length,
+        playerNames: players.map(p => p.name),
+        lookingFor: { player1: result.player1, player2: result.player2 },
+        firstPlayer: players[0] ? {
+          name: players[0].name,
+          player_id: players[0].player_id,
+          id: players[0].id,
+          keys: Object.keys(players[0])
+        } : null
+      });
+      
+      // Try to find players by name first, then by player_id if available
+      let player1 = players.find(p => p.name === result.player1);
+      let player2 = players.find(p => p.name === result.player2);
+      
+      // If not found by name and we have player_id, try that
+      if (!player1 && result.player1_id) {
+        player1 = players.find(p => p.player_id === result.player1_id);
+      }
+      if (!player2 && result.player2_id) {
+        player2 = players.find(p => p.player_id === result.player2_id);
+      }
+      
+      if (!player1 || !player2) {
+        console.error('Player lookup failed:', {
+          player1Found: !!player1,
+          player2Found: !!player2,
+          player1Name: result.player1,
+          player2Name: result.player2,
+          player1Id: result.player1_id,
+          player2Id: result.player2_id,
+          availablePlayers: players.map(p => ({ id: p.player_id, name: p.name }))
+        });
+        throw new Error(`Could not find players. Looking for: "${result.player1}" and "${result.player2}". Available players: ${players.map(p => p.name).join(', ')}`);
+      }
+      
       let score1 = parseInt(result.score1, 10);
       let score2 = parseInt(result.score2, 10);
+
+      // Handle special match statuses
+      const isBye = result.is_bye || false;
+      const isForfeit = result.is_forfeit || false;
+      const forfeitPlayer = result.forfeit_player || null;
+      const byePlayer = result.bye_player || null;
+
+      // For bye/forfeit/withdrawal, set appropriate scores
+      if (isBye && byePlayer) {
+        if (byePlayer === 'player1') {
+          score1 = 400;
+          score2 = 0;
+        } else {
+          score1 = 0;
+          score2 = 400;
+        }
+      } else if (isForfeit && forfeitPlayer) {
+        if (forfeitPlayer === 'player1') {
+          score1 = 0;
+          score2 = 400;
+        } else {
+          score1 = 400;
+          score2 = 0;
+        }
+      }
+
+      // Validate scores for normal matches
+      if (!isBye && !isForfeit) {
+        if (isNaN(score1) || isNaN(score2) || score1 < 0 || score2 < 0) {
+          throw new Error("Invalid scores provided");
+        }
+      }
+
+      // Apply spread cap if configured
       const maxSpread = tournamentInfo.max_spread;
       if (maxSpread && Math.abs(score1 - score2) > maxSpread) {
         toast.info(`Spread has been automatically capped at ${maxSpread}.`);
@@ -1104,6 +1232,7 @@ const TournamentCommandCenterDashboard = () => {
           score1 = score2 - maxSpread;
         }
       }
+
       const resultData = {
         tournament_id: tournamentInfo.id,
         round: result.round || tournamentInfo.currentRound,
@@ -1111,22 +1240,36 @@ const TournamentCommandCenterDashboard = () => {
         player2_id: player2.player_id,
         score1,
         score2,
-        match_id: result.match_id || null,
+        match_id: typeof result.match_id === 'string' ? null : (result.match_id || null),
         player1_name: player1.name,
         player2_name: player2.name,
+        is_bye: isBye,
+        is_forfeit: isForfeit,
+        forfeit_player: forfeitPlayer,
+        bye_player: byePlayer
       };
+
       // For best-of-league, always insert a new result (never edit)
       let shouldEdit = false;
       let insertedResult = null;
+
       if (tournamentInfo?.type !== 'best_of_league') {
         if (!isEditing) {
-          const { data: existingResult, error: fetchError } = await supabase
+          // Try to find existing result with a single query using OR condition
+          const { data: existingResults, error: fetchError } = await supabase
             .from('results')
             .select('id, score1, score2, player1_id, player2_id')
             .eq('tournament_id', tournamentInfo.id)
             .eq('round', resultData.round)
-            .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2_id.eq.${player1.player_id})`)
-            .single();
+            .or(`player1_id.eq.${player1.player_id},player2_id.eq.${player1.player_id}`)
+            .or(`player1_id.eq.${player2.player_id},player2_id.eq.${player2.player_id}`);
+            
+          // Find the specific matchup
+          const existingResult = existingResults?.find(r => 
+            (r.player1_id === player1.player_id && r.player2_id === player2.player_id) ||
+            (r.player1_id === player2.player_id && r.player2_id === player1.player_id)
+          );
+          
           if (existingResult) {
             shouldEdit = true;
             originalResult = existingResult;
@@ -1136,22 +1279,70 @@ const TournamentCommandCenterDashboard = () => {
           shouldEdit = true;
         }
       }
+
+      // Combine player stats fetch with result operation
       const playerIdsToFetch = shouldEdit ? [originalResult.player1_id, originalResult.player2_id] : [player1.player_id, player2.player_id];
-      const { data: currentStats, error: statsError } = await supabase
-        .from('tournament_players')
-        .select('player_id, wins, losses, ties, spread, match_wins, match_losses')
-        .in('player_id', playerIdsToFetch)
-        .eq('tournament_id', tournamentInfo.id);
+      
+      // Start both operations in parallel
+      const [statsPromise, resultOperation] = await Promise.all([
+        // Fetch current stats
+        supabase
+          .from('tournament_players')
+          .select('player_id, wins, losses, ties, spread, match_wins, match_losses')
+          .in('player_id', playerIdsToFetch)
+          .eq('tournament_id', tournamentInfo.id),
+        
+        // Perform result operation (insert or update)
+        (async () => {
+          if (shouldEdit) {
+            const resultId = typeof originalResult?.id === 'string' ? parseInt(originalResult.id, 10) : originalResult?.id;
+            if (!resultId || isNaN(resultId)) {
+              throw new Error("Invalid result ID for editing.");
+            }
+
+            const updateFields = { ...resultData };
+            delete updateFields.id;
+            delete updateFields.existingResult;
+            
+            const { error: updateError, data: updateData } = await supabase
+              .from('results')
+              .update(updateFields)
+              .eq('id', resultId)
+              .select()
+              .single();
+              
+            if (updateError) {
+              console.error('Supabase update error:', updateError);
+              throw updateError;
+            }
+            
+            return updateData;
+          } else {
+            const { data: inserted, error: insertError } = await supabase
+              .from('results')
+              .insert(resultData)
+              .select()
+              .single();
+              
+            if (insertError) throw insertError;
+            return inserted || { ...resultData };
+          }
+        })()
+      ]);
+      
+      const { data: currentStats, error: statsError } = statsPromise;
       if (statsError) throw statsError;
+      
+      insertedResult = resultOperation;
+
+      // Get player stats
       const player1Stats = currentStats.find(s => s.player_id === player1.player_id) || {};
       const player2Stats = currentStats.find(s => s.player_id === player2.player_id) || {};
       let p1NewStats = { ...player1Stats };
       let p2NewStats = { ...player2Stats };
+
+      // Handle edit case - revert previous stats
       if (shouldEdit) {
-        const resultId = typeof originalResult?.id === 'string' ? parseInt(originalResult.id, 10) : originalResult?.id;
-        if (!resultId || isNaN(resultId)) {
-          throw new Error("Invalid result ID for editing.");
-        }
         if (originalResult.score1 > originalResult.score2) {
           p1NewStats.wins = Math.max(0, (p1NewStats.wins || 0) - 1);
           p2NewStats.losses = Math.max(0, (p2NewStats.losses || 0) - 1);
@@ -1164,27 +1355,18 @@ const TournamentCommandCenterDashboard = () => {
         }
         p1NewStats.spread = (p1NewStats.spread || 0) - (originalResult.score1 - originalResult.score2);
         p2NewStats.spread = (p2NewStats.spread || 0) - (originalResult.score2 - originalResult.score1);
-        const updateFields = { ...resultData };
-        delete updateFields.id;
-        delete updateFields.existingResult;
-        const { error: updateError, data: updateData } = await supabase.from('results').update(updateFields).eq('id', resultId);
-        if (updateError) {
-          console.error('Supabase update error:', updateError);
-          throw updateError;
-        }
-        toast.success("Result updated successfully!");
-
-        // Optimistically update recentResults for edit
-        setRecentResults(prev => [{ ...resultData, id: resultId }, ...prev.filter(r => r.id !== resultId)]);
-      } else {
-        const { data: inserted, error: insertError } = await supabase.from('results').insert(resultData).select().single();
-        if (insertError) throw insertError;
-        insertedResult = inserted || { ...resultData };
-        toast.success("Result submitted successfully!");
-
-        // Optimistically update recentResults for insert
-        setRecentResults(prev => [insertedResult, ...prev]);
       }
+
+      // Optimistically update recentResults
+      if (shouldEdit) {
+        setRecentResults(prev => [insertedResult, ...prev.filter(r => r.id !== originalResult.id)]);
+        toast.success("Result updated successfully!");
+      } else {
+        setRecentResults(prev => [insertedResult, ...prev]);
+        toast.success("Result submitted successfully!");
+      }
+
+      // Apply new stats
       if (score1 > score2) {
         p1NewStats.wins = (p1NewStats.wins || 0) + 1;
         p2NewStats.losses = (p2NewStats.losses || 0) + 1;
@@ -1197,6 +1379,7 @@ const TournamentCommandCenterDashboard = () => {
       }
       p1NewStats.spread = (p1NewStats.spread || 0) + (score1 - score2);
       p2NewStats.spread = (p2NewStats.spread || 0) + (score2 - score1);
+
       if (tournamentInfo?.type === 'best_of_league') {
         const matchResult = await updateBestOfLeagueMatch(resultData, p1NewStats, p2NewStats, player1, player2);
         // Always show a toast and increment match_wins if a player just won the match
@@ -1222,6 +1405,24 @@ const TournamentCommandCenterDashboard = () => {
           }
         }
       }
+
+      // Update player stats in tournament_players table
+      const updatePromises = [
+        supabase
+          .from('tournament_players')
+          .update(p1NewStats)
+          .eq('tournament_id', tournamentInfo.id)
+          .eq('player_id', player1.player_id),
+        supabase
+          .from('tournament_players')
+          .update(p2NewStats)
+          .eq('tournament_id', tournamentInfo.id)
+          .eq('player_id', player2.player_id)
+      ];
+
+      await Promise.all(updatePromises);
+
+      // Update local player state
       setPlayers(prevPlayers => {
         const updatedPlayers = prevPlayers.map(p => {
           if (p.player_id === player1.player_id) {
@@ -1230,20 +1431,25 @@ const TournamentCommandCenterDashboard = () => {
           if (p.player_id === player2.player_id) {
             return { ...p, ...p2NewStats };
           }
-          return p;
+          return { ...p };
         });
         return updatedPlayers;
       });
+
+      // Update ranking counter to trigger standings recalculation
+      setRankingUpdateCounter(prev => prev + 1);
+
     } catch (error) {
+      console.error('Error in doScoreAction:', error);
       toast.error(`Operation failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
       setShowScoreModal({ isOpen: false, existingResult: null });
       setPendingScoreAction(null);
+      
       // For best_of_league, skip fetchTournamentData to avoid overwriting local state; rely on real-time updates
-      if (tournamentInfo?.type !== 'best_of_league') {
-        fetchTournamentData();
-      }
+      // For individual mode, also skip fetchTournamentData to preserve local state updates
+      // The standings will update through the local state updates and real-time updates
     }
   }, [pendingScoreAction, players, tournamentInfo, updateBestOfLeagueMatch, fetchTournamentData, matches]);
 

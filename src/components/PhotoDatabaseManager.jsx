@@ -375,7 +375,7 @@ const PhotoDatabaseManager = ({
       if (!player) return;
 
       // Generate photo URL from filename
-      const photoUrl = `${supabase.storage.from('tournament-photos').getPublicUrl(`${tournamentId}/photos/${photoFilename}`).data.publicUrl}`;
+      const photoUrl = supabase.storage.from('tournament-photos').getPublicUrl(`${tournamentId}/photos/${photoFilename}`).data.publicUrl;
 
       const photoRecord = {
         tournament_id: tournamentId,

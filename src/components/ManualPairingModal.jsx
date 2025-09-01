@@ -1,124 +1,163 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
 import Icon from './AppIcon';
 import Button from './ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
-import { cn } from '../utils/cn';
+import { toast } from 'sonner';
 
 const ManualPairingModal = ({ 
   isOpen, 
   onClose, 
-  players, 
-  currentRound, 
+  players = [], 
   onSavePairings, 
   existingPairings = [],
-  tournamentInfo 
+  onAutoPairRemaining 
 }) => {
-  const [pairings, setPairings] = useState([]);
-  const [availablePlayers, setAvailablePlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [tableNumber, setTableNumber] = useState(1);
+  const [manualPairings, setManualPairings] = useState([]);
+  const [availablePlayers, setAvailablePlayers] = useState([]);
 
-  // Initialize pairings from existing data or start fresh
-  useEffect(() => {
-    if (isOpen) {
-      if (existingPairings.length > 0) {
-        setPairings(existingPairings.map(p => ({
-          ...p,
-          table: p.table || 'BYE'
-        })));
-        setTableNumber(Math.max(...existingPairings.map(p => p.table === 'BYE' ? 0 : p.table), 0) + 1);
-      } else {
-        setPairings([]);
-        setTableNumber(1);
-      }
-      setSelectedPlayer(null);
-    }
-  }, [isOpen, existingPairings]);
-
-  // Update available players based on current pairings
+  // Calculate available players (not already paired)
   useEffect(() => {
     const pairedPlayerIds = new Set();
-    pairings.forEach(pairing => {
-      if (pairing.player1?.player_id) pairedPlayerIds.add(pairing.player1.player_id);
-      if (pairing.player2?.player_id && pairing.player2.name !== 'BYE') {
-        pairedPlayerIds.add(pairing.player2.player_id);
-      }
-    });
+    
+    // Add players from existing pairings
+    if (existingPairings && Array.isArray(existingPairings)) {
+      existingPairings.forEach(pairing => {
+        if (pairing.player1?.player_id) pairedPlayerIds.add(pairing.player1.player_id);
+        if (pairing.player2?.player_id && pairing.player2.name !== 'BYE') {
+          pairedPlayerIds.add(pairing.player2.player_id);
+        }
+      });
+    }
+    
+    // Add players from new manual pairings
+    if (manualPairings && Array.isArray(manualPairings)) {
+      manualPairings.forEach(pairing => {
+        if (pairing.player1?.player_id) pairedPlayerIds.add(pairing.player1.player_id);
+        if (pairing.player2?.player_id && pairing.player2.name !== 'BYE') {
+          pairedPlayerIds.add(pairing.player2.player_id);
+        }
+      });
+    }
 
     const available = players.filter(p => !pairedPlayerIds.has(p.player_id));
     setAvailablePlayers(available);
-  }, [pairings, players]);
+  }, [players, existingPairings, manualPairings]);
 
-  const handleAddPairing = () => {
+  // Handle player selection
+  const handlePlayerClick = (player) => {
     if (!selectedPlayer) {
-      toast.error('Please select a player first');
-      return;
+      // First player selected
+      setSelectedPlayer(player);
+      toast.success(`Selected ${player.name}. Now click another player to pair them.`);
+    } else if (selectedPlayer.player_id === player.player_id) {
+      // Same player clicked - deselect
+      setSelectedPlayer(null);
+      toast.info('Selection cleared. Click a player to start pairing.');
+    } else {
+      // Second player selected - create pairing
+      const newPairing = {
+        id: `manual-${Date.now()}-${manualPairings.length}`,
+        player1: selectedPlayer,
+        player2: player,
+        table: manualPairings.length + 1,
+        division: selectedPlayer.division || 'Open'
+      };
+      
+      setManualPairings(prev => [...prev, newPairing]);
+      setSelectedPlayer(null);
+      toast.success(`Paired ${selectedPlayer.name} vs ${player.name} on Table ${newPairing.table}`);
     }
-
-    const newPairing = {
-      id: `temp-${Date.now()}`,
-      table: tableNumber,
-      player1: selectedPlayer,
-      player2: { name: 'TBD', player_id: null },
-      division: selectedPlayer.division || 'Open'
-    };
-
-    setPairings(prev => [...prev, newPairing]);
-    setSelectedPlayer(null);
-    setTableNumber(prev => prev + 1);
   };
 
-  const handleAddBye = () => {
-    if (!selectedPlayer) {
-      toast.error('Please select a player first');
-      return;
-    }
-
-    const newPairing = {
-      id: `temp-${Date.now()}`,
+  // Handle bye creation
+  const handleCreateBye = (player) => {
+    const byePairing = {
+      id: `bye-${Date.now()}-${manualPairings.length}`,
+      player1: player,
+      player2: { name: 'BYE' },
       table: 'BYE',
-      player1: selectedPlayer,
-      player2: { name: 'BYE', player_id: null },
-      division: selectedPlayer.division || 'Open'
+      division: player.division || 'Open'
     };
-
-    setPairings(prev => [...prev, newPairing]);
-    setSelectedPlayer(null);
+    
+    setManualPairings(prev => [...prev, byePairing]);
+    toast.success(`${player.name} gets a BYE`);
   };
 
+  // Remove a pairing
   const handleRemovePairing = (pairingId) => {
-    setPairings(prev => prev.filter(p => p.id !== pairingId));
-    // Recalculate table numbers
-    const nonByePairings = pairings.filter(p => p.id !== pairingId && p.table !== 'BYE');
-    setTableNumber(nonByePairings.length + 1);
+    setManualPairings(prev => prev.filter(p => p.id !== pairingId));
+    toast.success('Pairing removed');
   };
 
-  const handleUpdatePairing = (pairingId, field, value) => {
-    setPairings(prev => prev.map(p => 
-      p.id === pairingId ? { ...p, [field]: value } : p
-    ));
-  };
-
+  // Save all pairings
   const handleSave = async () => {
-    if (pairings.length === 0) {
-      toast.error('Please add at least one pairing');
-      return;
-    }
-
-    setIsLoading(true);
     try {
-      await onSavePairings(pairings);
-      toast.success('Pairings saved successfully');
+      const allPairings = [...(existingPairings || []), ...manualPairings];
+      
+      // Auto-pair remaining players if any
+      if (availablePlayers.length > 1 && onAutoPairRemaining) {
+        const loadingToast = toast.loading('Auto-pairing remaining players...');
+        const autoPairings = await onAutoPairRemaining(availablePlayers, allPairings);
+        
+        // Dismiss the loading toast
+        toast.dismiss(loadingToast);
+        
+        if (autoPairings && autoPairings.length > 0) {
+          const validAutoPairings = autoPairings.filter(pairing => {
+            return pairing.player1?.player_id && 
+                   (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
+          });
+          
+          const finalPairings = [...allPairings, ...validAutoPairings];
+          await onSavePairings(finalPairings);
+          toast.success(`Saved ${allPairings.length} manual + ${validAutoPairings.length} auto pairings!`);
+        } else {
+          await onSavePairings(allPairings);
+          toast.success(`Saved ${allPairings.length} manual pairings!`);
+        }
+      } else {
+        await onSavePairings(allPairings);
+        toast.success(`Saved ${allPairings.length} manual pairings!`);
+      }
+      
       onClose();
     } catch (error) {
+      console.error('Error saving pairings:', error);
       toast.error('Failed to save pairings');
-      console.error('Save pairings error:', error);
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  // Auto-pair all remaining players
+  const handleAutoPairAll = async () => {
+    if (!onAutoPairRemaining || availablePlayers.length < 2) {
+      toast.error('Not enough players to auto-pair');
+      return;
+    }
+
+    try {
+      const loadingToast = toast.loading('Auto-pairing all remaining players...');
+      const autoPairings = await onAutoPairRemaining(availablePlayers, existingPairings);
+      
+      // Dismiss the loading toast
+      toast.dismiss(loadingToast);
+      
+      if (autoPairings && autoPairings.length > 0) {
+        const validAutoPairings = autoPairings.filter(pairing => {
+          return pairing.player1?.player_id && 
+                 (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
+        });
+        
+        const allPairings = [...(existingPairings || []), ...manualPairings, ...validAutoPairings];
+        await onSavePairings(allPairings);
+        toast.success(`Auto-paired ${validAutoPairings.length} players!`);
+        onClose();
+      } else {
+        toast.error('Could not auto-pair remaining players');
+      }
+    } catch (error) {
+      console.error('Auto-pairing error:', error);
+      toast.error('Auto-pairing failed');
     }
   };
 
@@ -130,203 +169,187 @@ const ManualPairingModal = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="w-full max-w-6xl max-h-[90vh] overflow-hidden"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <Card variant="glass" padding="none" className="h-full">
-            <CardHeader className={cn("border-b border-border/20", "p-6")}>
-              <CardTitle className="text-2xl font-bold text-foreground">
-                Manual Pairings - Round {currentRound}
-              </CardTitle>
-              <p className="text-muted-foreground mt-1">
-                Manually create pairings for this round. Players can be paired against each other or given a BYE.
-              </p>
-            </CardHeader>
+          {/* Header */}
+          <div className="bg-gradient-to-r from-primary to-accent p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Manual Pairing</h2>
+                <p className="text-white/80 mt-1">
+                  Click players to pair them. {availablePlayers.length} players available.
+                </p>
+              </div>
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20"
+              >
+                <Icon name="X" className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
 
-            <div className="flex flex-col lg:flex-row h-full">
-              {/* Left Panel - Available Players */}
-              <div className={cn("w-full lg:w-1/3", "p-6 border-r border-border/20 overflow-y-auto")}>
-                <h3 className="text-lg font-semibold text-foreground mb-3">Available Players</h3>
-                
-                {availablePlayers.length === 0 ? (
-                  <div className={cn("text-center py-8", "text-muted-foreground")}>
-                    <Icon name="Users" size={48} className="mx-auto mb-4 text-muted-foreground/50" />
-                    <p className="text-lg font-medium">All players are paired</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Remove some pairings to make players available again
-                    </p>
-                  </div>
-                ) : (
-                  <div className={LAYOUT_TEMPLATES.spacing.content}>
-                    {availablePlayers.map((player) => (
-                      <div
-                        key={player.player_id}
-                        className={cn(
-                          "p-3 rounded-lg border border-border/20 hover:bg-surface/30 transition-colors cursor-pointer",
-                          selectedPlayer?.player_id === player.player_id && "bg-primary/10 border-primary/30"
-                        )}
-                        onClick={() => setSelectedPlayer(player)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground truncate">
-                              {player.name}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Rating: {player.rating || 'N/A'}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-mono text-primary">
-                              {player.rating || 'N/A'}
-                            </div>
-                            <div className="text-xs text-accent">
-                              {player.division || 'Open'}
-                            </div>
-                          </div>
+          <div className="p-6 space-y-6 max-h-[calc(90vh-200px)] overflow-y-auto">
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Icon name="Info" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-blue-900 mb-1">How to Pair Players:</h3>
+                  <ol className="text-sm text-blue-800 space-y-1">
+                    <li>1. Click a player to select them (they'll be highlighted)</li>
+                    <li>2. Click another player to pair them together</li>
+                    <li>3. Click the "BYE" button next to a player to give them a bye</li>
+                    <li>4. Use "Auto-Pair All" to automatically pair remaining players</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            {/* Available Players */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Icon name="Users" className="w-5 h-5" />
+                Available Players ({availablePlayers.length})
+              </h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availablePlayers.map((player) => (
+                  <motion.div
+                    key={player.player_id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`
+                      p-4 rounded-xl border-2 cursor-pointer transition-all
+                      ${selectedPlayer?.player_id === player.player_id
+                        ? 'border-accent bg-accent/10 shadow-lg'
+                        : 'border-border hover:border-primary/50 hover:bg-primary/5'
+                      }
+                    `}
+                    onClick={() => handlePlayerClick(player)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">{player.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          Rating: {player.rating || 'N/A'}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Right Panel - Current Pairings */}
-              <div className="flex-1 p-6 overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-foreground">Current Pairings</h3>
-                  <div className="text-sm text-muted-foreground">
-                    {pairings.length} pairing{pairings.length !== 1 ? 's' : ''} created
-                  </div>
-                </div>
-
-                {pairings.length === 0 ? (
-                  <div className={cn("text-center py-12", "text-muted-foreground")}>
-                    <Icon name="List" size={48} className="mx-auto mb-4 text-muted-foreground/50" />
-                    <p className="text-lg font-medium mb-2">No pairings yet</p>
-                    <p className="text-sm text-muted-foreground">
-                      Select a player from the left panel and create your first pairing
-                    </p>
-                  </div>
-                ) : (
-                  <div className={LAYOUT_TEMPLATES.spacing.content}>
-                    {pairings.map((pairing) => (
-                      <Card
-                        key={pairing.id}
-                        variant="muted"
-                        padding="md"
-                        className="bg-muted/10 border border-border/20"
-                      >
-                        <CardContent className="p-0">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <span className={cn(
-                                "text-sm font-mono text-primary bg-primary/10 px-2 py-1 rounded",
-                                "font-bold"
-                              )}>
-                                {pairing.table === 'BYE' ? 'BYE' : `Table ${pairing.table}`}
-                              </span>
-                              <span className={cn(
-                                "text-xs text-accent bg-accent/10 px-2 py-1 rounded"
-                              )}>
-                                {pairing.division}
-                              </span>
-                            </div>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRemovePairing(pairing.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Icon name="Trash2" size={16} />
-                            </Button>
-                          </div>
-
-                          <div className="space-y-3">
-                            {/* Player 1 */}
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Player 1</label>
-                              <div className={cn(
-                                "p-3 bg-background border border-border/20 rounded-lg",
-                                "mt-1"
-                              )}>
-                                <div className="font-medium text-foreground">
-                                  {pairing.player1?.name || 'Unknown'}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Rating: {pairing.player1?.rating || 'N/A'}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* VS */}
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-muted-foreground">VS</div>
-                            </div>
-
-                            {/* Player 2 */}
-                            <div>
-                              <label className="text-sm font-medium text-muted-foreground">Player 2</label>
-                              <div className={cn(
-                                "p-3 bg-background border border-border/20 rounded-lg",
-                                "mt-1"
-                              )}>
-                                <div className="font-medium text-foreground">
-                                  {pairing.player2?.name || 'TBD'}
-                                </div>
-                                {pairing.player2?.name !== 'BYE' && (
-                                  <div className="text-sm text-muted-foreground">
-                                    Rating: {pairing.player2?.rating || 'N/A'}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCreateBye(player);
+                          }}
+                          className="text-xs"
+                        >
+                          BYE
+                        </Button>
+                        {selectedPlayer?.player_id === player.player_id && (
+                          <Icon name="Check" className="w-5 h-5 text-accent" />
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
 
-            {/* Footer Actions */}
-            <div className={cn(
-              "border-t border-border/20 bg-muted/5",
-              "p-6"
-            )}>
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  {availablePlayers.length} players available • {pairings.length} pairings created
-                </div>
+            {/* Manual Pairings */}
+            {manualPairings.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Icon name="Swords" className="w-5 h-5" />
+                  Manual Pairings ({manualPairings.length})
+                </h3>
                 
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={onClose}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleSave}
-                    loading={isLoading}
-                    disabled={pairings.length === 0}
-                  >
-                    Save Pairings
-                  </Button>
+                <div className="space-y-3">
+                  {manualPairings.map((pairing) => (
+                    <motion.div
+                      key={pairing.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-green-50 border border-green-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="text-center">
+                            <div className="font-semibold">{pairing.player1.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Rating: {pairing.player1.rating || 'N/A'}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Icon name="Swords" className="w-4 h-4 text-green-600" />
+                            <span className="text-sm font-medium text-green-700">
+                              Table {pairing.table}
+                            </span>
+                            <Icon name="Swords" className="w-4 h-4 text-green-600" />
+                          </div>
+                          
+                          <div className="text-center">
+                            <div className="font-semibold">
+                              {pairing.player2.name === 'BYE' ? 'BYE' : pairing.player2.name}
+                            </div>
+                            {pairing.player2.name !== 'BYE' && (
+                              <div className="text-sm text-muted-foreground">
+                                Rating: {pairing.player2.rating || 'N/A'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRemovePairing(pairing.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Icon name="Trash" className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+              <Button
+                onClick={handleAutoPairAll}
+                disabled={availablePlayers.length < 2}
+                className="flex-1"
+                size="lg"
+              >
+                <Icon name="Zap" className="mr-2" />
+                Auto-Pair All Remaining ({availablePlayers.length} players)
+              </Button>
+              
+              <Button
+                onClick={handleSave}
+                disabled={manualPairings.length === 0 && availablePlayers.length < 2}
+                className="flex-1"
+                size="lg"
+              >
+                <Icon name="Save" className="mr-2" />
+                Save Pairings
+              </Button>
             </div>
-          </Card>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
