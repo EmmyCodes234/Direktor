@@ -103,19 +103,127 @@ const PlayerManagementRosterControl = () => {
     const handleRemovePlayer = async () => {
         if (!playerToRemove) return;
         
-        const { error } = await supabase
-            .from('tournament_players')
-      .select('*')
-            .delete()
-            .match({ tournament_id: tournamentInfo.id, player_id: playerToRemove.id });
+        try {
+            // Start a transaction to handle all related data
+            const { error: transactionError } = await supabase.rpc('remove_player_from_tournament', {
+                p_tournament_id: tournamentInfo.id,
+                p_player_id: playerToRemove.id
+            });
 
-        if (error) {
-            toast.error(`Failed to remove player: ${error.message}`);
-        } else {
-            toast.success(`Player "${playerToRemove.name}" has been removed from the tournament.`);
-            fetchPlayers(tournamentInfo.id);
+            if (transactionError) {
+                // If the stored procedure doesn't exist, fall back to manual removal
+                console.log('Stored procedure not available, using manual removal');
+                await handleManualPlayerRemoval();
+            } else {
+                toast.success(`Player "${playerToRemove.name}" has been removed from the tournament.`);
+            }
+        } catch (error) {
+            console.error('Player removal error:', error);
+            await handleManualPlayerRemoval();
         }
+        
         setPlayerToRemove(null);
+        // Refresh all tournament data
+        fetchPlayers(tournamentInfo.id);
+        // Trigger a refresh of other components that might be affected
+        window.dispatchEvent(new CustomEvent('tournamentDataChanged', { 
+            detail: { type: 'playerRemoved', playerId: playerToRemove.id } 
+        }));
+    };
+
+    const handleManualPlayerRemoval = async () => {
+        if (!playerToRemove) return;
+
+        try {
+            // Step 1: Delete all results involving this player
+            const { error: resultsError } = await supabase
+                .from('results')
+                .delete()
+                .or(`player1_id.eq.${playerToRemove.id},player2_id.eq.${playerToRemove.id}`)
+                .eq('tournament_id', tournamentInfo.id);
+
+            if (resultsError) {
+                console.error('Error deleting results:', resultsError);
+                toast.error(`Failed to remove player results: ${resultsError.message}`);
+                return;
+            }
+
+            // Step 2: Delete all matches involving this player
+            const { error: matchesError } = await supabase
+                .from('matches')
+                .delete()
+                .or(`player1_id.eq.${playerToRemove.id},player2_id.eq.${playerToRemove.id}`)
+                .eq('tournament_id', tournamentInfo.id);
+
+            if (matchesError) {
+                console.error('Error deleting matches:', matchesError);
+                toast.error(`Failed to remove player matches: ${matchesError.message}`);
+                return;
+            }
+
+            // Step 3: Remove player from tournament_players
+            const { error: tournamentPlayerError } = await supabase
+                .from('tournament_players')
+                .delete()
+                .match({ tournament_id: tournamentInfo.id, player_id: playerToRemove.id });
+
+            if (tournamentPlayerError) {
+                console.error('Error removing from tournament_players:', tournamentPlayerError);
+                toast.error(`Failed to remove player from tournament: ${tournamentPlayerError.message}`);
+                return;
+            }
+
+            // Step 4: Update tournament pairings to remove this player
+            await updatePairingsAfterPlayerRemoval(playerToRemove.id);
+
+            toast.success(`Player "${playerToRemove.name}" has been removed from the tournament.`);
+            
+        } catch (error) {
+            console.error('Manual player removal error:', error);
+            toast.error(`Failed to remove player: ${error.message}`);
+        }
+    };
+
+    const updatePairingsAfterPlayerRemoval = async (removedPlayerId) => {
+        try {
+            // Get current pairing schedule
+            const { data: tournament } = await supabase
+                .from('tournaments')
+                .select('pairing_schedule')
+                .eq('id', tournamentInfo.id)
+                .single();
+
+            if (!tournament?.pairing_schedule) return;
+
+            const updatedSchedule = {};
+            
+            // Process each round in the pairing schedule
+            Object.entries(tournament.pairing_schedule).forEach(([roundNum, roundPairings]) => {
+                const filteredPairings = roundPairings.filter(pairing => {
+                    // Remove pairings that involve the removed player
+                    const player1Id = pairing.player1?.player_id || pairing.player1_id;
+                    const player2Id = pairing.player2?.player_id || pairing.player2_id;
+                    
+                    return player1Id !== removedPlayerId && player2Id !== removedPlayerId;
+                });
+
+                if (filteredPairings.length > 0) {
+                    updatedSchedule[roundNum] = filteredPairings;
+                }
+            });
+
+            // Update the tournament with the cleaned pairing schedule
+            const { error: updateError } = await supabase
+                .from('tournaments')
+                .update({ pairing_schedule: updatedSchedule })
+                .eq('id', tournamentInfo.id);
+
+            if (updateError) {
+                console.error('Error updating pairings after player removal:', updateError);
+            }
+        } catch (error) {
+            console.error('Error updating pairings:', error);
+        }
     };
 
     const handleWithdrawPlayer = async () => {

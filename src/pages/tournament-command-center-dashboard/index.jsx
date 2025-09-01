@@ -618,6 +618,26 @@ const TournamentCommandCenterDashboard = () => {
   useEffect(() => {
     fetchTournamentData();
   }, [tournamentSlug, fetchTournamentData]);
+
+  // Listen for tournament data changes (e.g., player removal)
+  useEffect(() => {
+    const handleTournamentDataChange = (event) => {
+      const { type, playerId } = event.detail;
+      
+      if (type === 'playerRemoved' && tournamentInfo?.id) {
+        console.log('Player removed, refreshing tournament data...');
+        // Refresh all tournament data
+        fetchTournamentData();
+        toast.success('Tournament data refreshed after player removal');
+      }
+    };
+
+    window.addEventListener('tournamentDataChanged', handleTournamentDataChange);
+    
+    return () => {
+      window.removeEventListener('tournamentDataChanged', handleTournamentDataChange);
+    };
+  }, [tournamentInfo?.id, fetchTournamentData]);
   
 
   const teamMap = useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
