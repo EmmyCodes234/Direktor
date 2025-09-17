@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import useMediaQuery from '../../../hooks/useMediaQuery';
+import useSwipeGesture from '../../../hooks/useSwipeGesture';
 import { cn } from '../../../utils/cn';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -40,6 +41,32 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     const divisionPlayers = playersByDivision[activeDivision] || [];
     return [...divisionPlayers].sort((a, b) => (a.rank || 0) - (b.rank || 0));
   }, [playersByDivision, activeDivision]);
+
+  // Swipe gesture for division switching on mobile
+  const handleSwipeLeft = () => {
+    if (isMobile && divisions.length > 1) {
+      const currentIndex = divisions.indexOf(activeDivision);
+      const nextIndex = (currentIndex + 1) % divisions.length;
+      setActiveDivision(divisions[nextIndex]);
+      toast.success(`Switched to ${divisions[nextIndex]} division`);
+    }
+  };
+
+  const handleSwipeRight = () => {
+    if (isMobile && divisions.length > 1) {
+      const currentIndex = divisions.indexOf(activeDivision);
+      const prevIndex = currentIndex === 0 ? divisions.length - 1 : currentIndex - 1;
+      setActiveDivision(divisions[prevIndex]);
+      toast.success(`Switched to ${divisions[prevIndex]} division`);
+    }
+  };
+
+  const swipeRef = useSwipeGesture({
+    onSwipeLeft: handleSwipeLeft,
+    onSwipeRight: handleSwipeRight,
+    threshold: 50,
+    enabled: isMobile && divisions.length > 1
+  });
 
   const getRecordDisplay = (player) => {
     const wins = player.wins || 0;
@@ -113,7 +140,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     if (isMobile) {
       // Enhanced card layout for mobile
       return (
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-3 p-3 sm:p-4">
           {pagedPlayers.map((player, index) => {
             let isComplete = false;
             let matchWins = 0;
@@ -128,7 +155,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               <motion.div 
                 key={player.id} 
                 className={cn(
-                  "glass-card p-4 sm:p-5 flex flex-col gap-4 transition-all duration-200 touch-target",
+                  "glass-card p-4 flex flex-col gap-4 transition-all duration-200 min-h-[44px] touch-manipulation active:scale-[0.98]",
                   isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/20'
                 )}
                 initial={{ opacity: 0, y: 20 }}
@@ -136,11 +163,11 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 transition={{ delay: index * 0.05 }}
                 aria-label={isComplete ? 'Player matches complete' : undefined}
               >
-                {/* Header Row */}
+                {/* Header Row - Rank, Name, and Actions */}
                 <div className="flex items-center gap-3">
                   {/* Rank Badge */}
                   <div className={cn(
-                    "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
+                    "flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
                     player.rank <= 3 
                       ? "bg-primary/20 text-primary border-2 border-primary/30" 
                       : "bg-muted/20 text-muted-foreground border border-border"
@@ -148,73 +175,69 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                     {player.rank}
                   </div>
                   
-                  {/* Player Name */}
+                  {/* Player Info */}
                   <div className="flex-1 min-w-0">
                     <a 
                       href={`/players/${player.slug}`} 
                       onClick={(e) => handlePlayerClick(e, player)} 
-                      className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate text-base"
+                      className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate text-lg leading-tight"
                     >
                       {player.name}
                     </a>
-                    {isBestOfLeague && isComplete && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Icon name="CheckCircle" size={14} className="text-success" aria-label="All matches complete" />
-                        <span className="text-xs text-success font-medium">Complete</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      {getStatusBadge(player.status)}
+                      {isBestOfLeague && isComplete && (
+                        <div className="flex items-center gap-1">
+                          <Icon name="CheckCircle" size={14} className="text-success" aria-label="All matches complete" />
+                          <span className="text-xs text-success font-medium">Complete</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
-                  {/* Stats Button */}
+                  {/* Actions Button */}
                   <button 
                     onClick={(e) => handleModalClick(e, player)} 
                     aria-label="View player stats"
-                    className="touch-target p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all duration-200"
+                    className="min-h-[44px] min-w-[44px] p-3 rounded-xl bg-muted/20 hover:bg-muted/40 transition-all duration-200 touch-manipulation active:scale-90"
                   >
                     <Icon name="BarChartHorizontal" size={20} className="text-muted-foreground" />
                   </button>
                 </div>
                 
-                {/* Status Badge */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(player.status)}
-                  </div>
-                </div>
-                
-                {/* Stats Grid */}
+                {/* Stats Grid - Responsive 2 columns */}
                 <div className="grid grid-cols-2 gap-3">
                   {isBestOfLeague && (
                     <>
-                      <div className="bg-muted/10 rounded-lg p-3">
+                      <div className="bg-muted/10 rounded-lg p-3 min-h-[60px] flex flex-col justify-center">
                         <div className="text-xs text-muted-foreground font-medium mb-1">Match Wins</div>
-                        <div className="font-mono font-bold text-lg text-foreground">{matchWins}</div>
+                        <div className="font-mono font-bold text-xl text-foreground">{matchWins}</div>
                       </div>
-                      <div className="bg-muted/10 rounded-lg p-3">
+                      <div className="bg-muted/10 rounded-lg p-3 min-h-[60px] flex flex-col justify-center">
                         <div className="text-xs text-muted-foreground font-medium mb-1">Match Losses</div>
-                        <div className="font-mono font-bold text-lg text-foreground">{matchLosses}</div>
+                        <div className="font-mono font-bold text-xl text-foreground">{matchLosses}</div>
                       </div>
                     </>
                   )}
-                  <div className="bg-muted/10 rounded-lg p-3">
+                  <div className="bg-muted/10 rounded-lg p-3 min-h-[60px] flex flex-col justify-center">
                     <div className="text-xs text-muted-foreground font-medium mb-1">
                       {isBestOfLeague ? 'Game Record' : 'Record'}
                     </div>
-                    <div className="font-mono font-bold text-lg text-foreground">{getRecordDisplay(player)}</div>
+                    <div className="font-mono font-bold text-xl text-foreground">{getRecordDisplay(player)}</div>
                   </div>
-                  <div className="bg-muted/10 rounded-lg p-3">
+                  <div className="bg-muted/10 rounded-lg p-3 min-h-[60px] flex flex-col justify-center">
                     <div className="text-xs text-muted-foreground font-medium mb-1">Spread</div>
                     <div className={cn(
-                      "font-mono font-bold text-lg",
+                      "font-mono font-bold text-xl",
                       player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'
                     )}>
                       {player.spread > 0 ? '+' : ''}{player.spread || 0}
                     </div>
                   </div>
                   {!isBestOfLeague && (
-                    <div className="bg-muted/10 rounded-lg p-3">
+                    <div className="bg-muted/10 rounded-lg p-3 min-h-[60px] flex flex-col justify-center">
                       <div className="text-xs text-muted-foreground font-medium mb-1">Points</div>
-                      <div className="font-mono font-bold text-lg text-foreground">{player.points || 0}</div>
+                      <div className="font-mono font-bold text-xl text-foreground">{player.points || 0}</div>
                     </div>
                   )}
                 </div>
@@ -229,20 +252,20 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 onClick={() => setPage(p => Math.max(1, p - 1))} 
                 disabled={page === 1} 
                 aria-label="Previous page"
-                className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="min-h-[44px] min-w-[44px] px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 touch-manipulation active:scale-90"
               >
                 <Icon name="ChevronLeft" size={18} />
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-4">
                 <span className="text-sm font-medium text-muted-foreground">Page</span>
-                <span className="font-mono font-bold text-lg text-foreground">{page}</span>
+                <span className="font-mono font-bold text-xl text-foreground">{page}</span>
                 <span className="text-sm font-medium text-muted-foreground">of {totalPages}</span>
               </div>
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
                 disabled={page === totalPages} 
                 aria-label="Next page"
-                className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="min-h-[44px] min-w-[44px] px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 touch-manipulation active:scale-90"
               >
                 <Icon name="ChevronRight" size={18} />
               </button>
@@ -384,19 +407,29 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   return (
     <div className="glass-card h-full flex flex-col">
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center space-x-2 border-b-2 border-transparent">
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 border-b-2 border-transparent">
             {divisions.map(division => (
-                <button
-                    key={division}
-                    onClick={() => setActiveDivision(division)}
-                    className={cn(
-                        "px-3 py-1 text-sm font-medium rounded-md",
-                        activeDivision === division ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
-                    )}
-                >
-                    {division}
-                </button>
+              <button
+                key={division}
+                onClick={() => setActiveDivision(division)}
+                className={cn(
+                  "px-3 py-1 text-sm font-medium rounded-md transition-all duration-200",
+                  activeDivision === division ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
+                )}
+              >
+                {division}
+              </button>
             ))}
+          </div>
+          {/* Swipe hint for mobile */}
+          {isMobile && divisions.length > 1 && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground ml-3">
+              <Icon name="ChevronLeft" size={12} />
+              <span>Swipe</span>
+              <Icon name="ChevronRight" size={12} />
+            </div>
+          )}
         </div>
         {tournamentType === 'team' && (
             <div className="flex items-center space-x-1 bg-muted/20 rounded-lg p-1">
@@ -405,7 +438,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
             </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={swipeRef}>
         {players.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <Icon name="Users" size={48} className="opacity-50 mb-4" />

@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronUp, ChevronDown, Trophy, Star, User } from 'lucide-react';
+import { ChevronUp, ChevronDown, Trophy, Star, User, Download } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Card, CardContent } from './ui/Card';
 import { Skeleton } from './ui/Skeleton';
 import PlayerAvatar from './ui/PlayerAvatar';
+import ScorecardExporter from './ScorecardExporter';
 import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
 
-const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) => {
+const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick, tournament, results }) => {
   const [sortBy, setSortBy] = useState('rank');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedPlayerForExport, setSelectedPlayerForExport] = useState(null);
 
   const sortedPlayers = useMemo(() => {
     if (!players || players.length === 0) return [];
@@ -244,7 +247,7 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="grid grid-cols-12 gap-4 p-4 hover:bg-surface/30 transition-colors"
+                  className="group grid grid-cols-12 gap-4 p-4 hover:bg-surface/30 transition-colors"
                 >
                   {/* Rank */}
                   <div className="col-span-1 flex items-center">
@@ -278,6 +281,19 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                         </div>
                       )}
                     </div>
+                    {/* Export Button for Desktop */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPlayerForExport(player);
+                        setShowExportModal(true);
+                      }}
+                      className="px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium rounded transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                      title="Export Scorecard"
+                    >
+                      <Download size={12} />
+                      Export
+                    </button>
                   </div>
 
                   {/* Match Wins */}
@@ -370,7 +386,7 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-2">
                       {tournamentType === 'best_of_league' && (
                         <>
                           <div className="text-lg font-bold text-primary">
@@ -379,6 +395,21 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
                           <div className="text-xs text-muted-foreground">Match Wins</div>
                         </>
                       )}
+                      {/* Export Scorecard Button for Mobile */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('Export clicked for player:', player.name);
+                          console.log('Tournament data:', tournament);
+                          console.log('Results data:', results);
+                          setSelectedPlayerForExport(player);
+                          setShowExportModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 touch-manipulation"
+                      >
+                        <Download size={12} />
+                        Export
+                      </button>
                     </div>
                   </div>
 
@@ -463,6 +494,61 @@ const StandingsTable = ({ players, tournamentType, isLoading, onPlayerClick }) =
           </div>
         </CardContent>
       </Card>
+
+      {/* Export Modal */}
+      {showExportModal && selectedPlayerForExport && (
+        <div 
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
+          <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-border">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/10">
+              <h3 className="text-lg font-semibold text-foreground">
+                Export Scorecard - {selectedPlayerForExport.name}
+              </h3>
+              <button
+                onClick={() => {
+                  console.log('Closing modal');
+                  setShowExportModal(false);
+                  setSelectedPlayerForExport(null);
+                }}
+                className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {tournament && results ? (
+                <ScorecardExporter
+                  player={selectedPlayerForExport}
+                  tournament={tournament}
+                  results={results || []}
+                  players={players || []}
+                  tournamentType={tournamentType}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Unable to load scorecard data. Please try again.</p>
+                  <p className="text-xs mt-2">Tournament: {tournament ? 'Available' : 'Missing'}</p>
+                  <p className="text-xs">Results: {results ? results.length + ' available' : 'Missing'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Debug info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 z-[9998] bg-red-500 text-white p-2 rounded text-xs">
+          Modal: {showExportModal ? 'Open' : 'Closed'} | 
+          Player: {selectedPlayerForExport ? selectedPlayerForExport.name : 'None'} | 
+          Tournament: {tournament ? 'Available' : 'Missing'}
+        </div>
+      )}
     </div>
   );
 };

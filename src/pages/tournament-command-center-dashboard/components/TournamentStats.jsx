@@ -68,26 +68,29 @@ const TournamentStats = ({ players, recentResults, tournamentInfo }) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 lg:gap-6">
+    <div className="flex flex-col gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 md:gap-4 lg:gap-6">
       {stats.map((stat, index) => (
         <motion.div
           key={index}
-          className="glass-card p-3 sm:p-4 lg:p-6 hover:border-primary/30 transition-all duration-200 group touch-target"
+          className="glass-card p-4 md:p-5 lg:p-6 hover:border-primary/30 transition-all duration-200 group min-h-[88px] md:min-h-[120px] lg:min-h-[140px] touch-manipulation active:scale-[0.98]"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.1 }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 lg:space-y-4">
-            <div className={`flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
-              <Icon name={stat.icon} size={20} className={`${stat.color} sm:w-6 sm:h-6 lg:w-6 lg:h-6`} />
+          <div className="flex md:flex-col items-center md:items-center text-left md:text-center gap-4 md:gap-3 lg:gap-4 h-full">
+            {/* Mobile: Icon on left, content on right */}
+            <div className={`flex-shrink-0 flex items-center justify-center w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-200`}>
+              <Icon name={stat.icon} size={24} className={`${stat.color} md:w-7 md:h-7 lg:w-8 lg:h-8`} />
             </div>
-            <div className="space-y-1 sm:space-y-2">
-              <div className="font-mono font-bold text-lg sm:text-xl lg:text-2xl text-foreground">
+            
+            {/* Content */}
+            <div className="flex-1 md:flex-none space-y-1 md:space-y-2 min-w-0">
+              <div className="font-mono font-bold text-xl md:text-2xl lg:text-3xl text-foreground leading-none">
                 {stat.value}
               </div>
-              <div className="text-xs sm:text-sm text-muted-foreground font-medium leading-tight">
+              <div className="text-sm md:text-base lg:text-lg text-muted-foreground font-medium leading-tight">
                 {stat.label}
               </div>
             </div>

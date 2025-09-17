@@ -742,8 +742,8 @@ const PublicTournamentPage = () => {
                 <TournamentTicker messages={tickerMessages} />
             </div>
             
-            {/* Main Content - Properly spaced for mobile */}
-            <main className="pt-32 pb-20 lg:pt-28 lg:pb-10">
+            {/* Main Content - Properly spaced for mobile - increased top padding to account for ticker */}
+            <main className="pt-48 pb-20 lg:pt-44 lg:pb-10">
                 <div className="w-full px-4 lg:px-6 lg:max-w-7xl lg:mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
                         <aside className="hidden lg:block lg:col-span-1 lg:sticky top-28 self-start">
@@ -830,6 +830,9 @@ const PublicTournamentPage = () => {
                                     players={players} 
                                     tournamentType={tournament?.type} 
                                     isLoading={loading}
+                                    tournament={tournament}
+                                    results={results}
+                                    onPlayerClick={setSelectedPlayer}
                                 />
                             </section>
 

@@ -4,6 +4,7 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../../utils/cn';
 
 const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingResult, tournamentType, currentMatchScore }) => {
   const [score1, setScore1] = useState('');
@@ -179,66 +180,70 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 md:p-4"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className={`bg-background rounded-lg shadow-xl max-w-md w-full p-6 relative ${
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className={cn(
+              "bg-background shadow-xl relative overflow-hidden",
+              "w-full h-full md:max-w-lg md:w-full md:h-auto md:rounded-lg",
+              "flex flex-col",
               isMatchComplete ? 'opacity-75' : ''
-            }`}
+            )}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Greyed out overlay for completed matches */}
-            {isMatchComplete && (
-              <div className="absolute inset-0 bg-gray-500/20 rounded-lg pointer-events-none z-10" />
-            )}
-            
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+              <h2 className="text-xl md:text-lg font-semibold text-foreground">
                 {isEditing ? 'Edit Result' : 'Submit Result'}
               </h2>
               <button
                 onClick={onClose}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="min-h-[44px] min-w-[44px] p-3 rounded-lg hover:bg-muted/20 text-muted-foreground hover:text-foreground transition-colors touch-manipulation active:scale-90"
+                aria-label="Close modal"
               >
                 <Icon name="X" size={20} />
               </button>
             </div>
 
-            {isMatchComplete && (
-              <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-md">
-                <div className="flex items-center space-x-2">
-                  <Icon name="CheckCircle" size={16} className="text-success" />
-                  <p className="text-sm text-success-foreground font-medium">
-                    ✅ Match Complete
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
+              {isMatchComplete && (
+                <div className="mb-6 p-4 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="CheckCircle" size={16} className="text-success" />
+                    <p className="text-base font-medium text-success-foreground">
+                      ✅ Match Complete
+                    </p>
+                  </div>
+                  <p className="text-sm text-success-foreground/80 mt-2">
+                    {existingResult ? 
+                      `Result: ${existingResult.score1} - ${existingResult.score2}` : 
+                      'This match has been completed and cannot be modified.'
+                    }
                   </p>
                 </div>
-                <p className="text-xs text-success-foreground/80 mt-1">
-                  {existingResult ? 
-                    `Result: ${existingResult.score1} - ${existingResult.score2}` : 
-                    'This match has been completed and cannot be modified.'
-                  }
-                </p>
-              </div>
-            )}
+              )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
               {/* Match Status Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Match Status</label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-3">
+                <label className="text-base md:text-sm font-medium text-foreground">Match Status</label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => handleMatchStatusChange('normal')}
                     disabled={isMatchComplete}
-                    className={`p-2 text-sm rounded-md border transition-colors ${
+                    className={cn(
+                      "min-h-[48px] md:min-h-[40px] p-3 text-base md:text-sm rounded-lg border transition-colors touch-manipulation active:scale-95",
                       matchStatus === 'normal' 
                         ? 'bg-primary text-primary-foreground border-primary' 
-                        : 'bg-background border-border hover:bg-muted'
-                    } ${isMatchComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        : 'bg-background border-border hover:bg-muted',
+                      isMatchComplete && 'opacity-50 cursor-not-allowed'
+                    )}
                   >
                     Normal Match
                   </button>
@@ -246,11 +251,13 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                     type="button"
                     onClick={() => handleMatchStatusChange('forfeit')}
                     disabled={isMatchComplete}
-                    className={`p-2 text-sm rounded-md border transition-colors ${
+                    className={cn(
+                      "min-h-[48px] md:min-h-[40px] p-3 text-base md:text-sm rounded-lg border transition-colors touch-manipulation active:scale-95",
                       matchStatus === 'forfeit' 
                         ? 'bg-destructive text-destructive-foreground border-destructive' 
-                        : 'bg-background border-border hover:bg-muted'
-                    } ${isMatchComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        : 'bg-background border-border hover:bg-muted',
+                      isMatchComplete && 'opacity-50 cursor-not-allowed'
+                    )}
                   >
                     Forfeit
                   </button>
@@ -258,11 +265,13 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                     type="button"
                     onClick={() => handleMatchStatusChange('withdrawal')}
                     disabled={isMatchComplete}
-                    className={`p-2 text-sm rounded-md border transition-colors ${
+                    className={cn(
+                      "min-h-[48px] md:min-h-[40px] p-3 text-base md:text-sm rounded-lg border transition-colors touch-manipulation active:scale-95",
                       matchStatus === 'withdrawal' 
                         ? 'bg-warning text-warning-foreground border-warning' 
-                        : 'bg-background border-border hover:bg-muted'
-                    } ${isMatchComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        : 'bg-background border-border hover:bg-muted',
+                      isMatchComplete && 'opacity-50 cursor-not-allowed'
+                    )}
                   >
                     Withdrawal
                   </button>
@@ -270,11 +279,13 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                     type="button"
                     onClick={() => handleMatchStatusChange('bye')}
                     disabled={isMatchComplete}
-                    className={`p-2 text-sm rounded-md border transition-colors ${
+                    className={cn(
+                      "min-h-[48px] md:min-h-[40px] p-3 text-base md:text-sm rounded-lg border transition-colors touch-manipulation active:scale-95",
                       matchStatus === 'bye' 
                         ? 'bg-secondary text-secondary-foreground border-secondary' 
-                        : 'bg-background border-border hover:bg-muted'
-                    } ${isMatchComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        : 'bg-background border-border hover:bg-muted',
+                      isMatchComplete && 'opacity-50 cursor-not-allowed'
+                    )}
                   >
                     Bye
                   </button>
@@ -353,30 +364,36 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
 
               {/* Score Inputs (only for normal matches) */}
               {matchStatus === 'normal' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">{player1Name}</label>
-                    <Input
-                      type="number"
-                      value={score1}
-                      onChange={(e) => setScore1(e.target.value)}
-                      placeholder="Score"
-                      min="0"
-                      disabled={isMatchComplete}
-                      className="text-center"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">{player2Name}</label>
-                    <Input
-                      type="number"
-                      value={score2}
-                      onChange={(e) => setScore2(e.target.value)}
-                      placeholder="Score"
-                      min="0"
-                      disabled={isMatchComplete}
-                      className="text-center"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <label className="text-base md:text-sm font-medium text-foreground">{player1Name}</label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={score1}
+                        onChange={(e) => setScore1(e.target.value)}
+                        placeholder="Score"
+                        min="0"
+                        disabled={isMatchComplete}
+                        className="text-center text-xl md:text-base min-h-[56px] md:min-h-[40px] touch-manipulation"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-base md:text-sm font-medium text-foreground">{player2Name}</label>
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={score2}
+                        onChange={(e) => setScore2(e.target.value)}
+                        placeholder="Score"
+                        min="0"
+                        disabled={isMatchComplete}
+                        className="text-center text-xl md:text-base min-h-[56px] md:min-h-[40px] touch-manipulation"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -398,29 +415,33 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
                 </div>
               )}
 
-              <div className="flex gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onClose}
-                  className="flex-1"
-                  disabled={isLoading}
-                >
-                  {isMatchComplete ? 'Close' : 'Cancel'}
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  loading={isLoading}
-                  disabled={isMatchComplete || 
-                           (matchStatus === 'normal' && (!score1 || !score2)) || 
-                           ((matchStatus === 'forfeit' || matchStatus === 'withdrawal') && !forfeitPlayer) ||
-                           (matchStatus === 'bye' && !byePlayer)}
-                >
-                  {isEditing ? 'Update' : 'Submit'}
-                </Button>
+              {/* Bottom Actions - Sticky on mobile */}
+              <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t border-border p-4 md:p-6 mt-6">
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onClose}
+                    className="flex-1 min-h-[48px] text-base font-medium"
+                    disabled={isLoading}
+                  >
+                    {isMatchComplete ? 'Close' : 'Cancel'}
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 min-h-[48px] text-base font-medium touch-manipulation"
+                    loading={isLoading}
+                    disabled={isMatchComplete || 
+                             (matchStatus === 'normal' && (!score1 || !score2)) || 
+                             ((matchStatus === 'forfeit' || matchStatus === 'withdrawal') && !forfeitPlayer) ||
+                             (matchStatus === 'bye' && !byePlayer)}
+                  >
+                    {isEditing ? 'Update' : 'Submit'}
+                  </Button>
+                </div>
               </div>
-            </form>
+              </form>
+            </div>
           </motion.div>
         </motion.div>
       )}

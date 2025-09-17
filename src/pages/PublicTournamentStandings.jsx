@@ -411,6 +411,9 @@ const PublicTournamentStandings = () => {
                                 players={players} 
                                 tournamentType={tournament?.type} 
                                 isLoading={loading}
+                                tournament={tournament}
+                                results={results}
+                                onPlayerClick={setSelectedPlayer}
                             />
                         </div>
                     </motion.div>

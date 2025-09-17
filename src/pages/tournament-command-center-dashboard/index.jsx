@@ -22,6 +22,8 @@ import AnnouncementsManager from './components/AnnouncementsManager';
 import CarryoverStandingsTable from '../../components/players/CarryoverStandingsTable';
 import LadderStandingsTable from '../../components/players/LadderStandingsTable';
 import DashboardQuickNav from '../../components/dashboard/DashboardQuickNav';
+import { MobileOptimizer } from '../../components/ui/MobileOptimizer';
+import PullToRefresh from '../../components/ui/PullToRefresh';
 
 
 
@@ -1806,6 +1808,23 @@ const TournamentCommandCenterDashboard = () => {
     toast.success(message);
   };
 
+  // Mobile pull-to-refresh handler
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        fetchTournamentInfo(),
+        fetchPlayers(),
+        fetchRecentResults(),
+        fetchPendingResults(),
+        fetchMatches()
+      ]);
+      toast.success('Tournament data refreshed');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Failed to refresh data');
+    }
+  };
+
   if (isLoading) { 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -1832,9 +1851,121 @@ const TournamentCommandCenterDashboard = () => {
 
   // Tournament state calculated successfully
   return (
-    <div className="layout-mobile">
+    <MobileOptimizer className="min-h-screen bg-background flex flex-col">
+      {/* Mobile Header */}
+      <header className="lg:hidden sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-border/20">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/lobby')}
+              className="p-2 hover:bg-muted/10 rounded-lg transition-colors touch-manipulation"
+              aria-label="Back to lobby"
+            >
+              <Icon name="ArrowLeft" size={20} className="text-muted-foreground" />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-foreground truncate max-w-[200px]">
+                {tournamentInfo.name}
+              </h1>
+              <p className="text-xs text-muted-foreground">Tournament Dashboard</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate(`/tournament/${tournamentSlug}/live`)}
+              className="p-2 hover:bg-muted/10 rounded-lg transition-colors touch-manipulation"
+              aria-label="View public page"
+            >
+              <Icon name="Eye" size={18} className="text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop Header and Sidebar */}
+      <div className="hidden lg:block">
+        <Header />
+      </div>
+
+      {/* Ticker */}
       <TickerBar />
-      <Toaster position="top-right" richColors />
+
+      {/* Main Layout */}
+      <div className="flex-1 flex">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 lg:pt-16">
+          <div className="flex-1 flex flex-col min-h-0 bg-background border-r border-border/20">
+            <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+              <div className="px-3">
+                <DashboardSidebar 
+                  tournamentSlug={tournamentSlug} 
+                  tournamentInfo={tournamentInfo}
+                  ladderConfig={ladderConfig}
+                />
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 lg:pl-64">
+          <div className="w-full">
+            {/* Mobile Content Wrapper */}
+            <div className="lg:hidden h-full">
+              <PullToRefresh 
+                onRefresh={handleRefresh}
+                className="h-full"
+                enabled={true}
+              >
+                <div className="px-4 py-6 pb-20 space-y-6">
+                  <MainContent {...{ 
+                    tournamentInfo, 
+                    players: [...rankedPlayers], 
+                    recentResults, 
+                    pendingResults, 
+                    tournamentState, 
+                    handlers, 
+                    teamStandings, 
+                    matches, 
+                    carryoverConfig, 
+                    ladderConfig 
+                  }} />
+                </div>
+              </PullToRefresh>
+            </div>
+
+            {/* Desktop Content Wrapper */}
+            <div className="hidden lg:block">
+              <div className="px-6 py-8">
+                <MainContent {...{ 
+                  tournamentInfo, 
+                  players: [...rankedPlayers], 
+                  recentResults, 
+                  pendingResults, 
+                  tournamentState, 
+                  handlers, 
+                  teamStandings, 
+                  matches, 
+                  carryoverConfig, 
+                  ladderConfig 
+                }} />
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="lg:hidden">
+        <MobileNavBar 
+          tournamentSlug={tournamentSlug} 
+          tournamentInfo={tournamentInfo}
+          ladderConfig={ladderConfig}
+        />
+      </div>
+
+      {/* Modals and Overlays */}
+      <Toaster position="top-center" richColors />
       <ConfirmationModal
           isOpen={showUnpairModal}
           title="Unpair Last Round"
@@ -1873,34 +2004,7 @@ const TournamentCommandCenterDashboard = () => {
           tournamentId={tournamentInfo?.id}
           matches={matches}
       />
-      <main className="layout-mobile-content pt-0">
-        <div className="w-full px-4 sm:px-6 lg:px-8 pb-20 sm:pb-6">
-            {isDesktop ? (
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
-                    <div className="hidden lg:block">
-                      <DashboardSidebar 
-                        tournamentSlug={tournamentSlug} 
-                        tournamentInfo={tournamentInfo}
-                        ladderConfig={ladderConfig}
-                      />
-                    </div>
-                    <div className="lg:col-span-3">
-                      <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }} />
-                    </div>
-                </div>
-            ) : ( 
-                <div className="space-y-4 sm:space-y-6 w-full">
-                    <MainContent {...{ tournamentInfo, players: [...rankedPlayers], recentResults, pendingResults, tournamentState, handlers, teamStandings, matches, carryoverConfig, ladderConfig }} />
-                </div>
-            )}
-        </div>
-      </main>
-      {!isDesktop && <MobileNavBar 
-        tournamentSlug={tournamentSlug} 
-        tournamentInfo={tournamentInfo}
-        ladderConfig={ladderConfig}
-      />}
-    </div>
+    </MobileOptimizer>
   );
 };
 
