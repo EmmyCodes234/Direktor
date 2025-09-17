@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { toast } from 'sonner';
+import ScorecardExporter from './ScorecardExporter';
 
-const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players, tournamentType, tournamentId, matches: allMatches }) => {
+const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResult, teamName, players, tournamentType, tournamentId, matches: allMatches, tournament }) => {
   const navigate = useNavigate();
+  const [showScorecardExport, setShowScorecardExport] = useState(false);
 
   const playerMatches = useMemo(() => {
     if (!player || !allMatches) return [];
@@ -149,7 +151,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto p-4"
           onClick={onClose}
         >
           <motion.div
@@ -157,7 +159,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="glass-card w-full max-w-2xl mx-4 flex flex-col"
+            className="glass-card w-full max-w-2xl mx-auto my-8 flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-border flex justify-between items-start">
@@ -176,7 +178,18 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                     <p className="text-muted-foreground mt-1">Rank: <span className="text-primary font-bold">{player.rank}</span> • Record: <span className="text-primary font-bold">{tournamentType === 'best_of_league' ? `${playerStats.match_wins}-${playerStats.match_losses}` : `${playerStats.wins}-${playerStats.losses}`}</span> • Spread: <span className={`font-bold ${playerStats.spread > 0 ? 'text-success' : 'text-destructive'}`}>{playerStats.spread > 0 ? '+' : ''}{playerStats.spread}</span></p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose}><Icon name="X" /></Button>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowScorecardExport(!showScorecardExport)}
+                  className="bg-primary/10 hover:bg-primary/20 text-primary border-primary/20"
+                >
+                  <Icon name="Download" size={16} className="mr-2" />
+                  Export Scorecard
+                </Button>
+                <Button variant="ghost" size="icon" onClick={onClose}><Icon name="X" /></Button>
+              </div>
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-border">
@@ -188,7 +201,20 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                  <div className="p-4 bg-card text-center"><p className="text-xl font-bold">{player.rating || 'N/A'}</p><p className="text-xs text-muted-foreground">Official Rating</p></div>
             </div>
 
-            <div className="p-6 max-h-[50vh] overflow-y-auto">
+            {/* Scorecard Export Section */}
+            {showScorecardExport && tournament && (
+              <div className="p-6 border-b border-border bg-muted/5">
+                <ScorecardExporter 
+                  player={player}
+                  tournament={tournament}
+                  results={results}
+                  matches={allMatches}
+                  tournamentType={tournamentType}
+                />
+              </div>
+            )}
+
+            <div className="p-6 flex-1 overflow-y-auto">
               <h3 className="font-semibold mb-3">
                 {tournamentType === 'best_of_league' ? 'Match History' : 'Game History'}
               </h3>

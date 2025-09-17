@@ -340,46 +340,111 @@ const PublicTournamentPage = () => {
     
     const teamStandings = useMemo(() => {
         if (tournament?.type !== 'team' || !teams.length || !players.length) return [];
+        
+        // Group results by round to identify team matches (same as dashboard)
         const resultsByRound = results.reduce((acc, result) => {
             (acc[result.round] = acc[result.round] || []).push(result);
             return acc;
         }, {});
-        const teamStats = teams.map(team => ({ id: team.id, name: team.name, teamWins: 0, teamLosses: 0, individualWins: 0, totalSpread: 0, players: players.filter(p => p.team_id === team.id) }));
-        Object.values(resultsByRound).forEach(roundResults => {
-            const teamRoundWins = new Map();
+        
+        // Initialize team stats with all necessary fields
+        const teamStats = teams.map(team => ({
+            id: team.id,
+            name: team.name,
+            teamWins: 0,
+            teamLosses: 0,
+            teamTies: 0, // Added missing field
+            individualWins: 0,
+            totalSpread: 0,
+            players: players.filter(p => p.team_id === team.id),
+            perRound: []
+        }));
+        
+        // Process each round to identify team vs team matches (improved logic)
+        Object.entries(resultsByRound).forEach(([round, roundResults]) => {
+            // Group results by team matchups
+            const teamMatchups = new Map();
+            
             roundResults.forEach(result => {
                 const p1 = players.find(p => p.player_id === result.player1_id);
                 const p2 = players.find(p => p.player_id === result.player2_id);
+                
                 if (!p1 || !p2 || !p1.team_id || !p2.team_id || p1.team_id === p2.team_id) return;
-                if (result.score1 > result.score2) {
-                    teamRoundWins.set(p1.team_id, (teamRoundWins.get(p1.team_id) || 0) + 1);
-                } else if (result.score2 > result.score1) {
-                    teamRoundWins.set(p2.team_id, (teamRoundWins.get(p2.team_id) || 0) + 1);
+                
+                // Create team matchup key
+                const teamKey = [p1.team_id, p2.team_id].sort().join('-');
+                
+                if (!teamMatchups.has(teamKey)) {
+                    teamMatchups.set(teamKey, {
+                        team1: p1.team_id,
+                        team2: p2.team_id,
+                        team1Wins: 0,
+                        team2Wins: 0,
+                        games: []
+                    });
                 }
-            });
-            if(teamRoundWins.size > 0) {
-                const [team1Id, team1Wins] = [...teamRoundWins.entries()][0];
-                const [team2Id, team2Wins] = [...teamRoundWins.entries()][1] || [null, 0];
-                const team1 = teamStats.find(t => t.id === team1Id);
-                const team2 = teamStats.find(t => t.id === team2Id);
-                if(team1 && team2) {
-                    if (team1Wins > team2Wins) {
-                        team1.teamWins++;
-                        team2.teamLosses++;
-                    } else if (team2Wins > team1Wins) {
-                        team2.teamWins++;
-                        team1.teamLosses++;
+                
+                const matchup = teamMatchups.get(teamKey);
+                matchup.games.push(result);
+                
+                // Count individual wins for each team
+                if (result.score1 > result.score2) {
+                    if (p1.team_id === matchup.team1) {
+                        matchup.team1Wins++;
+                    } else {
+                        matchup.team2Wins++;
+                    }
+                } else if (result.score2 > result.score1) {
+                    if (p2.team_id === matchup.team1) {
+                        matchup.team1Wins++;
+                    } else {
+                        matchup.team2Wins++;
                     }
                 }
-            }
+            });
+            
+            // Process team matchups to determine team wins/losses/ties
+            teamMatchups.forEach((matchup, key) => {
+                const team1 = teamStats.find(t => t.id === matchup.team1);
+                const team2 = teamStats.find(t => t.id === matchup.team2);
+                
+                if (!team1 || !team2) return;
+                
+                if (matchup.team1Wins > matchup.team2Wins) {
+                    team1.teamWins++;
+                    team2.teamLosses++;
+                    team1.perRound.push({ round: parseInt(round), result: 'Win', score: `${matchup.team1Wins}-${matchup.team2Wins}` });
+                    team2.perRound.push({ round: parseInt(round), result: 'Loss', score: `${matchup.team2Wins}-${matchup.team1Wins}` });
+                } else if (matchup.team2Wins > matchup.team1Wins) {
+                    team2.teamWins++;
+                    team1.teamLosses++;
+                    team2.perRound.push({ round: parseInt(round), result: 'Win', score: `${matchup.team2Wins}-${matchup.team1Wins}` });
+                    team1.perRound.push({ round: parseInt(round), result: 'Loss', score: `${matchup.team1Wins}-${matchup.team2Wins}` });
+                } else {
+                    // Handle ties properly
+                    team1.teamTies++;
+                    team2.teamTies++;
+                    team1.perRound.push({ round: parseInt(round), result: 'Tie', score: `${matchup.team1Wins}-${matchup.team2Wins}` });
+                    team2.perRound.push({ round: parseInt(round), result: 'Tie', score: `${matchup.team2Wins}-${matchup.team1Wins}` });
+                }
+            });
         });
+        
+        // Calculate individual wins and total spread for each team
         teamStats.forEach(team => {
             team.individualWins = team.players.reduce((sum, p) => sum + (p.wins || 0), 0);
             team.totalSpread = team.players.reduce((sum, p) => sum + (p.spread || 0), 0);
         });
+        
+        // Sort teams by NASPA-compliant tie-breakers (same as dashboard)
         return teamStats.sort((a, b) => {
+            // 1. Team wins
             if (a.teamWins !== b.teamWins) return b.teamWins - a.teamWins;
+            // 2. Team ties
+            if (a.teamTies !== b.teamTies) return b.teamTies - a.teamTies;
+            // 3. Individual wins
             if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
+            // 4. Total spread
             return b.totalSpread - a.totalSpread;
         }).map((team, index) => ({ ...team, rank: index + 1 }));
     }, [players, results, teams, tournament]);

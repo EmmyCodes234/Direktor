@@ -589,6 +589,7 @@ const PublicTournamentPageNew = () => {
                 tournamentType={tournament?.type}
                 tournamentId={tournament?.id}
                 matches={matches}
+                tournament={tournament}
             />
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
@@ -838,14 +839,28 @@ const PublicTournamentPageNew = () => {
                                                         <div className={`w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold text-lg ${p.photo_url ? 'hidden' : ''}`}>
                                                             {p.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                                         </div>
-                                                        {/* Player Name */}
-                                                        <a 
-                                                            href={`/players/${p.slug}`} 
-                                                            onClick={(e) => handlePlayerClick(e, p)} 
-                                                            className="font-semibold text-lg hover:text-primary transition-colors cursor-pointer"
-                                                        >
-                                                            {p.name}
-                                                        </a>
+                                                        {/* Player Name and Export Button */}
+                                                        <div className="flex-1 flex items-center justify-between">
+                                                            <a 
+                                                                href={`/players/${p.slug}`} 
+                                                                onClick={(e) => handlePlayerClick(e, p)} 
+                                                                className="font-semibold text-lg hover:text-primary transition-colors cursor-pointer"
+                                                            >
+                                                                {p.name}
+                                                            </a>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handlePlayerClick(e, p);
+                                                                }}
+                                                                className="text-primary hover:text-primary/80 text-xs"
+                                                            >
+                                                                <Icon name="BarChart2" size={14} className="mr-1" />
+                                                                View Stats
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="p-6 text-right">
