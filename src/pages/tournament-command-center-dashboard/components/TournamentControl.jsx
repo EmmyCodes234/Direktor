@@ -91,26 +91,59 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
      useEffect(() => {
      const currentRound = tournamentInfo?.currentRound || 1;
      
+     // Debug logging for pairing data
+     console.log('🔍 TournamentControl Debug:', {
+       tournamentId: tournamentInfo?.id,
+       currentRound,
+       pairingSystem: tournamentInfo?.pairing_system,
+       pairingSchedule: tournamentInfo?.pairing_schedule,
+       scheduleKeys: tournamentInfo?.pairing_schedule ? Object.keys(tournamentInfo.pairing_schedule) : [],
+       currentRoundPairings: tournamentInfo?.pairing_schedule?.[currentRound] || []
+     });
+     
      // Check if there are any pairings in the schedule
      if (tournamentInfo?.pairing_schedule && Object.keys(tournamentInfo.pairing_schedule).length > 0) {
        // For round robin, show current round pairings from the complete schedule
        if (tournamentInfo.pairing_system === 'round_robin') {
          const currentRoundPairings = tournamentInfo.pairing_schedule[currentRound] || [];
+         console.log('🎯 Round Robin - Setting pairings:', currentRoundPairings);
          setCurrentPairings(currentRoundPairings);
          setIsPaired(true);
        } else if (tournamentInfo.pairing_schedule[currentRound]) {
          // For other pairing systems, show current round
+         console.log('🎯 Other System - Setting pairings:', tournamentInfo.pairing_schedule[currentRound]);
          setCurrentPairings(tournamentInfo.pairing_schedule[currentRound]);
          setIsPaired(true);
        } else {
+         console.log('⚠️ No pairings found for current round:', currentRound);
          setIsPaired(false);
          setCurrentPairings([]);
        }
      } else {
-       setIsPaired(false);
-       setCurrentPairings([]);
+       console.log('⚠️ No pairing schedule found');
+       // For best_of_league tournaments, check if we have matches but no pairings
+       if (tournamentInfo?.type === 'best_of_league' && matches.length > 0) {
+         console.log('🔄 Best of League: Converting matches to pairings for display');
+         // Convert matches to pairings format for display
+         const currentRoundMatches = matches.filter(m => m.round === currentRound);
+         const pairingsFromMatches = currentRoundMatches.map(match => ({
+           id: `match-${match.id}`,
+           table: match.table || 1,
+           player1: players.find(p => p.player_id === match.player1_id),
+           player2: players.find(p => p.player_id === match.player2_id),
+           player1_id: match.player1_id,
+           player2_id: match.player2_id,
+           division: 'Open'
+         }));
+         console.log('🎯 Best of League - Setting pairings from matches:', pairingsFromMatches);
+         setCurrentPairings(pairingsFromMatches);
+         setIsPaired(pairingsFromMatches.length > 0);
+       } else {
+         setIsPaired(false);
+         setCurrentPairings([]);
+       }
      }
-   }, [tournamentInfo]);
+   }, [tournamentInfo, matches, players]);
 
   const generateSwissPairings = (playersToPair, previousMatchups, allResults) => {
     let availablePlayers = [...playersToPair.filter(p => p.status !== 'withdrawn')];

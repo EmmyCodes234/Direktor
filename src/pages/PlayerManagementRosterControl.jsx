@@ -186,6 +186,8 @@ const PlayerManagementRosterControl = () => {
 
     const updatePairingsAfterPlayerRemoval = async (removedPlayerId) => {
         try {
+            console.log('🔄 Updating pairings after player removal:', removedPlayerId);
+            
             // Get current pairing schedule
             const { data: tournament } = await supabase
                 .from('tournaments')
@@ -193,24 +195,41 @@ const PlayerManagementRosterControl = () => {
                 .eq('id', tournamentInfo.id)
                 .single();
 
-            if (!tournament?.pairing_schedule) return;
+            console.log('📋 Current pairing schedule:', tournament?.pairing_schedule);
+
+            if (!tournament?.pairing_schedule) {
+                console.log('⚠️ No pairing schedule found, skipping update');
+                return;
+            }
 
             const updatedSchedule = {};
             
             // Process each round in the pairing schedule
             Object.entries(tournament.pairing_schedule).forEach(([roundNum, roundPairings]) => {
+                console.log(`🔄 Processing round ${roundNum} with ${roundPairings.length} pairings`);
+                
                 const filteredPairings = roundPairings.filter(pairing => {
                     // Remove pairings that involve the removed player
                     const player1Id = pairing.player1?.player_id || pairing.player1_id;
                     const player2Id = pairing.player2?.player_id || pairing.player2_id;
                     
-                    return player1Id !== removedPlayerId && player2Id !== removedPlayerId;
+                    const shouldKeep = player1Id !== removedPlayerId && player2Id !== removedPlayerId;
+                    
+                    if (!shouldKeep) {
+                        console.log(`❌ Removing pairing: ${player1Id} vs ${player2Id} (removed player: ${removedPlayerId})`);
+                    }
+                    
+                    return shouldKeep;
                 });
+
+                console.log(`✅ Round ${roundNum}: ${filteredPairings.length} pairings remaining`);
 
                 if (filteredPairings.length > 0) {
                     updatedSchedule[roundNum] = filteredPairings;
                 }
             });
+
+            console.log('📋 Updated pairing schedule:', updatedSchedule);
 
             // Update the tournament with the cleaned pairing schedule
             const { error: updateError } = await supabase
@@ -219,10 +238,12 @@ const PlayerManagementRosterControl = () => {
                 .eq('id', tournamentInfo.id);
 
             if (updateError) {
-                console.error('Error updating pairings after player removal:', updateError);
+                console.error('❌ Error updating pairings after player removal:', updateError);
+            } else {
+                console.log('✅ Successfully updated pairing schedule');
             }
         } catch (error) {
-            console.error('Error updating pairings:', error);
+            console.error('❌ Error updating pairings:', error);
         }
     };
 

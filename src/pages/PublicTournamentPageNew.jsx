@@ -283,6 +283,109 @@ const PublicTournamentPageNew = () => {
         fetchTournamentData();
     }, [fetchTournamentData]);
 
+    // Add real-time updates for tournament data changes
+    useEffect(() => {
+        if (!tournament?.id) return;
+
+        console.log('🔄 Setting up real-time updates for tournament:', tournament.id);
+        
+        const channel = supabase
+            .channel(`public-tournament-${tournament.id}`)
+            .on('postgres_changes', 
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'tournaments',
+                    filter: `id=eq.${tournament.id}`
+                }, 
+                (payload) => {
+                    console.log('🔄 Tournament update received:', payload);
+                    if (payload.eventType === 'UPDATE') {
+                        // Update tournament data including pairing_schedule
+                        setTournament(prev => ({ ...prev, ...payload.new }));
+                        toast.success('Tournament updated');
+                    }
+                }
+            )
+            .on('postgres_changes', 
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'results',
+                    filter: `tournament_id=eq.${tournament.id}`
+                }, 
+                (payload) => {
+                    console.log('🔄 Results update received:', payload);
+                    if (payload.eventType === 'INSERT') {
+                        setResults(prev => [payload.new, ...prev]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        setResults(prev => prev.map(r => r.id === payload.new.id ? payload.new : r));
+                    } else if (payload.eventType === 'DELETE') {
+                        setResults(prev => prev.filter(r => r.id !== payload.old.id));
+                    }
+                    // Refresh players to recalculate standings
+                    fetchTournamentData();
+                }
+            )
+            .on('postgres_changes', 
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'matches',
+                    filter: `tournament_id=eq.${tournament.id}`
+                }, 
+                (payload) => {
+                    console.log('🔄 Matches update received:', payload);
+                    if (payload.eventType === 'INSERT') {
+                        setMatches(prev => [...prev, payload.new]);
+                    } else if (payload.eventType === 'UPDATE') {
+                        setMatches(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+                    } else if (payload.eventType === 'DELETE') {
+                        setMatches(prev => prev.filter(m => m.id !== payload.old.id));
+                    }
+                }
+            )
+            .on('postgres_changes', 
+                { 
+                    event: '*', 
+                    schema: 'public', 
+                    table: 'tournament_players',
+                    filter: `tournament_id=eq.${tournament.id}`
+                }, 
+                (payload) => {
+                    console.log('🔄 Tournament players update received:', payload);
+                    // Refresh all data when players change
+                    fetchTournamentData();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            console.log('🔄 Cleaning up real-time channel');
+            supabase.removeChannel(channel);
+        };
+    }, [tournament?.id, fetchTournamentData]);
+
+    // Listen for custom tournament data change events (e.g., player removal)
+    useEffect(() => {
+        const handleTournamentDataChange = (event) => {
+            const { type, playerId } = event.detail;
+            
+            if (type === 'playerRemoved' && tournament?.id) {
+                console.log('🔄 Player removed event received, refreshing data...');
+                // Refresh all tournament data
+                fetchTournamentData();
+                toast.success('Tournament data refreshed after player removal');
+            }
+        };
+
+        window.addEventListener('tournamentDataChanged', handleTournamentDataChange);
+        
+        return () => {
+            window.removeEventListener('tournamentDataChanged', handleTournamentDataChange);
+        };
+    }, [tournament?.id, fetchTournamentData]);
+
     const handlePlayerClick = (e, player) => {
         e.preventDefault();
         if (player) {
