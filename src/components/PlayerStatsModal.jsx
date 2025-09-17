@@ -29,10 +29,11 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
   // Calculate accurate stats from results (same method as dashboard)
   const playerStats = useMemo(() => {
     if (!player || !results) {
-      return { wins: 0, losses: 0, ties: 0, spread: 0 };
+      return { wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0, match_losses: 0 };
     }
     
     let wins = 0, losses = 0, ties = 0, spread = 0;
+    let match_wins = 0, match_losses = 0;
     
     // Calculate stats from results (same as dashboard)
     results.forEach(result => {
@@ -49,8 +50,53 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
       }
     });
     
-    return { wins, losses, ties, spread };
-  }, [player, results]);
+    // For best-of-league, calculate match wins and losses
+    if (tournamentType === 'best_of_league') {
+      const bestOf = 15; // Default value, should match dashboard
+      const majority = Math.floor(bestOf / 2) + 1;
+      
+      // Build matchup map
+      const matchupMap = {};
+      results.forEach(result => {
+        if (!result.player1_id || !result.player2_id) return;
+        const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
+        const key = ids.join('-');
+        if (!matchupMap[key]) matchupMap[key] = [];
+        matchupMap[key].push(result);
+      });
+      
+      // Calculate match wins and losses
+      Object.entries(matchupMap).forEach(([key, matchResults]) => {
+        // Only consider match-ups where this player participated
+        if (!key.split('-').includes(String(player.player_id))) return;
+        
+        const [id1, id2] = key.split('-').map(Number);
+        let p1Wins = 0, p2Wins = 0;
+        
+        matchResults.forEach(r => {
+          if (r.score1 > r.score2) {
+            if (r.player1_id === id1) p1Wins++;
+            else p2Wins++;
+          } else if (r.score2 > r.score1) {
+            if (r.player2_id === id1) p1Wins++;
+            else p2Wins++;
+          }
+        });
+        
+        // Determine match winner and update stats
+        if (id1 === player.player_id) {
+          if (p1Wins >= majority) match_wins++;
+          else if (p2Wins >= majority) match_losses++;
+        }
+        if (id2 === player.player_id) {
+          if (p2Wins >= majority) match_wins++;
+          else if (p1Wins >= majority) match_losses++;
+        }
+      });
+    }
+    
+    return { wins, losses, ties, spread, match_wins, match_losses };
+  }, [player, results, tournamentType]);
 
   const playerResults = player
     ? results
@@ -127,7 +173,7 @@ const PlayerStatsModal = ({ player, results, onClose, onSelectPlayer, onEditResu
                             <span>{teamName}</span>
                         </div>
                     )}
-                    <p className="text-muted-foreground mt-1">Rank: <span className="text-primary font-bold">{player.rank}</span> • Record: <span className="text-primary font-bold">{playerStats.wins}-{playerStats.losses}</span> • Spread: <span className={`font-bold ${playerStats.spread > 0 ? 'text-success' : 'text-destructive'}`}>{playerStats.spread > 0 ? '+' : ''}{playerStats.spread}</span></p>
+                    <p className="text-muted-foreground mt-1">Rank: <span className="text-primary font-bold">{player.rank}</span> • Record: <span className="text-primary font-bold">{tournamentType === 'best_of_league' ? `${playerStats.match_wins}-${playerStats.match_losses}` : `${playerStats.wins}-${playerStats.losses}`}</span> • Spread: <span className={`font-bold ${playerStats.spread > 0 ? 'text-success' : 'text-destructive'}`}>{playerStats.spread > 0 ? '+' : ''}{playerStats.spread}</span></p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose}><Icon name="X" /></Button>

@@ -61,7 +61,7 @@ const PublicTournamentPageNew = () => {
                 matchupMap[key].push(result);
             });
             enrichedPlayers = playerList.map(player => {
-                let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
+                let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0, match_losses = 0;
                 // Calculate per-game stats
                 (resultsList || []).forEach(result => {
                     if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
@@ -74,7 +74,7 @@ const PublicTournamentPageNew = () => {
                         spread += (myScore - oppScore);
                     }
                 });
-                // Calculate match_wins: for each match-up, if player has majority, count as match win
+                // Calculate match_wins and match_losses: for each match-up, determine who won the majority
                 Object.entries(matchupMap).forEach(([key, results]) => {
                     // Only consider match-ups where this player participated
                     if (!key.split('-').includes(String(player.player_id))) return;
@@ -90,8 +90,15 @@ const PublicTournamentPageNew = () => {
                             else p2Wins++;
                         }
                     });
-                    if (id1 === player.player_id && p1Wins >= majority) match_wins++;
-                    if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+                    // Determine match winner and update stats
+                    if (id1 === player.player_id) {
+                        if (p1Wins >= majority) match_wins++;
+                        else if (p2Wins >= majority) match_losses++;
+                    }
+                    if (id2 === player.player_id) {
+                        if (p2Wins >= majority) match_wins++;
+                        else if (p1Wins >= majority) match_losses++;
+                    }
                 });
                 return {
                     ...player,
@@ -99,7 +106,8 @@ const PublicTournamentPageNew = () => {
                     losses,
                     ties,
                     spread,
-                    match_wins
+                    match_wins,
+                    match_losses
                 };
             });
         } else {

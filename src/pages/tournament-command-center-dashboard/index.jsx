@@ -927,6 +927,7 @@ const TournamentCommandCenterDashboard = () => {
       
       enrichedPlayers = players.map(player => {
         let match_wins = 0;
+        let match_losses = 0;
         let wins = 0, losses = 0, ties = 0, spread = 0;
         
         // Calculate per-game stats from results (same as public page)
@@ -942,7 +943,7 @@ const TournamentCommandCenterDashboard = () => {
           }
         });
         
-        // Calculate match_wins: for each match-up, if player has majority, count as match win
+        // Calculate match_wins and match_losses: for each match-up, determine who won the majority
         Object.entries(matchupMap).forEach(([key, results]) => {
           // Only consider match-ups where this player participated
           if (!key.split('-').includes(String(player.player_id))) return;
@@ -958,8 +959,15 @@ const TournamentCommandCenterDashboard = () => {
               else p2Wins++;
             }
           });
-          if (id1 === player.player_id && p1Wins >= majority) match_wins++;
-          if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+          // Determine match winner and update stats
+          if (id1 === player.player_id) {
+            if (p1Wins >= majority) match_wins++;
+            else if (p2Wins >= majority) match_losses++;
+          }
+          if (id2 === player.player_id) {
+            if (p2Wins >= majority) match_wins++;
+            else if (p1Wins >= majority) match_losses++;
+          }
         });
         
         return {
@@ -968,7 +976,8 @@ const TournamentCommandCenterDashboard = () => {
           losses,
           ties,
           spread,
-          match_wins
+          match_wins,
+          match_losses
         };
       });
     } else {
@@ -1047,6 +1056,8 @@ const TournamentCommandCenterDashboard = () => {
       losses: p.losses,
       ties: p.ties,
       spread: p.spread,
+      match_wins: tournamentInfo?.type === 'best_of_league' ? p.match_wins : undefined,
+      match_losses: tournamentInfo?.type === 'best_of_league' ? p.match_losses : undefined,
       gameScore: (p.wins || 0) + (p.ties || 0) * 0.5
     })));
 
