@@ -60,37 +60,59 @@ const AdvancedStatsDisplay = ({ results, players }) => {
         let biggestUpset = { value: 0, winner: '', loser: '', ratings: '' };
 
         results.forEach(r => {
-            const player1 = players.find(p => p.id === r.player1_id);
-            const player2 = players.find(p => p.id === r.player2_id);
+            // Handle both results table and matches table data
+            const score1 = r.score1 !== undefined ? r.score1 : (r.player1_score || 0);
+            const score2 = r.score2 !== undefined ? r.score2 : (r.player2_score || 0);
+            const player1Name = r.player1_name || 'Player 1';
+            const player2Name = r.player2_name || 'Player 2';
+            
+            // Find players by ID for rating information
+            const player1 = players.find(p => p.id === r.player1_id || p.player_id === r.player1_id);
+            const player2 = players.find(p => p.id === r.player2_id || p.player_id === r.player2_id);
+            
+            // Handle case where player IDs might be strings
+            if (!player1 && typeof r.player1_id === 'string') {
+                const player1Alt = players.find(p => p.id === parseInt(r.player1_id) || p.player_id === parseInt(r.player1_id));
+                if (player1Alt) player1 = player1Alt;
+            }
+            if (!player2 && typeof r.player2_id === 'string') {
+                const player2Alt = players.find(p => p.id === parseInt(r.player2_id) || p.player_id === parseInt(r.player2_id));
+                if (player2Alt) player2 = player2Alt;
+            }
             
             // High/Low Game
-            if (r.score1 > highGame.value) highGame = { value: r.score1, player: r.player1_name, opponent: r.player2_name, score: `${r.score1}-${r.score2}` };
-            if (r.score2 > highGame.value) highGame = { value: r.score2, player: r.player2_name, opponent: r.player1_name, score: `${r.score2}-${r.score1}` };
-            if (r.score1 < lowGame.value) lowGame = { value: r.score1, player: r.player1_name, opponent: r.player2_name, score: `${r.score1}-${r.score2}` };
-            if (r.score2 < lowGame.value) lowGame = { value: r.score2, player: r.player2_name, opponent: r.player1_name, score: `${r.score2}-${r.score1}` };
+            if (score1 > highGame.value) highGame = { value: score1, player: player1Name, opponent: player2Name, score: `${score1}-${score2}` };
+            if (score2 > highGame.value) highGame = { value: score2, player: player2Name, opponent: player1Name, score: `${score2}-${score1}` };
+            if (score1 < lowGame.value) lowGame = { value: score1, player: player1Name, opponent: player2Name, score: `${score1}-${score2}` };
+            if (score2 < lowGame.value) lowGame = { value: score2, player: player2Name, opponent: player1Name, score: `${score2}-${score1}` };
 
             // High Combined Score
-            const combined = r.score1 + r.score2;
-            if (combined > highCombined.value) highCombined = { value: combined, player1: r.player1_name, player2: r.player2_name, score: `${r.score1}-${r.score2}` };
+            const combined = score1 + score2;
+            if (combined > highCombined.value) highCombined = { value: combined, player1: player1Name, player2: player2Name, score: `${score1}-${score2}` };
             
             // Largest Blowout
-            const spread = Math.abs(r.score1 - r.score2);
+            const spread = Math.abs(score1 - score2);
             if (spread > largestBlowout.value) {
-                const winner = r.score1 > r.score2 ? r.player1_name : r.player2_name;
-                const loser = r.score1 > r.score2 ? r.player2_name : r.player1_name;
-                largestBlowout = { value: spread, winner, loser, score: `${r.score1}-${r.score2}` };
+                const winner = score1 > score2 ? player1Name : player2Name;
+                const loser = score1 > score2 ? player2Name : player1Name;
+                largestBlowout = { value: spread, winner, loser, score: `${score1}-${score2}` };
             }
 
-            // Biggest Upset
-            if (player1 && player2) {
+            // Biggest Upset (only if we have player ratings)
+            if (player1 && player2 && player1.rating && player2.rating) {
                 const ratingDiff = Math.abs(player1.rating - player2.rating);
-                if (r.score1 > r.score2 && player1.rating < player2.rating && ratingDiff > biggestUpset.value) {
+                if (score1 > score2 && player1.rating < player2.rating && ratingDiff > biggestUpset.value) {
                     biggestUpset = { value: ratingDiff, winner: player1.name, loser: player2.name, ratings: `${player1.rating} vs ${player2.rating}` };
-                } else if (r.score2 > r.score1 && player2.rating < player1.rating && ratingDiff > biggestUpset.value) {
+                } else if (score2 > score1 && player2.rating < player1.rating && ratingDiff > biggestUpset.value) {
                     biggestUpset = { value: ratingDiff, winner: player2.name, loser: player1.name, ratings: `${player2.rating} vs ${player1.rating}` };
                 }
             }
         });
+
+        // Handle edge case for lowGame
+        if (lowGame.value === Infinity) {
+            lowGame = { value: 'N/A', player: '', opponent: '', score: '' };
+        }
 
         return { highGame, lowGame, highCombined, largestBlowout, biggestUpset };
 
@@ -99,10 +121,10 @@ const AdvancedStatsDisplay = ({ results, players }) => {
     return (
         <div className={LAYOUT_TEMPLATES.grid['3']}>
             <StatItem icon="Flame" label="High Game Score" value={stats.highGame.value} subtext={stats.highGame.player && `${stats.highGame.player} vs ${stats.highGame.opponent} (${stats.highGame.score})`} index={0} />
-            <StatItem icon="IceCream" label="Low Game Score" value={stats.lowGame.value === Infinity ? 'N/A' : stats.lowGame.value} subtext={stats.lowGame.player && `${stats.lowGame.player} vs ${stats.lowGame.opponent} (${stats.lowGame.score})`} index={1} />
+            <StatItem icon="IceCream" label="Low Game Score" value={stats.lowGame.value} subtext={stats.lowGame.player && `${stats.lowGame.player} vs ${stats.lowGame.opponent} (${stats.lowGame.score})`} index={1} />
             <StatItem icon="Users" label="High Combined Score" value={stats.highCombined.value} subtext={stats.highCombined.player1 && `${stats.highCombined.player1} & ${stats.highCombined.player2} (${stats.highCombined.score})`} index={2} />
-            <StatItem icon="Zap" label="Largest Blowout" value={`+${stats.largestBlowout.value}`} subtext={stats.largestBlowout.winner && `${stats.largestBlowout.winner} over ${stats.largestBlowout.loser}`} index={3} />
-            <StatItem icon="TrendingUp" label="Biggest Upset" value={`+${stats.biggestUpset.value} pts`} subtext={stats.biggestUpset.winner && `${stats.biggestUpset.winner} over ${stats.biggestUpset.loser} (${stats.biggestUpset.ratings})`} index={4} />
+            <StatItem icon="Zap" label="Largest Blowout" value={stats.largestBlowout.value !== 0 ? `+${stats.largestBlowout.value}` : 'N/A'} subtext={stats.largestBlowout.winner && `${stats.largestBlowout.winner} over ${stats.largestBlowout.loser}`} index={3} />
+            <StatItem icon="TrendingUp" label="Biggest Upset" value={stats.biggestUpset.value !== 0 ? `+${stats.biggestUpset.value} pts` : 'N/A'} subtext={stats.biggestUpset.winner && `${stats.biggestUpset.winner} over ${stats.biggestUpset.loser} (${stats.biggestUpset.ratings})`} index={4} />
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import PlayerStatsModal from 'components/PlayerStatsModal';
@@ -8,15 +8,123 @@ import ShareButton from 'components/ui/ShareButton';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import StandingsTable from '../components/StandingsTable';
+import { useMemo } from 'react';
 
 const PublicTournamentStandings = () => {
     const { tournamentSlug } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [tournament, setTournament] = useState(null);
     const [players, setPlayers] = useState([]);
     const [results, setResults] = useState([]);
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
+    
+    // Extract round from query parameters
+    const searchParams = new URLSearchParams(location.search);
+    const roundParam = searchParams.get('round');
+    const selectedRound = roundParam ? parseInt(roundParam) : null;
+
+    // Recalculate ranks based on results up to the selected round
+    const recalculateRanks = useCallback((playerList, tournamentType, resultsList) => {
+        if (!playerList) return [];
+        
+        // Filter results to only include those up to the selected round
+        let filteredResults = resultsList;
+        if (selectedRound) {
+            filteredResults = resultsList.filter(result => result.round <= selectedRound);
+        }
+        
+        let enrichedPlayers = playerList;
+        
+        if (tournamentType === 'best_of_league') {
+            // Calculate match_wins by grouping results by match-up and counting majority wins
+            const bestOf = 15; // Default to 15, or get from tournament settings if available
+            const majority = Math.floor(bestOf / 2) + 1;
+            // Build a map of match-ups: key = sorted player ids, value = array of results
+            const matchupMap = {};
+            (filteredResults || []).forEach(result => {
+                if (!result.player1_id || !result.player2_id) return;
+                const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
+                const key = ids.join('-');
+                if (!matchupMap[key]) matchupMap[key] = [];
+                matchupMap[key].push(result);
+            });
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
+                // Calculate per-game stats
+                (filteredResults || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        spread += (myScore - oppScore);
+                    }
+                });
+                // Calculate match_wins: for each match-up, if player has majority, count as match win
+                Object.entries(matchupMap).forEach(([key, results]) => {
+                    // Only consider match-ups where this player participated
+                    if (!key.split('-').includes(String(player.player_id))) return;
+                    // Count games won by each player in this match-up
+                    const [id1, id2] = key.split('-').map(Number);
+                    let p1Wins = 0, p2Wins = 0;
+                    results.forEach(r => {
+                        if (r.score1 > r.score2) {
+                            if (r.player1_id === id1) p1Wins++;
+                            else p2Wins++;
+                        } else if (r.score2 > r.score1) {
+                            if (r.player2_id === id1) p1Wins++;
+                            else p2Wins++;
+                        }
+                    });
+                    if (id1 === player.player_id && p1Wins >= majority) match_wins++;
+                    if (id2 === player.player_id && p2Wins >= majority) match_wins++;
+                });
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread,
+                    match_wins
+                };
+            });
+        } else {
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0;
+                (filteredResults || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        spread += (myScore - oppScore);
+                    }
+                });
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread
+                };
+            });
+        }
+        
+        return [...enrichedPlayers].sort((a, b) => {
+            if (tournamentType === 'best_of_league') {
+                if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+            }
+            if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
+            return (b.spread || 0) - (a.spread || 0);
+        }).map((player, index) => ({ ...player, rank: index + 1 }));
+    }, [selectedRound]);
 
     const fetchPublicData = useCallback(async () => {
         if (!tournamentSlug) return;
@@ -42,14 +150,18 @@ const PublicTournamentStandings = () => {
                 .eq('tournament_id', tournamentData.id)
                 .order('seed', { ascending: true });
 
-            if (pError) throw pError;
+            if (pError) {
+                console.error('Players query error:', pError);
+                throw pError;
+            }
             
             // Debug: Log the raw data to understand the structure
             console.log('Raw players data:', playersData);
+            console.log('Tournament ID:', tournamentData.id);
             
             const enrichedPlayers = playersData.map(tp => {
+                // Get photo URL from the players table
                 const photoUrl = tp.players.photo_url;
-                console.log(`Player ${tp.players.name}: photo_url = ${photoUrl}`);
                 
                 return {
                     ...tp.players,
@@ -61,6 +173,9 @@ const PublicTournamentStandings = () => {
                     photo_url: photoUrl
                 };
             });
+            
+            console.log('Enriched players:', enrichedPlayers);
+            console.log('Players count:', enrichedPlayers.length);
             setPlayers(enrichedPlayers);
 
             // Fetch results
@@ -118,8 +233,14 @@ const PublicTournamentStandings = () => {
     const teamStandings = React.useMemo(() => {
         if (tournament?.type !== 'team' || !teams.length || !players.length) return [];
         
+        // Filter results to only include those up to the selected round
+        let filteredResults = results;
+        if (selectedRound) {
+            filteredResults = results.filter(result => result.round <= selectedRound);
+        }
+        
         // Group results by round to identify team matches (same as dashboard)
-        const resultsByRound = results.reduce((acc, result) => {
+        const resultsByRound = filteredResults.reduce((acc, result) => {
             (acc[result.round] = acc[result.round] || []).push(result);
             return acc;
         }, {});
@@ -207,241 +328,130 @@ const PublicTournamentStandings = () => {
             });
         });
         
-        // Calculate individual wins and total spread for each team
+        // Calculate individual wins and spread for each team
         teamStats.forEach(team => {
-            team.individualWins = team.players.reduce((sum, p) => sum + (p.wins || 0), 0);
-            team.totalSpread = team.players.reduce((sum, p) => sum + (p.spread || 0), 0);
+            team.players.forEach(player => {
+                filteredResults.forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        
+                        if (myScore > oppScore) {
+                            team.individualWins++;
+                        }
+                        team.totalSpread += (myScore - oppScore);
+                    }
+                });
+            });
         });
         
-        // Sort teams by NASPA-compliant tie-breakers (same as dashboard)
-        return teamStats.sort((a, b) => {
-            // 1. Team wins
+        // Sort teams by wins, then by total spread
+        return [...teamStats].sort((a, b) => {
             if (a.teamWins !== b.teamWins) return b.teamWins - a.teamWins;
-            // 2. Team ties
-            if (a.teamTies !== b.teamTies) return b.teamTies - a.teamTies;
-            // 3. Individual wins
-            if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
-            // 4. Total spread
             return b.totalSpread - a.totalSpread;
         }).map((team, index) => ({ ...team, rank: index + 1 }));
-    }, [players, results, teams, tournament]);
+    }, [tournament, teams, players, results, selectedRound]);
+
+    const sortedPlayers = useMemo(() => {
+        if (!players.length || !tournament) return [];
+        return recalculateRanks(players, tournament.type, results);
+    }, [players, tournament, results, recalculateRanks]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center space-y-4"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-16 h-16 bg-muted rounded animate-pulse mx-auto"></div>
-                    <p className="text-lg text-foreground/80 font-medium">Loading standings...</p>
-                </motion.div>
+            <div className="flex items-center justify-center h-64">
+                <Icon name="Loader" className="animate-spin text-primary" size={32} />
             </div>
         );
     }
 
     if (!tournament) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-16 h-16 mx-auto mb-6">
-                        <Icon name="AlertCircle" className="text-destructive" size={64} />
-                    </div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">Tournament Not Found</h2>
-                    <p className="text-foreground/60">The tournament you're looking for doesn't exist or has been removed.</p>
-                </motion.div>
+            <div className="text-center py-12">
+                <Icon name="AlertCircle" size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">Tournament Not Found</h2>
+                <p className="text-muted-foreground mb-6">The requested tournament could not be found.</p>
+                <Button onClick={() => navigate('/tournaments')} variant="default">
+                    <Icon name="ArrowLeft" className="mr-2" size={16} />
+                    Back to Tournaments
+                </Button>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
-            <PlayerStatsModal 
-                player={selectedPlayer} 
-                results={results} 
-                onClose={() => setSelectedPlayer(null)} 
-                onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} 
-                players={players} 
-            />
-            
-            {/* Header */}
-            <motion.header 
-                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-6"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => window.close()}
-                                className="touch-target hover:bg-muted/20"
-                            >
-                                <Icon name="X" size={20} />
-                            </Button>
-                            <div>
-                                <motion.h1 
-                                    className="text-2xl sm:text-3xl font-bold text-foreground"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.2, duration: 0.6 }}
-                                >
-                                    {tournament.name}
-                                </motion.h1>
-                                <motion.p 
-                                    className="text-sm text-muted-foreground"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.3, duration: 0.6 }}
-                                >
-                                    Live Standings • {format(new Date(tournament.date || tournament.start_date), "MMMM do, yyyy")}
-                                </motion.p>
-                            </div>
-                        </div>
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4, duration: 0.6 }}
-                        >
-                            <ShareButton
-                                variant="ghost"
-                                size="sm"
-                                shareData={{
-                                    type: 'standings',
-                                    data: {
-                                        title: `${tournament?.name} - Standings`,
-                                        text: `Check out the current standings for ${tournament?.name}!`,
-                                        url: window.location.href
-                                    },
-                                    url: window.location.href
-                                }}
-                                platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
-                                position="bottom-right"
-                                className="touch-target"
-                            />
-                        </motion.div>
-                    </div>
-                </div>
-            </motion.header>
-
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <motion.div 
-                    className="space-y-8"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.6 }}
-                >
-                    {/* Page Header */}
-                    <div className="text-center space-y-4">
-                        <div className="flex items-center justify-center space-x-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <Icon name="Trophy" size={24} className="text-primary" />
-                            </div>
-                            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Live Standings</h2>
-                        </div>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                            Real-time tournament rankings and player statistics. Updates automatically as games are played.
-                        </p>
-                    </div>
-
-                    {/* Tournament Info Card */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-2xl p-6 shadow-lg"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6, duration: 0.6 }}
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{players.length}</div>
-                                <div className="text-sm text-muted-foreground">Total Players</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{results.length}</div>
-                                <div className="text-sm text-muted-foreground">Games Played</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{tournament.type}</div>
-                                <div className="text-sm text-muted-foreground">Tournament Type</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Standings Table */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-2xl shadow-lg overflow-hidden"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7, duration: 0.6 }}
-                    >
-                                                    <div className="p-6 border-b border-border/10">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-semibold text-foreground">Current Rankings</h3>
-                                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                    <Icon name="RefreshCw" size={16} />
-                                    <span>Live Updates</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="p-6">
-                            {players.length > 0 && (
-                                <div className="mb-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center justify-between">
-                                        <span>Live standings for {players.length} players</span>
-                                        <span className="flex items-center gap-1">
-                                            <Icon name="Clock" size={14} />
-                                            Last updated: {new Date().toLocaleTimeString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-                            <StandingsTable 
-                                players={players} 
-                                tournamentType={tournament?.type} 
-                                isLoading={loading}
-                                tournament={tournament}
-                                results={results}
-                                onPlayerClick={setSelectedPlayer}
-                            />
-                        </div>
-                    </motion.div>
-
-                    {/* Footer Info */}
-                    <motion.div 
-                        className="text-center space-y-4"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8, duration: 0.6 }}
-                    >
-                        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
-                            <Icon name="Info" size={16} />
-                            <span>Click on any player to view detailed statistics</span>
-                        </div>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="min-h-screen bg-background"
+        >
+            <div className="max-w-6xl mx-auto px-4 py-8">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+                    <div>
                         <Button 
-                            variant="outline" 
-                            onClick={() => window.open(`/tournament/${tournamentSlug}/live`, '_blank')}
-                            className="mt-4"
+                            variant="ghost" 
+                            onClick={() => navigate(`/tournament/${tournamentSlug}/public`)}
+                            className="mb-2 -ml-2"
                         >
-                            <Icon name="ArrowLeft" className="mr-2" />
+                            <Icon name="ArrowLeft" className="mr-2" size={16} />
                             Back to Tournament
                         </Button>
-                    </motion.div>
-                </motion.div>
-            </main>
-        </div>
+                        <h1 className="text-3xl font-bold text-foreground">
+                            {tournament.name} - Standings
+                            {selectedRound && ` (Round ${selectedRound})`}
+                        </h1>
+                        <p className="text-muted-foreground">
+                            {selectedRound 
+                                ? `Standings after round ${selectedRound}`
+                                : 'Current standings'
+                            }
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <ShareButton 
+                            title={`${tournament.name} - Standings`}
+                            text={`Check out the standings for ${tournament.name}`}
+                        />
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-8">
+                    {tournament.type === 'team' ? (
+                        <div className="bg-card rounded-lg border shadow-sm">
+                            <div className="p-6">
+                                <h2 className="text-xl font-semibold mb-4">Team Standings</h2>
+                                <StandingsTable 
+                                    players={teamStandings} 
+                                    tournamentType="team" 
+                                    onPlayerClick={handlePlayerClick}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-card rounded-lg border shadow-sm">
+                            <div className="p-6">
+                                <h2 className="text-xl font-semibold mb-4">Player Standings</h2>
+                                <StandingsTable 
+                                    players={sortedPlayers} 
+                                    tournamentType={tournament.type} 
+                                    onPlayerClick={handlePlayerClick}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <PlayerStatsModal 
+                player={selectedPlayer} 
+                onClose={() => setSelectedPlayer(null)} 
+            />
+        </motion.div>
     );
 };
 
-export default PublicTournamentStandings; 
+export default PublicTournamentStandings;

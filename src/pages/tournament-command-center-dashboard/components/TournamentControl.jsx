@@ -262,19 +262,82 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     return assignStarts(newPairings, players, allResults);
   };
 
-  const generateEnhancedSwissPairings = (playersToPair, previousMatchups, allResults, currentRound, totalRounds) => {
+  const generateEnhancedSwissPairings = (playersToPair, previousMatchups, allResults, currentRound, totalRounds, isGibsonEnabled = false, prizeCount = 3) => {
     let newPairings = [];
     const roundsRemaining = totalRounds - currentRound;
     const isLateStage = roundsRemaining < 3;
 
+    // Gibson Rule Implementation
+    if (isGibsonEnabled && isLateStage) {
+      // Identify players who have clinched first place (cannot be caught by anyone behind)
+      const clinchedFirstPlace = [];
+      const nonPrizeWinners = [];
+      
+      // Simple implementation: assume top player has clinched if far enough ahead
+      if (playersToPair.length > 0) {
+        const sortedPlayers = [...playersToPair].sort((a, b) => a.rank - b.rank);
+        const firstPlacePlayer = sortedPlayers[0];
+        
+        // Check if first place is secure (simplified logic)
+        if (sortedPlayers.length > 1) {
+          const secondPlacePlayer = sortedPlayers[1];
+          // If first place has enough points that second place can't catch up
+          const firstScore = (firstPlacePlayer.wins || 0) + (firstPlacePlayer.ties || 0) * 0.5;
+          const secondScore = (secondPlacePlayer.wins || 0) + (secondPlacePlayer.ties || 0) * 0.5;
+          
+          // Simplified check: if first place has more than 2 points lead with 2 rounds left
+          if (firstScore - secondScore > 2 && roundsRemaining <= 2) {
+            clinchedFirstPlace.push(firstPlacePlayer);
+            nonPrizeWinners.push(...sortedPlayers.slice(1).filter(p => p.rank > prizeCount));
+          }
+        }
+      }
+      
+      // Apply Gibson pairing if we have clinched players
+      if (clinchedFirstPlace.length > 0 && nonPrizeWinners.length > 0) {
+        // Pair clinched players against highest-ranked non-prize winners
+        const nonPrizeWinner = nonPrizeWinners[0]; // Highest ranked non-prize winner
+        
+        clinchedFirstPlace.forEach(clinchedPlayer => {
+          // Find the non-prize winner in the playersToPair array
+          const nonPrizePlayerIndex = playersToPair.findIndex(p => p.player_id === nonPrizeWinner.player_id);
+          if (nonPrizePlayerIndex !== -1) {
+            // Create special Gibson pairing
+            newPairings.push({ 
+              table: 'GIBSON', 
+              player1: { 
+                player_id: clinchedPlayer.player_id,
+                name: clinchedPlayer.name,
+                rating: clinchedPlayer.rating,
+                division: clinchedPlayer.division
+              }, 
+              player2: { 
+                player_id: nonPrizeWinner.player_id,
+                name: nonPrizeWinner.name,
+                rating: nonPrizeWinner.rating,
+                division: nonPrizeWinner.division
+              },
+              isGibsonPairing: true
+            });
+            
+            // Remove paired players from further pairing
+            playersToPair = playersToPair.filter(p => 
+              p.player_id !== clinchedPlayer.player_id && 
+              p.player_id !== nonPrizeWinner.player_id
+            );
+          }
+        });
+      }
+    }
+
     if (isLateStage) {
-      const prizeContenders = playersToPair.filter(p => p.rank <= (tournamentInfo.prizes?.length || 3));
-      const nonContenders = playersToPair.filter(p => p.rank > (tournamentInfo.prizes?.length || 3));
+      const prizeContenders = playersToPair.filter(p => p.rank <= (prizeCount || 3));
+      const nonContenders = playersToPair.filter(p => p.rank > (prizeCount || 3));
 
       const contenderPairings = generateSwissPairings(prizeContenders, previousMatchups, allResults);
       const nonContenderPairings = generateSwissPairings(nonContenders, previousMatchups, allResults);
 
-      newPairings = [...contenderPairings, ...nonContenderPairings];
+      newPairings = [...newPairings, ...contenderPairings, ...nonContenderPairings];
     } else {
       newPairings = generateSwissPairings(playersToPair, previousMatchups, allResults);
     }
@@ -603,7 +666,18 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
             });
           }
 
-          divisionPairings = generateEnhancedSwissPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound, tournamentInfo.rounds);
+          // Pass Gibson rule setting to the pairing function
+          const isGibsonEnabled = tournamentInfo.gibson_rule_enabled || false;
+          const prizeCount = tournamentInfo.prizes?.length || 3;
+          divisionPairings = generateEnhancedSwissPairings(
+            playersToPair, 
+            previousMatchups, 
+            allResultsSoFar, 
+            currentRound, 
+            tournamentInfo.rounds,
+            isGibsonEnabled,
+            prizeCount
+          );
         } else if (pairingSystem === 'king_of_the_hill') {
           // King of the Hill logic
           let playersToPair = [...divisionPlayers];
@@ -1327,8 +1401,13 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     let wins = 0;
     if (recentResults && Array.isArray(recentResults)) {
       recentResults.filter(r => r.match_id === match.id).forEach(r => {
-        if (r.score1 > r.score2 && r.player1_id === playerId) wins++;
-        else if (r.score2 > r.score1 && r.player2_id === playerId) wins++;
+        // Handle both string and number comparisons for player IDs
+        const player1Id = typeof r.player1_id === 'string' ? parseInt(r.player1_id) : r.player1_id;
+        const player2Id = typeof r.player2_id === 'string' ? parseInt(r.player2_id) : r.player2_id;
+        const targetPlayerId = typeof playerId === 'string' ? parseInt(playerId) : playerId;
+        
+        if (r.score1 > r.score2 && player1Id === targetPlayerId) wins++;
+        else if (r.score2 > r.score1 && player2Id === targetPlayerId) wins++;
       });
     }
     return wins;
@@ -1345,7 +1424,8 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
     const winsNeeded = Math.ceil(totalGames / 2);
     
     // Match is complete if either player has reached the winning threshold
-    return p1Wins >= winsNeeded || p2Wins >= winsNeeded;
+    // Also check if match was explicitly marked as complete
+    return match.status === 'complete' || p1Wins >= winsNeeded || p2Wins >= winsNeeded;
   };
 
   const handleEnterScore = (match) => {

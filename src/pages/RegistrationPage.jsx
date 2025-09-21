@@ -104,7 +104,7 @@ const RegistrationPage = () => {
                     </form>
                 </div>
                  <div className="text-center mt-6">
-                    <Button variant="link" onClick={() => navigate(`/tournaments/${tournamentSlug}/live`)}>
+                    <Button variant="link" onClick={() => navigate(`/tournament/${tournamentSlug}`)}>
                         View Tournament Portal
                     </Button>
                 </div>

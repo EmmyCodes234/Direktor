@@ -73,7 +73,7 @@ const AuditLogModal = ({ isOpen, onClose, log }) => {
 };
 
 const ShareSection = ({ tournamentSlug }) => {
-    const publicUrl = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
+    const publicUrl = `https://direktorapp.netlify.app/tournament/${tournamentSlug}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(publicUrl).then(() => {

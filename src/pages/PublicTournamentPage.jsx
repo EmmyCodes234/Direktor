@@ -46,10 +46,8 @@ const formatPlayerName = (name, players) => {
 };
 
 const PublicTournamentPage = () => {
-    // TEST ELEMENT - This should definitely be visible
-    console.log('🚨 PublicTournamentPage component is mounting!');
-    
     const { tournamentSlug } = useParams();
+    console.log('🔍 DEBUG: Tournament slug from useParams:', tournamentSlug);
     const navigate = useNavigate();
     const [tournament, setTournament] = useState(null);
     const [players, setPlayers] = useState([]);
@@ -71,66 +69,40 @@ const PublicTournamentPage = () => {
 
     // Always recalculate player stats from results and matches for live standings
     const recalculateRanks = useCallback((playerList, tournamentType, resultsList, matchesList) => {
+        console.log('🔍 DEBUG: Recalculating ranks with:', {
+            playerCount: playerList?.length,
+            tournamentType,
+            resultsCount: resultsList?.length,
+            matchesCount: matchesList?.length,
+            playerList: playerList?.map(p => ({ name: p.name, player_id: p.player_id, seed: p.seed })),
+            resultsList: resultsList?.slice(0, 5), // First 5 results for debugging
+            matchesList: matchesList?.slice(0, 5)  // First 5 matches for debugging
+        });
+        
+        
         if (!playerList) return [];
         let enrichedPlayers = playerList;
+        
         if (tournamentType === 'best_of_league') {
-        // Calculate match_wins by grouping results by match-up and counting majority wins
-        const bestOf = 15; // Default to 15, or get from tournament settings if available
-        const majority = Math.floor(bestOf / 2) + 1;
-        // Build a map of match-ups: key = sorted player ids, value = array of results
-        const matchupMap = {};
-        (resultsList || []).forEach(result => {
-            if (!result.player1_id || !result.player2_id) return;
-            const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
-            const key = ids.join('-');
-            if (!matchupMap[key]) matchupMap[key] = [];
-            matchupMap[key].push(result);
-        });
-        enrichedPlayers = playerList.map(player => {
-            let wins = 0, losses = 0, ties = 0, spread = 0, match_wins = 0;
-            // Calculate per-game stats
+            // Use best_of_value from tournament settings if available, else default to 15
+            const bestOf = tournament?.best_of_value ? parseInt(tournament.best_of_value, 10) : 15;
+            const majority = Math.floor(bestOf / 2) + 1;
+            // Build a map of match-ups: key = sorted player ids, value = array of results
+            const matchupMap = {};
             (resultsList || []).forEach(result => {
-                if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
-                    let isP1 = result.player1_id === player.player_id;
-                    let myScore = isP1 ? result.score1 : result.score2;
-                    let oppScore = isP1 ? result.score2 : result.score1;
-                    if (myScore > oppScore) wins++;
-                    else if (myScore < oppScore) losses++;
-                    else ties++;
-                    spread += (myScore - oppScore);
-                }
+                if (!result.player1_id || !result.player2_id) return;
+                const ids = [result.player1_id, result.player2_id].sort((a, b) => a - b);
+                const key = ids.join('-');
+                if (!matchupMap[key]) matchupMap[key] = [];
+                matchupMap[key].push(result);
             });
-            // Calculate match_wins: for each match-up, if player has majority, count as match win
-            Object.entries(matchupMap).forEach(([key, results]) => {
-                // Only consider match-ups where this player participated
-                if (!key.split('-').includes(String(player.player_id))) return;
-                // Count games won by each player in this match-up
-                const [id1, id2] = key.split('-').map(Number);
-                let p1Wins = 0, p2Wins = 0;
-                results.forEach(r => {
-                    if (r.score1 > r.score2) {
-                        if (r.player1_id === id1) p1Wins++;
-                        else p2Wins++;
-                    } else if (r.score2 > r.score1) {
-                        if (r.player2_id === id1) p1Wins++;
-                        else p2Wins++;
-                    }
-                });
-                if (id1 === player.player_id && p1Wins >= majority) match_wins++;
-                if (id2 === player.player_id && p2Wins >= majority) match_wins++;
-            });
-            return {
-                ...player,
-                wins,
-                losses,
-                ties,
-                spread,
-                match_wins
-            };
-        });
-        } else {
+            
             enrichedPlayers = playerList.map(player => {
+                let match_wins = 0;
+                let match_losses = 0;
                 let wins = 0, losses = 0, ties = 0, spread = 0;
+                
+                // Calculate per-game stats from results (same as dashboard)
                 (resultsList || []).forEach(result => {
                     if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
                         let isP1 = result.player1_id === player.player_id;
@@ -142,6 +114,63 @@ const PublicTournamentPage = () => {
                         spread += (myScore - oppScore);
                     }
                 });
+                
+                // Calculate match_wins and match_losses: for each match-up, determine who won the majority
+                Object.entries(matchupMap).forEach(([key, results]) => {
+                    // Only consider match-ups where this player participated
+                    if (!key.split('-').includes(String(player.player_id))) return;
+                    // Count games won by each player in this match-up
+                    const [id1, id2] = key.split('-').map(Number);
+                    let p1Wins = 0, p2Wins = 0;
+                    results.forEach(r => {
+                        if (r.score1 > r.score2) {
+                            if (r.player1_id === id1) p1Wins++;
+                            else p2Wins++;
+                        } else if (r.score2 > r.score1) {
+                            if (r.player2_id === id1) p1Wins++;
+                            else p2Wins++;
+                        }
+                    });
+                    // Determine match winner and update stats
+                    if (id1 === player.player_id) {
+                        if (p1Wins >= majority) match_wins++;
+                        else if (p2Wins >= majority) match_losses++;
+                    }
+                    if (id2 === player.player_id) {
+                        if (p2Wins >= majority) match_wins++;
+                        else if (p1Wins >= majority) match_losses++;
+                    }
+                });
+                
+                return {
+                    ...player,
+                    wins,
+                    losses,
+                    ties,
+                    spread,
+                    match_wins,
+                    match_losses
+                };
+            });
+        } else {
+            // For individual tournaments, calculate stats directly from results (same as dashboard)
+            enrichedPlayers = playerList.map(player => {
+                let wins = 0, losses = 0, ties = 0, spread = 0;
+                
+                (resultsList || []).forEach(result => {
+                    if (result.player1_id === player.player_id || result.player2_id === player.player_id) {
+                        let isP1 = result.player1_id === player.player_id;
+                        let myScore = isP1 ? result.score1 : result.score2;
+                        let oppScore = isP1 ? result.score2 : result.score1;
+                        
+                        if (myScore > oppScore) wins++;
+                        else if (myScore < oppScore) losses++;
+                        else ties++;
+                        
+                        spread += (myScore - oppScore);
+                    }
+                });
+                
                 return {
                     ...player,
                     wins,
@@ -151,183 +180,202 @@ const PublicTournamentPage = () => {
                 };
             });
         }
-        return [...enrichedPlayers].sort((a, b) => {
+        
+        // Sort players using the same logic as the dashboard
+        const ranked = [...enrichedPlayers].sort((a, b) => {
             if (tournamentType === 'best_of_league') {
-                if ((a.match_wins || 0) !== (b.match_wins || 0)) return (b.match_wins || 0) - (a.match_wins || 0);
+                const aMatchWins = typeof a.match_wins === 'string' ? parseInt(a.match_wins || 0, 10) : (a.match_wins || 0);
+                const bMatchWins = typeof b.match_wins === 'string' ? parseInt(b.match_wins || 0, 10) : (b.match_wins || 0);
+                if (aMatchWins !== bMatchWins) return bMatchWins - aMatchWins;
             }
-            if ((a.wins || 0) !== (b.wins || 0)) return (b.wins || 0) - (a.wins || 0);
-            return (b.spread || 0) - (a.spread || 0);
+            
+            // Primary sort: Game wins + 0.5 * ties (same as dashboard)
+            const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
+            const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
+            if (aGameScore !== bGameScore) return bGameScore - aGameScore;
+            
+            // Secondary sort: Spread (same as dashboard)
+            if ((a.spread || 0) !== (b.spread || 0)) return (b.spread || 0) - (a.spread || 0);
+            
+            // Tertiary sort: Head-to-head (same as dashboard)
+            const headToHeadGames = resultsList.filter(r => 
+                (r.player1_id === a.player_id && r.player2_id === b.player_id) ||
+                (r.player1_id === b.player_id && r.player2_id === a.player_id)
+            );
+            
+            if (headToHeadGames.length > 0) {
+                let aWins = 0, bWins = 0;
+                headToHeadGames.forEach(game => {
+                    if (game.player1_id === a.player_id) {
+                        if (game.score1 > game.score2) aWins++;
+                        else if (game.score2 > game.score1) bWins++;
+                    } else {
+                        if (game.score2 > game.score1) aWins++;
+                        else if (game.score1 > game.score2) bWins++;
+                    }
+                });
+                if (aWins !== bWins) return bWins - aWins;
+            }
+            
+            // Quaternary sort: Higher seed (lower number) (same as dashboard)
+            return (a.seed || 999) - (b.seed || 999);
         }).map((player, index) => ({ ...player, rank: index + 1 }));
-    }, []);
 
-    // Fetch and refresh public data - NEW VERSION
-    const fetchPublicDataNew = useCallback(async () => {
-        if (!tournamentSlug) { setLoading(false); return; }
+        console.log('🏆 DEBUG: Final standings:', ranked.map(p => ({
+            name: p.name,
+            rank: p.rank,
+            wins: p.wins,
+            losses: p.losses,
+            ties: p.ties,
+            spread: p.spread,
+            match_wins: tournamentType === 'best_of_league' ? p.match_wins : undefined,
+            match_losses: tournamentType === 'best_of_league' ? p.match_losses : undefined,
+            gameScore: (p.wins || 0) + (p.ties || 0) * 0.5
+        })));
+
+        return ranked;
+    }, [tournament]);
+
+    // Fetch and refresh public data - Updated to match dashboard approach
+    const fetchPublicData = useCallback(async () => {
+        if (!tournamentSlug) { 
+            setLoading(false); 
+            return; 
+        }
+        
         setLoading(true);
         
-        // Force cache invalidation
-        console.log('🔄 NEW VERSION - Cache invalidation - version 3.0');
-        
-        // Debug environment variables
-        console.log('🔧 Environment check:', {
-            supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'Set' : 'Missing',
-            supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'Missing',
-            isDev: import.meta.env.DEV
-        });
-        
-        // Log the actual Supabase URL (first part only for security)
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        if (supabaseUrl) {
-            console.log('🔧 Supabase URL (first 30 chars):', supabaseUrl.substring(0, 30) + '...');
-        }
-        
-        console.log('🔍 Looking for tournament with slug:', tournamentSlug);
-        
-        // First, let's test if we can access tournaments at all
-        const { data: testTournaments, error: testError } = await supabase
-            .from('tournaments')
-            .select('id, name, slug, status')
-            .limit(3);
-        
-        console.log('🧪 Test query result:', { data: testTournaments, error: testError });
-        
-        // If the test query fails, there's a fundamental issue
-        if (testError) {
-            console.error('❌ Test query failed:', testError);
-            throw new Error(`Database connection failed: ${testError.message}`);
-        }
-        
-        // Let's also check if we can find the specific tournament with a broader search
-        const { data: allTournaments, error: allError } = await supabase
-            .from('tournaments')
-            .select('id, name, slug, status')
-            .ilike('slug', `%${tournamentSlug}%`);
-        
-        console.log('🔍 All tournaments with similar slug:', { data: allTournaments, error: allError });
-        
         try {
-            console.log('🔍 Making tournament query for slug:', tournamentSlug);
+            console.log('🔍 DEBUG: Fetching public data for tournament:', tournamentSlug);
             
-            // BRAND NEW APPROACH - Ultra minimal query
-            console.log('🚀 ULTRA MINIMAL QUERY APPROACH');
-            
-            const ultraMinimalQuery = await supabase
+            // Fetch tournament data with players
+            const { data: tournamentData, error: tErr } = await supabase
                 .from('tournaments')
-                .select('id, name, slug, status')
+                .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug))`)
                 .eq('slug', tournamentSlug)
+                .eq('status', 'published') // Only fetch published tournaments
                 .single();
+
+            if (tErr || !tournamentData) {
+                console.error("Error fetching tournament data:", tErr);
+                throw tErr || new Error("Tournament not found");
+            }
             
-            console.log('📊 Ultra minimal query result:', { 
-                data: ultraMinimalQuery.data, 
-                error: ultraMinimalQuery.error,
-                errorString: JSON.stringify(ultraMinimalQuery.error, null, 2)
+            console.log('🏆 DEBUG: Tournament data:', {
+                name: tournamentData.name,
+                type: tournamentData.type,
+                pairing_schedule: tournamentData.pairing_schedule,
+                id: tournamentData.id
             });
+
+            // Combine players with their tournament data
+            const combinedPlayers = tournamentData.tournament_players.map(tp => ({
+                ...tp.players,
+                ...tp,
+                player_id: tp.players.id  // Ensure player_id is set correctly
+            }));
             
-            if (ultraMinimalQuery.error) {
-                console.error('❌ Ultra minimal query failed:', JSON.stringify(ultraMinimalQuery.error, null, 2));
-                throw ultraMinimalQuery.error;
+            console.log('👥 DEBUG: Combined players:', combinedPlayers.map(p => ({
+                name: p.name,
+                player_id: p.player_id,
+                seed: p.seed
+            })));
+
+            setTournament(tournamentData);
+
+            // Fetch all related data in parallel
+            const [{ data: resultsData }, { data: teamsData }, { data: prizesData }, { data: matchesData }, { data: photosData }] = await Promise.all([
+                supabase.from('results').select('*').eq('tournament_id', tournamentData.id).order('created_at', { ascending: false }),
+                supabase.from('teams').select('*').eq('tournament_id', tournamentData.id),
+                supabase.from('prizes').select('*').eq('tournament_id', tournamentData.id).order('rank', { ascending: true }),
+                supabase.from('matches').select('*').eq('tournament_id', tournamentData.id).order('round', { ascending: true }),
+                supabase.from('player_photos').select('*').eq('tournament_id', tournamentData.id)
+            ]);
+            
+            console.log('📊 DEBUG: Fetched data:', {
+                resultsCount: resultsData?.length,
+                teamsCount: teamsData?.length,
+                prizesCount: prizesData?.length,
+                matchesCount: matchesData?.length,
+                photosCount: photosData?.length
+            });
+
+            // Combine players with their photos
+            const playersWithPhotos = combinedPlayers.map(player => {
+                // First check if we have a photo from the player_photos table
+                const photoFromTable = photosData?.find(p => p.player_id === player.player_id);
+                
+                // Use photo from player_photos table, then player.photo_url, then null
+                return {
+                    ...player,
+                    photo_url: photoFromTable?.photo_url || player.photo_url || null
+                };
+            });
+
+            // For best_of_league tournaments, also check matches for embedded results
+            let embeddedResults = [];
+            if (tournamentData.type === 'best_of_league' && matchesData && matchesData.length > 0) {
+                embeddedResults = matchesData
+                    .filter(match => match.is_complete && (match.player1_wins !== null || match.player2_wins !== null))
+                    .map(match => ({
+                        id: `match-${match.id}`,
+                        tournament_id: match.tournament_id,
+                        round: match.round,
+                        player1_id: match.player1_id,
+                        player2_id: match.player2_id,
+                        score1: match.player1_wins || 0,
+                        score2: match.player2_wins || 0,
+                        created_at: match.created_at,
+                        updated_at: match.updated_at,
+                        is_from_matches: true
+                    }));
             }
             
-            if (!ultraMinimalQuery.data) {
-                console.error('❌ No tournament found with slug:', tournamentSlug);
-                throw new Error("Tournament not found");
-            }
+            // Combine results from both sources
+            const allResults = [...(resultsData || []), ...embeddedResults];
             
-            console.log('✅ Tournament found:', ultraMinimalQuery.data.name);
-            
-            // Check if tournament is in a public state
-            if (ultraMinimalQuery.data.status === 'draft') {
-                console.error('❌ Tournament is in draft status and not publicly accessible');
-                throw new Error("Tournament not found");
-            }
-            
-            setTournament(ultraMinimalQuery.data);
-            
-            // Now fetch additional data with the tournament ID
-            const tournamentId = ultraMinimalQuery.data.id;
-            
-                // EXACTLY like dashboard - fetch tournament players with players (*)
-    const { data: tournamentPlayersData, error: tpError } = await supabase
-        .from('tournament_players')
-        .select(`
-            status, wins, losses, ties, spread, seed, rank, team_id, group_id, division,
-            players (*)
-        `)
-        .eq('tournament_id', tournamentId);
-    if (tpError) throw tpError;
-    
-    // VISIBLE DEBUG - Show alert to confirm function is running
-    alert('🔍 Function is running! Check console for debug logs.');
-    
-    // Debug: Log the raw data structure
-    console.log('🔍 Raw tournamentPlayersData:', tournamentPlayersData);
-    if (tournamentPlayersData && tournamentPlayersData.length > 0) {
-        console.log('🔍 Sample player data structure:', tournamentPlayersData[0]);
-        console.log('🔍 Sample players sub-object:', tournamentPlayersData[0]?.players);
-    }
-    
-    // EXACTLY like dashboard - combine tournament player data with player details
-    const combinedPlayers = tournamentPlayersData
-        .map(tp => ({ ...tp.players, ...tp, status: tp.status || 'active' }))
-        .filter(p => p.name);
-    
-    // Debug: Log the combined data
-    console.log('🔍 Combined players data:', combinedPlayers);
-    if (combinedPlayers && combinedPlayers.length > 0) {
-        console.log('🔍 Sample combined player:', combinedPlayers[0]);
-        console.log('🔍 Available fields:', Object.keys(combinedPlayers[0]));
-        console.log('🔍 Sample player photo_url:', combinedPlayers[0].photo_url);
-        
-        // VISIBLE DEBUG - Show what fields are available
-        alert(`🔍 Sample player fields: ${Object.keys(combinedPlayers[0]).join(', ')}`);
-        alert(`🔍 Sample player photo_url: ${combinedPlayers[0].photo_url || 'NULL'}`);
-    }
-    
-    const [{ data: resultsData }, {data: teamsData}, {data: prizesData}, {data: matchesData}] = await Promise.all([
-        supabase.from('results').select('*').eq('tournament_id', tournamentId).order('created_at', { ascending: false }),
-        supabase.from('teams').select('id, name').eq('tournament_id', tournamentId),
-        supabase.from('prizes').select('*').eq('tournament_id', tournamentId).order('rank', { ascending: true }),
-        supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('round', { ascending: true })
-    ]);
-    
-    // No need to fetch photos separately - they're already in the players data
-    const playersWithPhotos = combinedPlayers.filter(p => p.photo_url);
-    console.log('🔍 Players with photo_url (from players table):', playersWithPhotos.length);
-    
-    // VISIBLE DEBUG - Show count of players with photos
-    alert(`🔍 Players with photos: ${playersWithPhotos.length} out of ${combinedPlayers.length}`);
-            
-            setPlayers(recalculateRanks(combinedPlayers, ultraMinimalQuery.data.type, resultsData || [], matchesData || []));
-            setResults(resultsData || []);
+            console.log('🔄 DEBUG: All results:', allResults);
+
+            const rankedPlayers = recalculateRanks(playersWithPhotos, tournamentData.type, allResults, matchesData || []);
+            console.log('🏅 DEBUG: Ranked players:', rankedPlayers.map(p => ({
+                name: p.name,
+                rank: p.rank,
+                wins: p.wins,
+                match_wins: p.match_wins
+            })));
+
+            setPlayers(rankedPlayers);
+            setResults(allResults);
             setTeams(teamsData || []);
             setPrizes(prizesData || []);
             setMatches(matchesData || []);
+
         } catch (error) {
             console.error("Error fetching public data:", error);
-            toast.error("Failed to load tournament data. The link may be incorrect or the tournament was not found.");
+            toast.error("Failed to load tournament data.");
         } finally {
             setLoading(false);
         }
     }, [tournamentSlug, recalculateRanks]);
 
-    // Initial fetch - USE NEW VERSION
+    // Initial fetch
     useEffect(() => {
-        fetchPublicDataNew();
-    }, [fetchPublicDataNew]);
+        fetchPublicData();
+    }, [fetchPublicData]);
 
     // Real-time updates
     useEffect(() => {
         if (!tournament) return;
         const channel = supabase.channel(`public-tournament-updates-${tournament.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicDataNew)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchPublicDataNew)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchPublicData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchPublicData)
             .subscribe();
         return () => {
             if (channel) supabase.removeChannel(channel);
         };
-    }, [tournament, fetchPublicDataNew]);
+    }, [tournament, fetchPublicData]);
 
     const handlePlayerClick = (e, player) => {
         e.preventDefault();
@@ -462,13 +510,22 @@ const PublicTournamentPage = () => {
     }, [results]);
 
     const pairingsByRound = useMemo(() => {
+        console.log('🔍 DEBUG: Calculating pairingsByRound with:', {
+            tournamentType: tournament?.type,
+            pairingSchedule: tournament?.pairing_schedule,
+            matchesCount: matches?.length,
+            matchesData: matches
+        });
+        
         if (tournament?.type !== 'best_of_league') {
             // For individual tournaments, try to get pairings from tournament pairing_schedule first
             if (tournament?.pairing_schedule && Object.keys(tournament.pairing_schedule).length > 0) {
+                console.log('📋 Using tournament pairing_schedule:', tournament.pairing_schedule);
                 return tournament.pairing_schedule;
             }
             // Fallback to matches if pairing_schedule is not available
             if (matches && matches.length > 0) {
+                console.log('🎯 Fallback to matches for pairings');
                 return matches.reduce((acc, match) => {
                     if (!acc[match.round]) {
                         acc[match.round] = [];
@@ -477,15 +534,25 @@ const PublicTournamentPage = () => {
                     return acc;
                 }, {});
             }
+            console.log('❌ No pairing data available');
             return {};
         }
-        return matches.reduce((acc, match) => {
-            if (!acc[match.round]) {
-                acc[match.round] = [];
-            }
-            acc[match.round].push(match);
-            return acc;
-        }, {});
+        
+        // For best_of_league tournaments, use matches table
+        console.log('🏆 Using matches for best_of_league pairings');
+        if (matches && matches.length > 0) {
+            const result = matches.reduce((acc, match) => {
+                if (!acc[match.round]) {
+                    acc[match.round] = [];
+                }
+                acc[match.round].push(match);
+                return acc;
+            }, {});
+            console.log('🏆 Pairings by round for best_of_league:', result);
+            return result;
+        }
+        console.log('❌ No matches data available for best_of_league');
+        return {};
     }, [tournament, matches]);
 
     const tournamentStats = useMemo(() => {
@@ -636,28 +703,8 @@ const PublicTournamentPage = () => {
         </div>
     );
 
-
-
     return (
         <div className="min-h-screen bg-background text-foreground">
-
-            {/* TEST ELEMENT - This should definitely be visible */}
-            <div style={{
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                zIndex: 99999,
-                background: 'red',
-                color: 'white',
-                padding: '20px',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                border: '5px solid yellow'
-            }}>
-                🚨 TEST ELEMENT - COMPONENT IS WORKING! 🚨
-            </div>
-
             <Toaster position="top-center" richColors />
             <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} players={players} />
             <AnimatePresence>
@@ -807,25 +854,15 @@ const PublicTournamentPage = () => {
                                         Share
                                     </ShareButton>
                                 </div>
-                                {/* Debug: Show player data structure */}
-                                {process.env.NODE_ENV === 'development' && (
-                                  <div className="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
-                                    <h4 className="font-bold mb-2">Debug Info:</h4>
-                                    <p>Total players: {players.length}</p>
-                                    <p>Players with photos: {players.filter(p => p.photo_url).length}</p>
-                                    <p>Players with avatar_url: {players.filter(p => p.avatar_url).length}</p>
-                                    <p>Sample player data:</p>
-                                    <pre className="text-xs overflow-auto">
-                                      {JSON.stringify(players.slice(0, 2).map(p => ({ 
-                                        name: p.name, 
-                                        photo_url: p.photo_url, 
-                                        avatar_url: p.avatar_url,
-                                        id: p.id,
-                                        player_id: p.player_id
-                                      })), null, 2)}
-                                    </pre>
-                                  </div>
-                                )}
+                                {(() => {
+                                    console.log('🔍 DEBUG: StandingsTable props:', {
+                                        playersCount: players?.length,
+                                        tournamentType: tournament?.type,
+                                        isLoading: loading,
+                                        players: players?.slice(0, 5) // First 5 players for debugging
+                                    });
+                                    return null;
+                                })()}
                                 <StandingsTable 
                                     players={players} 
                                     tournamentType={tournament?.type} 
@@ -872,10 +909,23 @@ const PublicTournamentPage = () => {
                                 </div>
                                 
                                 <div className="space-y-4">
+                                    {(() => {
+                                        console.log('🔍 DEBUG: Rendering pairings with:', {
+                                            pairingsByRoundKeys: Object.keys(pairingsByRound),
+                                            pairingsByRound: pairingsByRound
+                                        });
+                                        return null;
+                                    })()}
                                     {Object.keys(pairingsByRound).length > 0 ? (
                                         Object.keys(pairingsByRound).sort((a, b) => parseInt(b) - parseInt(a)).map(roundNum => {
                                             const roundPairings = pairingsByRound[roundNum];
                                             let tableCounter = 1; // Reset counter for each round
+                                            
+                                            console.log('🔍 DEBUG: Rendering round:', {
+                                                roundNum,
+                                                pairingsCount: roundPairings?.length,
+                                                pairings: roundPairings
+                                            });
                                             
                                             return (
                                                 <div key={roundNum} id={`round-${roundNum}`} className="bg-card border border-border/20 rounded-lg overflow-hidden">
@@ -885,108 +935,248 @@ const PublicTournamentPage = () => {
                                                     <div className="p-4 space-y-4">
                                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         {roundPairings.map(match => {
-                                                            const player1Data = match.player1_id || match.player1;
-                                                            const player2Data = match.player2_id || match.player2;
                                                             const currentTableNumber = tableCounter++; // Use consecutive table numbers
                                                             
-                                                            const player1Name = typeof player1Data === 'object' ? player1Data.name : player1Data;
-                                                            const player2Name = typeof player2Data === 'object' ? player2Data.name : player2Data;
+                                                            console.log('🔍 DEBUG: Rendering match:', {
+                                                                match,
+                                                                tournamentType: tournament?.type,
+                                                                currentTableNumber
+                                                            });
                                                             
-                                                            const player1 = players.find(p => 
-                                                                p.player_id === player1Data || 
-                                                                p.id === player1Data || 
-                                                                p.player_id === parseInt(player1Data) ||
-                                                                p.id === parseInt(player1Data) ||
-                                                                p.name === player1Data ||
-                                                                p.name === player1Name
-                                                            );
-                                                            const player2 = players.find(p => 
-                                                                p.player_id === player2Data || 
-                                                                p.id === player2Data || 
-                                                                p.player_id === parseInt(player2Data) ||
-                                                                p.id === parseInt(player2Data) ||
-                                                                p.name === player2Data ||
-                                                                p.name === player2Name
-                                                            );
-                                                            
-                                                            return (
-                                                                <motion.div 
-                                                                    key={match.id || match.table || `${roundNum}-${currentTableNumber}`} 
-                                                                    className="bg-card border border-border/20 rounded-xl p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/30"
-                                                                    initial={{ opacity: 0, y: 20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    transition={{ duration: 0.3, delay: currentTableNumber * 0.1 }}
-                                                                >
-                                                                    <div className="flex items-center justify-center mb-4">
-                                                                        <span className="text-sm font-mono text-primary bg-primary/10 px-3 py-1.5 rounded-full font-semibold">
-                                                                            Table {currentTableNumber}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="space-y-4">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="flex-1 text-center group">
-                                                                                <a 
-                                                                                    href={`/players/${player1?.slug}`} 
-                                                                                    onClick={(e) => handlePlayerClick(e, player1)} 
-                                                                                    className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
-                                                                                >
-                                                                                    {/* Player 1 Avatar */}
-                                                                                    <div className="flex justify-center mb-3">
-                                                                                        <PlayerAvatar 
-                                                                                            player={player1} 
-                                                                                            size="lg" 
-                                                                                            className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
-                                                                                        {player1?.name || player1Name || 'TBD'}
-                                                                                    </div>
-                                                                                    <div className="text-sm text-muted-foreground mt-1">
-                                                                                        Seed #{player1?.seed || 'TBD'}
-                                                                                    </div>
-                                                                                    {player1?.rating && (
-                                                                                        <div className="text-xs text-primary/70 mt-1 font-mono">
-                                                                                            {player1.rating}
+                                                            // For best_of_league tournaments, we have match data directly
+                                                            if (tournament?.type === 'best_of_league') {
+                                                                const player1 = players.find(p => p.player_id === match.player1_id);
+                                                                const player2 = players.find(p => p.player_id === match.player2_id);
+                                                                
+                                                                console.log('🔍 DEBUG: Best of league match players:', {
+                                                                    player1: player1?.name,
+                                                                    player2: player2?.name,
+                                                                    player1Id: match.player1_id,
+                                                                    player2Id: match.player2_id
+                                                                });
+                                                                
+                                                                return (
+                                                                    <motion.div 
+                                                                        key={match.id || `${roundNum}-${currentTableNumber}`} 
+                                                                        className="bg-card border border-border/20 rounded-xl p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/30"
+                                                                        initial={{ opacity: 0, y: 20 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        transition={{ duration: 0.3, delay: currentTableNumber * 0.1 }}
+                                                                    >
+                                                                        <div className="flex items-center justify-center mb-4">
+                                                                            <span className="text-sm font-mono text-primary bg-primary/10 px-3 py-1.5 rounded-full font-semibold">
+                                                                                Table {currentTableNumber}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="space-y-4">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex-1 text-center group">
+                                                                                    <a 
+                                                                                        href={`/players/${player1?.slug}`} 
+                                                                                        onClick={(e) => handlePlayerClick(e, player1)} 
+                                                                                        className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
+                                                                                    >
+                                                                                        {/* Player 1 Avatar */}
+                                                                                        <div className="flex justify-center mb-3">
+                                                                                            <PlayerAvatar 
+                                                                                                player={player1} 
+                                                                                                size="lg" 
+                                                                                                className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
+                                                                                            />
                                                                                         </div>
-                                                                                    )}
-                                                                                </a>
-                                                                            </div>
-                                                                            <div className="mx-4 flex-shrink-0">
-                                                                                <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-2 rounded-full">
-                                                                                    <span className="text-lg font-bold text-primary">VS</span>
+                                                                                        <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                                                                                            {player1?.name || 'TBD'}
+                                                                                        </div>
+                                                                                        <div className="text-sm text-muted-foreground mt-1">
+                                                                                            Seed #{player1?.seed || 'TBD'}
+                                                                                        </div>
+                                                                                        {player1?.rating && (
+                                                                                            <div className="text-xs text-primary/70 mt-1 font-mono">
+                                                                                                {player1.rating}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {/* Show match wins for best of league */}
+                                                                                        {match.player1_wins !== undefined && (
+                                                                                            <div className="text-xs text-green-600 mt-1 font-semibold">
+                                                                                                Wins: {match.player1_wins}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </a>
+                                                                                </div>
+                                                                                <div className="mx-4 flex-shrink-0">
+                                                                                    <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-2 rounded-full">
+                                                                                        <span className="text-lg font-bold text-primary">VS</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex-1 text-center group">
+                                                                                    <a 
+                                                                                        href={`/players/${player2?.slug}`} 
+                                                                                        onClick={(e) => handlePlayerClick(e, player2)} 
+                                                                                        className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
+                                                                                    >
+                                                                                        {/* Player 2 Avatar */}
+                                                                                        <div className="flex justify-center mb-3">
+                                                                                            <PlayerAvatar 
+                                                                                                player={player2} 
+                                                                                                size="lg" 
+                                                                                                className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                                                                                            {player2?.name || 'TBD'}
+                                                                                        </div>
+                                                                                        <div className="text-sm text-muted-foreground mt-1">
+                                                                                            Seed #{player2?.seed || 'TBD'}
+                                                                                        </div>
+                                                                                        {player2?.rating && (
+                                                                                            <div className="text-xs text-primary/70 mt-1 font-mono">
+                                                                                                {player2.rating}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {/* Show match wins for best of league */}
+                                                                                        {match.player2_wins !== undefined && (
+                                                                                            <div className="text-xs text-green-600 mt-1 font-semibold">
+                                                                                                Wins: {match.player2_wins}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </a>
                                                                                 </div>
                                                                             </div>
-                                                                            <div className="flex-1 text-center group">
-                                                                                <a 
-                                                                                    href={`/players/${player2?.slug}`} 
-                                                                                    onClick={(e) => handlePlayerClick(e, player2)} 
-                                                                                    className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
-                                                                                >
-                                                                                    {/* Player 2 Avatar */}
-                                                                                    <div className="flex justify-center mb-3">
-                                                                                        <PlayerAvatar 
-                                                                                            player={player2} 
-                                                                                            size="lg" 
-                                                                                            className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
-                                                                                        />
-                                                                                    </div>
-                                                                                    <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
-                                                                                        {player2?.name || player2Name || 'TBD'}
-                                                                                    </div>
-                                                                                    <div className="text-sm text-muted-foreground mt-1">
-                                                                                        Seed #{player2?.seed || 'TBD'}
-                                                                                    </div>
-                                                                                    {player2?.rating && (
-                                                                                        <div className="text-xs text-primary/70 mt-1 font-mono">
-                                                                                            {player2.rating}
+                                                                        </div>
+                                                                        {/* Show match status for best of league */}
+                                                                        {match.status && (
+                                                                            <div className="mt-3 text-center">
+                                                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${match.status === 'complete' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                                                    {match.status === 'complete' ? 'Complete' : 'In Progress'}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </motion.div>
+                                                                );
+                                                            } else {
+                                                                // For other tournament types - handle different data structures
+                                                                let player1, player2;
+                                                                
+                                                                // Check if this is from matches table (has player IDs)
+                                                                if (match.player1_id && match.player2_id) {
+                                                                    player1 = players.find(p => p.player_id === match.player1_id);
+                                                                    player2 = players.find(p => p.player_id === match.player2_id);
+                                                                } 
+                                                                // Handle pairing_schedule format
+                                                                else if (match.player1?.name && match.player2?.name) {
+                                                                    // If pairing has generic names like "Player 1", map by position
+                                                                    if (match.player1.name.startsWith('Player ')) {
+                                                                        const player1Num = parseInt(match.player1.name.split(' ')[1]);
+                                                                        const player2Num = parseInt(match.player2.name.split(' ')[1]);
+                                                                        
+                                                                        // Map by seed/position (assuming players are ordered by seed)
+                                                                        const sortedPlayers = [...players].sort((a, b) => (a.seed || 999) - (b.seed || 999));
+                                                                        player1 = sortedPlayers[player1Num - 1];
+                                                                        player2 = sortedPlayers[player2Num - 1];
+                                                                    } else {
+                                                                        // Try to find by actual name
+                                                                        player1 = players.find(p => p.name === match.player1.name);
+                                                                        player2 = players.find(p => p.name === match.player2.name);
+                                                                    }
+                                                                }
+                                                                
+                                                                console.log('🔍 DEBUG: Regular tournament match players:', {
+                                                                    player1: player1?.name,
+                                                                    player2: player2?.name,
+                                                                    matchData: match,
+                                                                    hasPlayerIds: !!(match.player1_id && match.player2_id),
+                                                                    hasPlayerNames: !!(match.player1?.name && match.player2?.name)
+                                                                });
+                                                                
+                                                                // Simple debug alert for first match only
+                                                                if (currentTableNumber === 1) {
+                                                                    alert(`Debug Info:
+Match Data: ${JSON.stringify(match, null, 2)}
+Players Count: ${players.length}
+First Player: ${players[0]?.name || 'none'}
+Player1 Found: ${player1?.name || 'none'}
+Player2 Found: ${player2?.name || 'none'}`);
+                                                                }
+                                                                
+                                                                return (
+                                                                    <motion.div 
+                                                                        key={match.id || match.table || `${roundNum}-${currentTableNumber}`} 
+                                                                        className="bg-card border border-border/20 rounded-xl p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/30"
+                                                                        initial={{ opacity: 0, y: 20 }}
+                                                                        animate={{ opacity: 1, y: 0 }}
+                                                                        transition={{ duration: 0.3, delay: currentTableNumber * 0.1 }}
+                                                                    >
+                                                                        <div className="flex items-center justify-center mb-4">
+                                                                            <span className="text-sm font-mono text-primary bg-primary/10 px-3 py-1.5 rounded-full font-semibold">
+                                                                                Table {currentTableNumber}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="space-y-4">
+                                                                            <div className="flex items-center justify-between">
+                                                                                <div className="flex-1 text-center group">
+                                                                                    <a 
+                                                                                        href={`/players/${player1?.slug}`} 
+                                                                                        onClick={(e) => handlePlayerClick(e, player1)} 
+                                                                                        className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
+                                                                                    >
+                                                                                        {/* Player 1 Avatar */}
+                                                                                        <div className="flex justify-center mb-3">
+                                                                                            <PlayerAvatar 
+                                                                                                player={player1} 
+                                                                                                size="lg" 
+                                                                                                className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
+                                                                                            />
                                                                                         </div>
-                                                                                    )}
-                                                                                </a>
+                                                                                        <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                                                                                            {player1?.name || 'TBD'}
+                                                                                        </div>
+                                                                                        <div className="text-sm text-muted-foreground mt-1">
+                                                                                            Seed #{player1?.seed || 'TBD'}
+                                                                                        </div>
+                                                                                        {player1?.rating && (
+                                                                                            <div className="text-xs text-primary/70 mt-1 font-mono">
+                                                                                                {player1.rating}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </a>
+                                                                                </div>
+                                                                                <div className="mx-4 flex-shrink-0">
+                                                                                    <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-2 rounded-full">
+                                                                                        <span className="text-lg font-bold text-primary">VS</span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex-1 text-center group">
+                                                                                    <a 
+                                                                                        href={`/players/${player2?.slug}`} 
+                                                                                        onClick={(e) => handlePlayerClick(e, player2)} 
+                                                                                        className="block p-3 rounded-lg hover:bg-muted/20 transition-colors duration-200"
+                                                                                    >
+                                                                                        {/* Player 2 Avatar */}
+                                                                                        <div className="flex justify-center mb-3">
+                                                                                            <PlayerAvatar 
+                                                                                                player={player2} 
+                                                                                                size="lg" 
+                                                                                                className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
+                                                                                            />
+                                                                                        </div>
+                                                                                        <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                                                                                            {player2?.name || 'TBD'}
+                                                                                        </div>
+                                                                                        <div className="text-sm text-muted-foreground mt-1">
+                                                                                            Seed #{player2?.seed || 'TBD'}
+                                                                                        </div>
+                                                                                        {player2?.rating && (
+                                                                                            <div className="text-xs text-primary/70 mt-1 font-mono">
+                                                                                                {player2.rating}
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </a>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                </motion.div>
-                                                            );
+                                                                    </motion.div>
+                                                                );
+                                                            }
                                                         })}
                                                         </div>
                                                     </div>
@@ -998,141 +1188,87 @@ const PublicTournamentPage = () => {
                                             <Icon name="Swords" size={48} className="mx-auto text-muted-foreground mb-4" />
                                             <h3 className="text-lg font-semibold text-foreground mb-2">No Pairings Available</h3>
                                             <p className="text-muted-foreground">
-                                                {tournament?.type === 'best_of_league' 
-                                                    ? 'Pairings will be displayed here once the tournament begins.'
-                                                    : 'Pairings will be displayed here once they are generated by the tournament director.'
-                                                }
+                                                Pairings for this tournament will be available once the tournament begins.
                                             </p>
                                         </div>
                                     )}
                                 </div>
                             </section>
-
+                            
                             <section id="roster" ref={rosterRef}>
-                                <div className="text-center mb-12">
-                                    <h2 className="text-4xl font-bold text-foreground mb-4 flex items-center justify-center">
-                                        <Icon name="Users" className="mr-4 text-primary" size={32}/>
-                                        🚨 PLAYER ROSTER - TESTING CHANGES 🚨
+                                <div className="flex flex-col items-center mb-4">
+                                    <h2 className="text-xl font-bold flex items-center mb-2">
+                                        <Icon name="Users" className="mr-2 text-primary" size={20} />
+                                        Player Roster
                                     </h2>
-                                    <p className="text-muted-foreground text-xl max-w-3xl mx-auto leading-relaxed">
-                                        Meet the talented players competing in this tournament. Each player brings unique skills and strategies to the game.
-                                    </p>
+                                    <ShareButton
+                                        variant="ghost"
+                                        size="sm"
+                                        shareData={{
+                                            type: 'roster',
+                                            data: {
+                                                shareRoster: () => tournamentSharing.shareRoster(tournament, players, window.location.href)
+                                            }
+                                        }}
+                                        platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
+                                    >
+                                        Share
+                                    </ShareButton>
                                 </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
-                                    {sortedRoster.map((p, index) => (
-                                        <motion.div 
-                                            key={p.id} 
-                                            className="group bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-3xl p-10 hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:border-primary/50 overflow-hidden"
-                                            initial={{ opacity: 0, y: 50 }}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {sortedRoster.map((player, index) => (
+                                        <motion.div
+                                            key={player.id}
+                                            initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.6, delay: index * 0.15 }}
+                                            transition={{ delay: index * 0.1 }}
+                                            whileHover={{ y: -5 }}
+                                            className="bg-card border border-border/20 rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer touch-target"
+                                            onClick={(e) => handlePlayerClick(e, player)}
                                         >
-                                            {/* Player Avatar */}
-                                            <div className="flex justify-center mb-8">
-                                                <div className="relative">
-                                                    <PlayerAvatar 
-                                                        player={p} 
-                                                        size="2xl" 
-                                                        className="ring-8 ring-primary/20 group-hover:ring-primary/40 transition-all duration-500 shadow-2xl group-hover:shadow-primary/25"
-                                                    />
-                                                    {/* Player Number Badge */}
-                                                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-primary to-secondary text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-lg">
-                                                        #{index + 1}
+                                            <div className="flex items-center space-x-4">
+                                                <PlayerAvatar player={player} size="lg" />
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-foreground truncate">{player.name}</h3>
+                                                    <div className="flex items-center space-x-2 mt-1">
+                                                        {player.seed && (
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                                                Seed #{player.seed}
+                                                            </span>
+                                                        )}
+                                                        {player.rating && (
+                                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted/20 text-muted-foreground font-mono">
+                                                                {player.rating}
+                                                            </span>
+                                                        )}
                                                     </div>
+                                                    {player.team_id && (
+                                                        <p className="text-sm text-muted-foreground mt-2">
+                                                            Team: {teamMap.get(player.team_id) || 'Unknown'}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            
-                                            {/* Player Info */}
-                                            <div className="space-y-6 text-center">
-                                                <div>
-                                                    <a 
-                                                        href={`/players/${p.slug}`} 
-                                                        onClick={(e) => handlePlayerClick(e, p)} 
-                                                        className="font-bold text-2xl text-gray-900 dark:text-white hover:text-primary transition-colors block truncate group-hover:scale-105"
-                                                    >
-                                                        {p.name}
-                                                    </a>
+                                            <div className="mt-4 pt-4 border-t border-border/20">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Record</span>
+                                                    <span className="font-medium text-foreground">{getRecordDisplay(player)}</span>
                                                 </div>
-                                                
-                                                {/* Team Info */}
-                                                {tournament.type === 'team' && p.team_id && (
-                                                    <div className="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-accent/20 to-accent/10 border-2 border-accent/30 rounded-full text-sm font-semibold text-accent">
-                                                        <Icon name="Shield" size={16} className="mr-2" />
-                                                        {teamMap.get(p.team_id) || 'Unknown Team'}
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Seed Info */}
-                                                {p.seed && (
-                                                    <div className="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                                        <Icon name="Star" size={14} className="mr-2" />
-                                                        Seed #{p.seed}
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Rating */}
-                                                <div className="pt-4">
-                                                    <div className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-primary/20 to-secondary/20 border-2 border-primary/30 rounded-full shadow-lg">
-                                                        <Icon name="TrendingUp" size={18} className="mr-3 text-primary" />
-                                                        <span className="text-2xl font-bold text-primary">
-                                                            {p.rating}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                
-                                                {/* Stats Summary */}
-                                                <div className="grid grid-cols-3 gap-4 pt-4">
-                                                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                                                        <div className="text-xl font-bold text-green-600 dark:text-green-400">{p.wins || 0}</div>
-                                                        <div className="text-sm text-green-700 dark:text-green-300 font-medium">Wins</div>
-                                                    </div>
-                                                    <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
-                                                        <div className="text-xl font-bold text-red-600 dark:text-red-400">{p.losses || 0}</div>
-                                                        <div className="text-sm text-red-700 dark:text-red-300 font-medium">Losses</div>
-                                                    </div>
-                                                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                                                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{p.ties || 0}</div>
-                                                        <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">Draws</div>
-                                                    </div>
+                                                <div className="flex justify-between text-sm mt-1">
+                                                    <span className="text-muted-foreground">Spread</span>
+                                                    <span className="font-medium text-foreground">
+                                                        {player.spread > 0 ? `+${player.spread}` : player.spread || 0}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </motion.div>
                                     ))}
                                 </div>
-                                
-                                {/* Empty State */}
-                                {sortedRoster.length === 0 && (
-                                    <div className="text-center py-20">
-                                        <Icon name="Users" size={80} className="mx-auto text-gray-400 dark:text-gray-500 mb-6" />
-                                        <h3 className="text-2xl font-semibold text-gray-600 dark:text-gray-400 mb-3">No Players Found</h3>
-                                        <p className="text-gray-500 dark:text-gray-500 text-lg">The tournament roster is currently empty.</p>
-                                    </div>
-                                )}
                             </section>
                         </div>
                     </div>
                 </div>
             </main>
-
-            {/* Desktop Floating Share Button */}
-            <div className="hidden lg:block fixed bottom-6 right-6 z-50">
-                <ShareButton
-                    variant="default"
-                    size="default"
-                    shareData={{
-                        type: 'tournament',
-                        data: {
-                            shareTournament: () => tournamentSharing.shareTournament(tournament, window.location.href, players)
-                        }
-                    }}
-                    platforms={['twitter', 'facebook', 'whatsapp', 'copy', 'native']}
-                    position="top-left"
-                    className="shadow-lg hover:shadow-xl transition-shadow duration-300"
-                >
-                    <Icon name="Share2" size={20} />
-                </ShareButton>
-            </div>
         </div>
     );
 };

@@ -288,6 +288,7 @@ const PublicTournamentPageNew = () => {
     }, [tournamentSlug, recalculateRanks]);
 
     useEffect(() => {
+        console.log('🚀 PublicTournamentPageNew component mounted, fetching data...');
         fetchTournamentData();
     }, [fetchTournamentData]);
 
@@ -408,31 +409,24 @@ const PublicTournamentPageNew = () => {
     }, [players]);
 
     const pairingsByRound = useMemo(() => {
-        if (tournament?.type !== 'best_of_league') {
-            // For individual tournaments, try to get pairings from tournament pairing_schedule first
-            if (tournament?.pairing_schedule && Object.keys(tournament.pairing_schedule).length > 0) {
-                return tournament.pairing_schedule;
-            }
-            // Fallback to matches if pairing_schedule is not available
-            if (matches && matches.length > 0) {
-                return matches.reduce((acc, match) => {
-                    if (!acc[match.round]) {
-                        acc[match.round] = [];
-                    }
-                    acc[match.round].push(match);
-                    return acc;
-                }, {});
-            }
-            return {};
+        // Always prioritize matches table if it has data, regardless of tournament type
+        if (matches && matches.length > 0) {
+            const matchesByRound = matches.reduce((acc, match) => {
+                if (!acc[match.round]) {
+                    acc[match.round] = [];
+                }
+                acc[match.round].push(match);
+                return acc;
+            }, {});
+            return matchesByRound;
         }
-        // For best_of_league tournaments, use matches table
-        return matches.reduce((acc, match) => {
-            if (!acc[match.round]) {
-                acc[match.round] = [];
-            }
-            acc[match.round].push(match);
-            return acc;
-        }, {});
+        
+        // Fallback to pairing_schedule for individual tournaments
+        if (tournament?.type !== 'best_of_league' && tournament?.pairing_schedule && Object.keys(tournament.pairing_schedule).length > 0) {
+            return tournament.pairing_schedule;
+        }
+        
+        return {};
     }, [tournament, matches]);
 
     const tickerMessages = useMemo(() => {
@@ -725,25 +719,52 @@ const PublicTournamentPageNew = () => {
                                             <h3 className="text-lg font-semibold text-foreground mb-3">Round {roundNum}</h3>
                                             <div className="space-y-3">
                                                 {roundPairings.map((pairing, index) => {
-                                                    // Handle different data structures
                                                     let player1, player2, player1Name, player2Name, tableNum, division;
                                                     
-                                                    if (tournament?.type === 'best_of_league' && pairing.player1_id) {
-                                                        // From matches table
+                                                    // Check if this is from matches table (has player IDs)
+                                                    if (pairing.player1_id && pairing.player2_id) {
                                                         player1 = players.find(p => p.player_id === pairing.player1_id);
                                                         player2 = players.find(p => p.player_id === pairing.player2_id);
                                                         player1Name = player1?.name || 'TBD';
                                                         player2Name = player2?.name || 'TBD';
                                                         tableNum = pairing.table || index + 1;
                                                         division = pairing.division || 'Open';
-                                                    } else {
-                                                        // From pairing_schedule
-                                                        player1 = players.find(p => p.name === pairing.player1?.name);
-                                                        player2 = players.find(p => p.name === pairing.player2?.name);
-                                                        player1Name = pairing.player1?.name || 'TBD';
-                                                        player2Name = pairing.player2?.name || 'TBD';
+                                                    } 
+                                                    // Handle pairing_schedule format
+                                                    else if (pairing.player1?.name && pairing.player2?.name) {
+                                                        // If pairing has generic names like "Player 1", map by position
+                                                        if (pairing.player1.name.startsWith('Player ')) {
+                                                            const player1Num = parseInt(pairing.player1.name.split(' ')[1]);
+                                                            const player2Num = parseInt(pairing.player2.name.split(' ')[1]);
+                                                            
+                                                            // Map by seed/position (assuming players are ordered by seed)
+                                                            const sortedPlayers = [...players].sort((a, b) => (a.seed || 999) - (b.seed || 999));
+                                                            player1 = sortedPlayers[player1Num - 1];
+                                                            player2 = sortedPlayers[player2Num - 1];
+                                                            player1Name = player1?.name || `Player ${player1Num}`;
+                                                            player2Name = player2?.name || `Player ${player2Num}`;
+                                                        } else {
+                                                            // Try to find by actual name
+                                                            player1 = players.find(p => p.name === pairing.player1.name);
+                                                            player2 = players.find(p => p.name === pairing.player2.name);
+                                                            player1Name = player1?.name || pairing.player1.name;
+                                                            player2Name = player2?.name || pairing.player2.name;
+                                                        }
                                                         tableNum = pairing.table || index + 1;
                                                         division = pairing.division || 'Open';
+                                                    }
+                                                    // Fallback - use first two players as test
+                                                    else {
+                                                        // For testing - use actual player names if available
+                                                        if (players.length >= 2) {
+                                                            player1Name = players[index * 2]?.name || 'TBD';
+                                                            player2Name = players[index * 2 + 1]?.name || 'TBD';
+                                                        } else {
+                                                            player1Name = 'TBD';
+                                                            player2Name = 'TBD';
+                                                        }
+                                                        tableNum = index + 1;
+                                                        division = 'Open';
                                                     }
                                                     
                                                     return (
@@ -752,6 +773,7 @@ const PublicTournamentPageNew = () => {
                                                                 <span className="text-sm font-mono text-muted-foreground bg-muted/20 px-2 py-1 rounded">Table {tableNum}</span>
                                                                 <span className="text-sm text-muted-foreground">{division}</span>
                                                             </div>
+                
                                                             <div className="flex items-center justify-center space-x-4 mt-3">
                                                                 <div className="flex-1 text-center">
                                                                     <div className="font-medium text-base">{player1Name}</div>

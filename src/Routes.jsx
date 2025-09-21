@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
+import { BrowserRouter, Routes as RouterRoutes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
 
@@ -14,9 +14,12 @@ import TournamentLobby from "pages/TournamentLobby";
 import TournamentSetupConfiguration from "pages/tournament-setup-configuration";
 import TournamentCommandCenterDashboard from "pages/tournament-command-center-dashboard";
 import PublicTournamentPage from "pages/PublicTournamentPage";
+import PublicTournamentIndex from "pages/PublicTournamentIndex";
 import PublicTournamentStandings from "pages/PublicTournamentStandings";
 import PublicTournamentRoster from "pages/PublicTournamentRoster";
 import PublicTournamentPairings from "pages/PublicTournamentPairings";
+import PublicTournamentPrizes from "pages/PublicTournamentPrizes";
+import PublicTournamentStats from "pages/PublicTournamentStats";
 import RegistrationPage from "./pages/RegistrationPage";
 import NotFound from "pages/NotFound";
 import PlayerManagementRosterControl from "./pages/PlayerManagementRosterControl";
@@ -25,6 +28,7 @@ import ReportsPage from "./pages/ReportsPage";
 import PairingManagementPage from "./pages/PairingManagementPage";
 import WallChartPage from "pages/WallChartPage";
 import PublicTournamentPageNew from "pages/PublicTournamentPageNew";
+import TestDataDisplay from "pages/TestDataDisplay";
 
 const Routes = () => {
   return (
@@ -46,10 +50,15 @@ const Routes = () => {
         
         {/* Public Tournament & Player Routes */}
         <Route path="/tournaments/:tournamentSlug/register" element={<RegistrationPage />} />
-        <Route path="/tournaments/:tournamentSlug/live" element={<PublicTournamentPageNew />} />
+        <Route path="/tournaments/:tournamentSlug/live" element={<Navigate to="/tournament/:tournamentSlug" replace />} />
+        <Route path="/tournament/:tournamentSlug" element={<PublicTournamentIndex />} />
+        <Route path="/tournament/:tournamentSlug/public" element={<PublicTournamentPage />} />
+        <Route path="/tournament/:tournamentSlug/test" element={<TestDataDisplay />} />
         <Route path="/tournament/:tournamentSlug/standings" element={<PublicTournamentStandings />} />
         <Route path="/tournament/:tournamentSlug/roster" element={<PublicTournamentRoster />} />
         <Route path="/tournament/:tournamentSlug/public-pairings" element={<PublicTournamentPairings />} />
+        <Route path="/tournament/:tournamentSlug/prizes" element={<PublicTournamentPrizes />} />
+        <Route path="/tournament/:tournamentSlug/stats" element={<PublicTournamentStats />} />
         
         {/* Admin/Dashboard Routes */}
         <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />

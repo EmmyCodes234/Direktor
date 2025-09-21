@@ -87,7 +87,7 @@ const TournamentCard = ({
 
   const handleShare = (e) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/tournaments/${tournament.slug}/live`;
+    const url = `${window.location.origin}/tournament/${tournament.slug}`;
     navigator.clipboard.writeText(url).then(() => {
       onShare?.(tournament);
     });

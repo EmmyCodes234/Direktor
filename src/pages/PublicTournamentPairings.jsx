@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import PairingsTable from '../components/PairingsTable';
-import { 
-  CalendarDays, 
-  Users, 
-  Trophy, 
-  Clock, 
-  ChevronLeft,
-  Search,
-  Filter,
-  RefreshCw
-} from 'lucide-react';
+import Icon from 'components/AppIcon';
+import Button from 'components/ui/Button';
+import ShareButton from 'components/ui/ShareButton';
+import { applyGibsonRuleToPairings } from '../utils/gibsonRule';
 
 const PublicTournamentPairings = () => {
   const { tournamentSlug } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [tournament, setTournament] = useState(null);
   const [players, setPlayers] = useState([]);
   const [results, setResults] = useState([]);
+  const [matches, setMatches] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  
+  // Extract round from query parameters
+  const searchParams = new URLSearchParams(location.search);
+  const roundParam = searchParams.get('round');
+  const selectedRound = roundParam ? parseInt(roundParam) : null;
 
   useEffect(() => {
     fetchTournamentData();
@@ -72,6 +73,19 @@ const PublicTournamentPairings = () => {
       if (resultsError) throw resultsError;
       setResults(resultsData);
 
+      // Fetch matches for best of league tournaments
+      if (tournamentData.type === 'best_of_league') {
+        const { data: matchesData, error: matchesError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('tournament_id', tournamentData.id)
+          .order('round', { ascending: true });
+
+        if (!matchesError) {
+          setMatches(matchesData);
+        }
+      }
+
       // Fetch teams if team tournament
       if (tournamentData.type === 'team') {
         const { data: teamsData, error: teamsError } = await supabase
@@ -103,6 +117,27 @@ const PublicTournamentPairings = () => {
   };
 
   const getMatchResult = (match) => {
+    // For best of league tournaments, check if match data comes directly from matches table
+    if (tournament?.type === 'best_of_league' && match.player1_wins !== undefined && match.player2_wins !== undefined) {
+      const p1Wins = match.player1_wins || 0;
+      const p2Wins = match.player2_wins || 0;
+      const totalGames = p1Wins + p2Wins;
+      const winsNeeded = Math.ceil((tournament?.games_per_match || 15) / 2);
+      
+      if (totalGames === 0) {
+        return { status: 'pending', score: null };
+      }
+      
+      if (p1Wins >= winsNeeded) {
+        return { status: 'completed', winner: 'player1', score: `${p1Wins}-${p2Wins}` };
+      } else if (p2Wins >= winsNeeded) {
+        return { status: 'completed', winner: 'player2', score: `${p1Wins}-${p2Wins}` };
+      } else {
+        return { status: 'in_progress', score: `${p1Wins}-${p2Wins}` };
+      }
+    }
+    
+    // For results from the results table
     const matchResults = results.filter(r => 
       r.player1_id === match.player1_id && 
       r.player2_id === match.player2_id &&
@@ -116,7 +151,7 @@ const PublicTournamentPairings = () => {
     const p2Wins = matchResults.filter(r => r.winner_id === match.player2_id).length;
 
     if (tournament?.type === 'best_of_league') {
-      const winsNeeded = Math.ceil(totalGames / 2);
+      const winsNeeded = Math.ceil((tournament?.games_per_match || 15) / 2);
       if (p1Wins >= winsNeeded) {
         return { status: 'completed', winner: 'player1', score: `${p1Wins}-${p2Wins}` };
       } else if (p2Wins >= winsNeeded) {
@@ -138,40 +173,77 @@ const PublicTournamentPairings = () => {
   };
 
   const generatePairings = () => {
+    // For best of league tournaments, use matches data directly if available
+    if (tournament?.type === 'best_of_league' && matches.length > 0) {
+      let matchPairings = matches;
+      
+      // If a specific round is selected, only show pairings for that round
+      if (selectedRound) {
+        matchPairings = matches.filter(m => m.round === selectedRound);
+      }
+      
+      // Enrich matches with player names
+      return matchPairings.map(match => ({
+        ...match,
+        player1_name: getPlayerName(match.player1_id),
+        player2_name: getPlayerName(match.player2_id)
+      }));
+    }
+    
+    // For other tournament types or when no matches data, use results data
     if (!results.length) return [];
 
     const rounds = [...new Set(results.map(r => r.round))];
     const pairings = [];
 
     rounds.forEach(round => {
+      // Skip if we're filtering by round and this isn't the selected round
+      if (selectedRound && round !== selectedRound) return;
+      
       const roundResults = results.filter(r => r.round === round);
-      const uniqueMatches = [];
+      const uniqueMatches = new Map();
 
       roundResults.forEach(result => {
-        const matchKey = `${Math.min(result.player1_id, result.player2_id)}-${Math.max(result.player1_id, result.player2_id)}`;
-        if (!uniqueMatches.find(m => m.key === matchKey)) {
-          uniqueMatches.push({
+        const matchKey = `${Math.min(result.player1_id, result.player2_id)}-${Math.max(result.player1_id, result.player2_id)}-${round}`;
+        
+        if (!uniqueMatches.has(matchKey)) {
+          // Create a pairing with aggregated result data
+          const pairing = {
+            id: matchKey,
             key: matchKey,
             round,
             player1_id: result.player1_id,
             player2_id: result.player2_id,
+            player1_name: getPlayerName(result.player1_id),
+            player2_name: getPlayerName(result.player2_id),
             player1_team_id: result.player1_team_id,
-            player2_team_id: result.player2_team_id
-          });
+            player2_team_id: result.player2_team_id,
+            // For single game tournaments, use the result directly
+            score1: result.score1,
+            score2: result.score2,
+            winner_id: result.winner_id
+          };
+          
+          uniqueMatches.set(matchKey, pairing);
         }
       });
 
-      pairings.push(...uniqueMatches);
+      pairings.push(...Array.from(uniqueMatches.values()));
     });
+
+    // Apply Gibson rule if enabled
+    if (tournament?.gibson_rule_enabled && tournament?.currentRound) {
+      const totalRounds = tournament.rounds || 10;
+      const prizeCount = tournament.prizes?.length || 3;
+      return applyGibsonRuleToPairings(pairings, players, tournament.currentRound, totalRounds, prizeCount, tournament?.type);
+    }
 
     return pairings;
   };
 
-
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -181,9 +253,9 @@ const PublicTournamentPairings = () => {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full mx-auto mb-4"
+              className="w-12 h-12 border-4 border-muted/20 border-t-primary rounded-full mx-auto mb-4"
             />
-            <p className="text-white/80 text-lg">Loading tournament pairings...</p>
+            <p className="text-muted-foreground text-base">Loading tournament pairings...</p>
           </div>
         </motion.div>
       </div>
@@ -192,25 +264,25 @@ const PublicTournamentPairings = () => {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-center min-h-screen"
         >
-          <div className="text-center max-w-md mx-auto p-8">
-            <div className="text-6xl mb-4">😕</div>
-            <h1 className="text-2xl font-bold text-white mb-2">Tournament Not Found</h1>
-            <p className="text-white/70 mb-6">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="text-5xl mb-4">😕</div>
+            <h1 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h1>
+            <p className="text-muted-foreground mb-5">
               {error || "The tournament you're looking for doesn't exist or has been removed."}
             </p>
-            <a
-              href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(`/tournament/${tournamentSlug}`)}
             >
-              <ChevronLeft className="w-4 h-4" />
-              Back to Home
-            </a>
+              <Icon name="ArrowLeft" className="mr-2" size={16} />
+              Back to Tournament
+            </Button>
           </div>
         </motion.div>
       </div>
@@ -221,112 +293,127 @@ const PublicTournamentPairings = () => {
   const rounds = [...new Set(results.map(r => r.round))].sort((a, b) => a - b);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden"
+        className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20" />
-        <div className="relative z-10 container mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <a
-              href={`/tournament/${tournamentSlug}`}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-6 h-6 text-white" />
-            </a>
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">{tournament.name}</h1>
-              <div className="flex items-center gap-6 text-white/70">
-                <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" />
-                  <span>{new Date(tournament.created_at).toLocaleDateString()}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span>{players.length} Players</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-4 h-4" />
-                  <span>{tournament.type === 'best_of_league' ? 'Best of League' : 'Single Game'}</span>
-                </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+                className="touch-target hover:bg-muted/20"
+              >
+                <Icon name="ArrowLeft" size={20} />
+              </Button>
+              <div>
+                <motion.h1 
+                  className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6 }}
+                >
+                  {tournament.name}
+                </motion.h1>
               </div>
             </div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              <ShareButton
+                variant="ghost"
+                size="sm"
+                shareData={{
+                  type: 'pairings',
+                  data: { tournament: tournament.name },
+                  url: window.location.href
+                }}
+                platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
+                position="bottom-right"
+                className="touch-target"
+              />
+            </motion.div>
           </div>
         </div>
       </motion.header>
 
-      {/* Controls */}
+      {/* Main Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="container mx-auto px-4 mb-8"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
       >
-        <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-lg p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
-                <input
-                  type="text"
-                  placeholder="Search players..."
-                  value=""
-                  onChange={() => {}}
-                  className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-                />
+        {/* Page Header */}
+        <div className="text-center space-y-3 mb-6">
+          <div className="flex items-center justify-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <Icon name="Swords" size={20} className="text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">
+              {selectedRound ? `Round ${selectedRound} Pairings` : 'Pairings'}
+            </h2>
+          </div>
+          <p className="text-base text-muted-foreground max-w-xl mx-auto">
+            {selectedRound 
+              ? `View pairings for round ${selectedRound}` 
+              : 'View current and past round matchups'}
+          </p>
+        </div>
+
+        {/* Tournament Info Card */}
+        <motion.div 
+          className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-xl font-bold text-foreground">{players.length}</div>
+              <div className="text-xs text-muted-foreground">Total Players</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-bold text-foreground">{results.length}</div>
+              <div className="text-xs text-muted-foreground">Games Played</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-bold text-foreground">
+                {selectedRound ? `Round ${selectedRound}` : `${rounds.length} Rounds`}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {selectedRound ? 'Selected Round' : 'Completed'}
               </div>
             </div>
-
-            {/* Round Filter */}
-            <div className="flex gap-4">
-              <select
-                value="all"
-                onChange={() => {}}
-                className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
-              >
-                <option value="all">All Rounds</option>
-                {rounds.map(round => (
-                  <option key={round} value={round}>Round {round}</option>
-                ))}
-              </select>
-
-              <select
-                value="round"
-                onChange={() => {}}
-                className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-white/40"
-              >
-                <option value="round">Sort by Round</option>
-                <option value="player">Sort by Player</option>
-              </select>
-
-              <button
-                onClick={fetchTournamentData}
-                className="p-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg transition-colors"
-              >
-                <RefreshCw className="w-4 h-4 text-white" />
-              </button>
-            </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
 
-      {/* Pairings */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="container mx-auto px-4 pb-8"
-      >
-        <PairingsTable 
-          pairings={generatePairings()}
-          tournamentType={tournament?.type}
-          isLoading={loading}
-        />
+        {/* Pairings */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, duration: 0.6 }}
+        >
+          <PairingsTable 
+            pairings={generatePairings()}
+            tournamentType={tournament?.type}
+            isLoading={loading}
+            selectedRound={selectedRound}
+            players={players}
+            teams={teams}
+            results={results}
+            matches={matches}
+          />
+        </motion.div>
       </motion.div>
     </div>
   );
 };
 
-export default PublicTournamentPairings; 
+export default PublicTournamentPairings;

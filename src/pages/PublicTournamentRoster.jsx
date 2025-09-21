@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import Button from 'components/ui/Button';
@@ -8,10 +8,9 @@ import PlayerCard from '../components/PlayerCard';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 
-
-
 const PublicTournamentRoster = () => {
     const { tournamentSlug } = useParams();
+    const navigate = useNavigate();
     const [tournament, setTournament] = useState(null);
     const [players, setPlayers] = useState([]);
     const [teams, setTeams] = useState([]);
@@ -130,10 +129,10 @@ const PublicTournamentRoster = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="w-16 h-16 mx-auto mb-6">
-                        <Icon name="Loader" className="animate-spin text-primary" size={64} />
+                    <div className="w-12 h-12 mx-auto mb-4">
+                        <Icon name="Loader" className="animate-spin text-primary" size={48} />
                     </div>
-                    <p className="text-lg text-foreground/80 font-medium">Loading roster...</p>
+                    <p className="text-base text-muted-foreground font-medium">Loading roster...</p>
                 </motion.div>
             </div>
         );
@@ -148,11 +147,11 @@ const PublicTournamentRoster = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="w-16 h-16 mx-auto mb-6">
-                        <Icon name="AlertCircle" className="text-destructive" size={64} />
+                    <div className="w-12 h-12 mx-auto mb-4">
+                        <Icon name="AlertCircle" className="text-destructive" size={48} />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">Tournament Not Found</h2>
-                    <p className="text-foreground/60">The tournament you're looking for doesn't exist or has been removed.</p>
+                    <h2 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h2>
+                    <p className="text-muted-foreground">The tournament you're looking for doesn't exist or has been removed.</p>
                 </motion.div>
             </div>
         );
@@ -162,39 +161,31 @@ const PublicTournamentRoster = () => {
         <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
             {/* Header */}
             <motion.header 
-                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-6"
+                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3">
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => window.close()}
+                                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
                                 className="touch-target hover:bg-muted/20"
                             >
-                                <Icon name="X" size={20} />
+                                <Icon name="ArrowLeft" size={20} />
                             </Button>
                             <div>
                                 <motion.h1 
-                                    className="text-2xl sm:text-3xl font-bold text-foreground"
+                                    className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2, duration: 0.6 }}
                                 >
                                     {tournament.name}
                                 </motion.h1>
-                                <motion.p 
-                                    className="text-sm text-muted-foreground"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.3, duration: 0.6 }}
-                                >
-                                    Player Roster • {format(new Date(tournament.date || tournament.start_date), "MMMM do, yyyy")}
-                                </motion.p>
                             </div>
                         </div>
                         <motion.div
@@ -220,77 +211,77 @@ const PublicTournamentRoster = () => {
             </motion.header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <motion.div 
-                    className="space-y-8"
+                    className="space-y-6"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
                 >
                     {/* Page Header */}
-                    <div className="text-center space-y-4">
+                    <div className="text-center space-y-3">
                         <div className="flex items-center justify-center space-x-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <Icon name="Users" size={24} className="text-primary" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                                <Icon name="Users" size={20} className="text-primary" />
                             </div>
-                            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">Player Roster</h2>
+                            <h2 className="text-2xl font-bold text-foreground">Player Roster</h2>
                         </div>
-                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                            Complete list of tournament participants. Click on any player to view their detailed profile.
+                        <p className="text-base text-muted-foreground max-w-xl mx-auto">
+                            Complete list of tournament participants
                         </p>
                     </div>
 
                     {/* Tournament Info Card */}
                     <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/20 rounded-2xl p-6 shadow-lg"
+                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6, duration: 0.6 }}
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{players.length}</div>
-                                <div className="text-sm text-muted-foreground">Total Players</div>
+                                <div className="text-xl font-bold text-foreground">{players.length}</div>
+                                <div className="text-xs text-muted-foreground">Total Players</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{tournament.type}</div>
-                                <div className="text-sm text-muted-foreground">Tournament Type</div>
+                                <div className="text-xl font-bold text-foreground">{tournament.type}</div>
+                                <div className="text-xs text-muted-foreground">Tournament Type</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-2xl font-bold text-foreground">{teams.length}</div>
-                                <div className="text-sm text-muted-foreground">Teams</div>
+                                <div className="text-xl font-bold text-foreground">{teams.length}</div>
+                                <div className="text-xs text-muted-foreground">Teams</div>
                             </div>
                         </div>
                     </motion.div>
 
                     {/* Search and Filter Controls */}
                     <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-2xl p-6 shadow-lg"
+                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.7, duration: 0.6 }}
                     >
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             {/* Search Input */}
                             <div className="flex-1">
                                 <div className="relative">
-                                    <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
+                                    <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
                                     <input
                                         type="text"
                                         placeholder="Search players or teams..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 bg-background/50 border border-border/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-background/50 border border-border/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm"
                                     />
                                 </div>
                             </div>
                             
                             {/* Sort Dropdown */}
-                            <div className="sm:w-48">
+                            <div className="sm:w-40">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full px-4 py-3 bg-background/50 border border-border/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200"
+                                    className="w-full px-3 py-2.5 bg-background/50 border border-border/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm"
                                 >
                                     <option value="seed">Sort by Seed</option>
                                     <option value="name">Sort by Name</option>
@@ -302,7 +293,7 @@ const PublicTournamentRoster = () => {
 
                     {/* Players Grid */}
                     <motion.div 
-                        className="space-y-6"
+                        className="space-y-5"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.8, duration: 0.6 }}
@@ -310,15 +301,15 @@ const PublicTournamentRoster = () => {
                         {filteredAndSortedPlayers.length > 0 ? (
                             <>
                                 {/* Results Summary */}
-                                <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-2xl p-4 shadow-lg">
-                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-3 shadow-lg">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
                                         <span>Showing {filteredAndSortedPlayers.length} of {players.length} players</span>
                                         <span>Sorted by {sortBy === 'seed' ? 'Seed' : sortBy === 'name' ? 'Name' : 'Rating'}</span>
                                     </div>
                                 </div>
 
                                 {/* Players Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {filteredAndSortedPlayers.map((player, index) => (
                                         <motion.div 
                                             key={player.id}
@@ -340,15 +331,15 @@ const PublicTournamentRoster = () => {
                             </>
                         ) : (
                             <motion.div 
-                                className="text-center py-16"
+                                className="text-center py-12"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.9, duration: 0.6 }}
                             >
-                                <div className="w-20 h-20 mx-auto mb-6 bg-muted/20 rounded-full flex items-center justify-center">
-                                    <Icon name="SearchX" className="text-muted-foreground" size={40} />
+                                <div className="w-16 h-16 mx-auto mb-4 bg-muted/20 rounded-full flex items-center justify-center">
+                                    <Icon name="SearchX" className="text-muted-foreground" size={32} />
                                 </div>
-                                <h3 className="text-xl font-bold text-foreground mb-2">No players found</h3>
+                                <h3 className="text-lg font-bold text-foreground mb-2">No players found</h3>
                                 <p className="text-muted-foreground mb-4">Try adjusting your search criteria or filters</p>
                                 <Button 
                                     variant="outline" 
@@ -362,31 +353,10 @@ const PublicTournamentRoster = () => {
                             </motion.div>
                         )}
                     </motion.div>
-
-                    {/* Footer Info */}
-                    <motion.div 
-                        className="text-center space-y-4"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.0, duration: 0.6 }}
-                    >
-                        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
-                            <Icon name="Info" size={16} />
-                            <span>Click on any player to view their detailed profile</span>
-                        </div>
-                        <Button 
-                            variant="outline" 
-                            onClick={() => window.open(`/tournament/${tournamentSlug}/live`, '_blank')}
-                            className="mt-4"
-                        >
-                            <Icon name="ArrowLeft" className="mr-2" />
-                            Back to Tournament
-                        </Button>
-                    </motion.div>
                 </motion.div>
             </main>
         </div>
     );
 };
 
-export default PublicTournamentRoster; 
+export default PublicTournamentRoster;

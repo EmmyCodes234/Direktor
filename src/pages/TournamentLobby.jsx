@@ -124,7 +124,7 @@ const TournamentLobby = () => {
   };
 
   const handleShareTournament = (tournamentSlug) => {
-    const url = `https://direktorapp.netlify.app/tournaments/${tournamentSlug}/live`;
+    const url = `https://direktorapp.netlify.app/tournament/${tournamentSlug}`;
     navigator.clipboard.writeText(url).then(() => {
         toast.success("Public link copied to clipboard!");
     });
