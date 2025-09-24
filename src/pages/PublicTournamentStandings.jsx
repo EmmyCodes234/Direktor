@@ -150,39 +150,67 @@ const PublicTournamentStandings = () => {
                 .eq('tournament_id', tournamentData.id)
                 .order('seed', { ascending: true });
 
-            if (pError) {
-                console.error('Players query error:', pError);
-                throw pError;
+            if (pError) throw pError;
+            
+            // If no players found for this tournament ID, try to find the correct tournament ID
+            let finalPlayersData = playersData;
+            let actualTournamentId = tournamentData.id;
+            
+            if (!playersData || playersData.length === 0) {
+                console.log('No players found for tournament ID', tournamentData.id, 'searching for correct ID...');
+                
+                // Look for tournaments with the same slug that have players
+                const { data: allTournaments, error: tournamentsError } = await supabase
+                    .from('tournaments')
+                    .select('id, name, slug')
+                    .eq('slug', tournamentData.slug);
+                
+                if (!tournamentsError && allTournaments) {
+                    for (const tournament of allTournaments) {
+                        if (tournament.id !== tournamentData.id) {
+                            const { data: testPlayers, error: testError } = await supabase
+                                .from('tournament_players')
+                                .select(`*, players (*)`)
+                                .eq('tournament_id', tournament.id)
+                                .limit(1);
+                            
+                            if (!testError && testPlayers && testPlayers.length > 0) {
+                                console.log('Found players under tournament ID', tournament.id);
+                                
+                                // Fetch all players for this tournament
+                                const { data: correctPlayers, error: correctError } = await supabase
+                                    .from('tournament_players')
+                                    .select(`*, players (*)`)
+                                    .eq('tournament_id', tournament.id)
+                                    .order('seed', { ascending: true });
+                                
+                                if (!correctError) {
+                                    finalPlayersData = correctPlayers;
+                                    actualTournamentId = tournament.id;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
             
-            // Debug: Log the raw data to understand the structure
-            console.log('Raw players data:', playersData);
-            console.log('Tournament ID:', tournamentData.id);
+            const enrichedPlayers = finalPlayersData.map(tp => ({
+                ...tp.players,
+                player_id: tp.players.id,
+                seed: tp.seed,
+                team_id: tp.team_id,
+                status: tp.status,
+                photo_url: tp.players.photo_url
+            }));
             
-            const enrichedPlayers = playersData.map(tp => {
-                // Get photo URL from the players table
-                const photoUrl = tp.players.photo_url;
-                
-                return {
-                    ...tp.players,
-                    player_id: tp.players.id,
-                    seed: tp.seed,
-                    team_id: tp.team_id,
-                    status: tp.status,
-                    // Photo URL is directly in the players table
-                    photo_url: photoUrl
-                };
-            });
-            
-            console.log('Enriched players:', enrichedPlayers);
-            console.log('Players count:', enrichedPlayers.length);
             setPlayers(enrichedPlayers);
 
-            // Fetch results
+            // Fetch results using the correct tournament ID
             const { data: resultsData, error: rError } = await supabase
                 .from('results')
                 .select('*')
-                .eq('tournament_id', tournamentData.id)
+                .eq('tournament_id', actualTournamentId)
                 .order('created_at', { ascending: false });
 
             if (rError) throw rError;
@@ -193,7 +221,7 @@ const PublicTournamentStandings = () => {
                 const { data: teamsData, error: teamsError } = await supabase
                     .from('teams')
                     .select('*')
-                    .eq('tournament_id', tournamentData.id);
+                    .eq('tournament_id', actualTournamentId);
 
                 if (!teamsError) {
                     setTeams(teamsData);

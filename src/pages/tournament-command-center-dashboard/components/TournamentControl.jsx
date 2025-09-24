@@ -1111,10 +1111,32 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
        // For round robin, don't increment current round since we want to show round 1 pairings
        const shouldIncrementRound = pairingSystem !== 'round_robin' || currentRound > 1;
        
+       // Ensure the pairing schedule is properly formatted
+       const formattedSchedule = {};
+       Object.keys(schedule).forEach(roundNum => {
+         const roundPairings = schedule[roundNum];
+         formattedSchedule[roundNum] = roundPairings.map(pairing => ({
+           ...pairing,
+           // Ensure player objects have the correct structure
+           player1: pairing.player1 ? {
+             player_id: pairing.player1.player_id || pairing.player1.id,
+             name: pairing.player1.name,
+             rating: pairing.player1.rating,
+             division: pairing.player1.division
+           } : pairing.player1,
+           player2: pairing.player2 ? {
+             player_id: pairing.player2.player_id || pairing.player2.id || (pairing.player2.name === 'BYE' ? null : pairing.player2.player_id),
+             name: pairing.player2.name,
+             rating: pairing.player2.rating,
+             division: pairing.player2.division
+           } : pairing.player2
+         }));
+       });
+       
        const { data: updatedTournament, error: updateError } = await supabase
          .from('tournaments')
          .update({ 
-           pairing_schedule: schedule,
+           pairing_schedule: formattedSchedule,
            current_round: shouldIncrementRound ? currentRound + 1 : currentRound
          })
          .eq('id', tournamentInfo.id)

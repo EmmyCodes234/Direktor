@@ -44,23 +44,51 @@ const PublicTournamentRoster = () => {
 
             if (pError) throw pError;
             
-            // Debug: Log the raw data to understand the structure
-            console.log('Raw players data:', playersData);
+            // If no players found, try to find the correct tournament ID
+            let finalPlayersData = playersData;
             
-            const enrichedPlayers = playersData.map(tp => {
-                const photoUrl = tp.players.photo_url;
-                console.log(`Player ${tp.players.name}: photo_url = ${photoUrl}`);
+            if (!playersData || playersData.length === 0) {
+                console.log('No players found for tournament ID', tournamentData.id, 'searching for correct ID...');
                 
-                return {
-                    ...tp.players,
-                    player_id: tp.players.id,
-                    seed: tp.seed,
-                    team_id: tp.team_id,
-                    status: tp.status,
-                    // Photo URL is directly in the players table
-                    photo_url: photoUrl
-                };
-            });
+                const { data: allTournaments, error: tournamentsError } = await supabase
+                    .from('tournaments')
+                    .select('id, name, slug')
+                    .eq('slug', tournamentData.slug);
+                
+                if (!tournamentsError && allTournaments) {
+                    for (const tournament of allTournaments) {
+                        if (tournament.id !== tournamentData.id) {
+                            const { data: testPlayers, error: testError } = await supabase
+                                .from('tournament_players')
+                                .select(`*, players (*)`)
+                                .eq('tournament_id', tournament.id)
+                                .limit(1);
+                            
+                            if (!testError && testPlayers && testPlayers.length > 0) {
+                                const { data: correctPlayers, error: correctError } = await supabase
+                                    .from('tournament_players')
+                                    .select(`*, players (*)`)
+                                    .eq('tournament_id', tournament.id)
+                                    .order('seed', { ascending: true });
+                                
+                                if (!correctError) {
+                                    finalPlayersData = correctPlayers;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const enrichedPlayers = finalPlayersData.map(tp => ({
+                ...tp.players,
+                player_id: tp.players.id,
+                seed: tp.seed,
+                team_id: tp.team_id,
+                status: tp.status,
+                photo_url: tp.players.photo_url
+            }));
             setPlayers(enrichedPlayers);
 
             // Fetch teams if team tournament

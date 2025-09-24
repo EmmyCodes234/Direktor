@@ -84,6 +84,25 @@ const PairingsTable = ({ pairings, tournamentType, isLoading, selectedRound, pla
       const score1 = pairing.score1 || 0;
       const score2 = pairing.score2 || 0;
       
+      // Handle bye pairings
+      if (player2Name === 'BYE') {
+        return { 
+          status: 'completed', 
+          label: `${player1Name} receives a bye`, 
+          color: 'text-green-500',
+          score: '400-0',
+          winner: 'player1'
+        };
+      } else if (player1Name === 'BYE') {
+        return { 
+          status: 'completed', 
+          label: `${player2Name} receives a bye`, 
+          color: 'text-green-500',
+          score: '0-400',
+          winner: 'player2'
+        };
+      }
+      
       if (score1 > score2) {
         return { 
           status: 'completed', 
@@ -419,8 +438,19 @@ const PairingsTable = ({ pairings, tournamentType, isLoading, selectedRound, pla
                     // Get player names from different possible sources
                     let player1Name, player2Name;
                     
+                    // Handle bye pairings specially
+                    if (pairing.player2_name === 'BYE' || (pairing.player2 && pairing.player2.name === 'BYE')) {
+                      // Try to get player1 name from player ID using the players prop
+                      if (pairing.player1_id && players.length > 0) {
+                        const player1 = players.find(p => p.player_id === pairing.player1_id || p.id === pairing.player1_id);
+                        player1Name = player1?.name || pairing.player1_name || (pairing.player1 && pairing.player1.name) || 'Unknown Player';
+                      } else {
+                        player1Name = pairing.player1_name || (pairing.player1 && pairing.player1.name) || 'Unknown Player';
+                      }
+                      player2Name = 'BYE';
+                    }
                     // Try to get names from player IDs using the players prop
-                    if (pairing.player1_id && pairing.player2_id && players.length > 0) {
+                    else if (pairing.player1_id && pairing.player2_id && players.length > 0) {
                       const player1 = players.find(p => p.player_id === pairing.player1_id || p.id === pairing.player1_id);
                       const player2 = players.find(p => p.player_id === pairing.player2_id || p.id === pairing.player2_id);
                       

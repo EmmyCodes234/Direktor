@@ -173,6 +173,41 @@ const PublicTournamentPairings = () => {
   };
 
   const generatePairings = () => {
+    // First, check if tournament has pairing_schedule data
+    if (tournament?.pairing_schedule) {
+      // Get pairings for the selected round or all rounds
+      if (selectedRound && tournament.pairing_schedule[selectedRound]) {
+        // Format pairing schedule data for display
+        return tournament.pairing_schedule[selectedRound].map((pairing, index) => ({
+          id: `pairing-${selectedRound}-${index}`,
+          round: selectedRound,
+          player1_id: pairing.player1?.player_id || pairing.player1_id,
+          player2_id: pairing.player2?.player_id || pairing.player2_id,
+          player1_name: pairing.player1?.name || 'Unknown Player',
+          player2_name: pairing.player2?.name || 'Unknown Player',
+          table: pairing.table
+        }));
+      } else if (!selectedRound) {
+        // Return all pairings from all rounds
+        const allPairings = [];
+        Object.keys(tournament.pairing_schedule).forEach(roundNum => {
+          const roundPairings = tournament.pairing_schedule[roundNum];
+          roundPairings.forEach((pairing, index) => {
+            allPairings.push({
+              id: `pairing-${roundNum}-${index}`,
+              round: parseInt(roundNum),
+              player1_id: pairing.player1?.player_id || pairing.player1_id,
+              player2_id: pairing.player2?.player_id || pairing.player2_id,
+              player1_name: pairing.player1?.name || 'Unknown Player',
+              player2_name: pairing.player2?.name || 'Unknown Player',
+              table: pairing.table
+            });
+          });
+        });
+        return allPairings;
+      }
+    }
+    
     // For best of league tournaments, use matches data directly if available
     if (tournament?.type === 'best_of_league' && matches.length > 0) {
       let matchPairings = matches;

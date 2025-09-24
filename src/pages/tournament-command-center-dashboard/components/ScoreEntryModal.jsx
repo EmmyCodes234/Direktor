@@ -79,10 +79,11 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       let finalScore2 = score2;
 
       // Handle special match statuses
-      if (matchStatus === 'forfeit') {
+      if (matchStatus === 'forfeit' || matchStatus === 'withdrawal') {
+        // Forfeit and withdrawal have the same scoring logic
         if (forfeitPlayer === 'player1') {
           finalScore1 = 0;
-          finalScore2 = 400; // Standard forfeit score
+          finalScore2 = 400; // Standard forfeit/withdrawal score
         } else if (forfeitPlayer === 'player2') {
           finalScore1 = 400;
           finalScore2 = 0;
@@ -94,15 +95,6 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
         } else if (byePlayer === 'player2') {
           finalScore1 = 0;
           finalScore2 = 400;
-        }
-      } else if (matchStatus === 'withdrawal') {
-        // Handle withdrawal logic
-        if (forfeitPlayer === 'player1') {
-          finalScore1 = 0;
-          finalScore2 = 400;
-        } else if (forfeitPlayer === 'player2') {
-          finalScore1 = 400;
-          finalScore2 = 0;
         }
       } else {
         // Normal match - validate scores
@@ -119,28 +111,56 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
         finalScore2 = num2;
       }
 
+      // Get player IDs correctly
+      const player1Id = matchup.player1_id || matchup.player1?.player_id || matchup.player1?.id;
+      const player2Id = matchup.player2_id || matchup.player2?.player_id || matchup.player2?.id;
+
       const resultData = {
         tournament_id: matchup.tournament_id,
         round: matchup.round,
-        player1_id: matchup.player1_id,
-        player2_id: matchup.player2_id,
+        player1_id: player1Id,
+        player2_id: player2Id,
         player1: player1Name,
         player2: player2Name,
         score1: finalScore1,
         score2: finalScore2,
         match_id: matchup.id,
         is_bye: matchStatus === 'bye',
-        is_forfeit: matchStatus === 'forfeit',
+        is_forfeit: matchStatus === 'forfeit' || matchStatus === 'withdrawal',
         forfeit_player: forfeitPlayer,
         bye_player: byePlayer
       };
 
-      // Add player IDs if available from player objects
-      if (matchup.player1?.player_id) {
-        resultData.player1_id = matchup.player1.player_id;
+      // For bye matches, ensure the correct player gets the bye score and proper player IDs
+      if (matchStatus === 'bye' && byePlayer) {
+        if (byePlayer === 'player1') {
+          resultData.score1 = 400;
+          resultData.score2 = 0;
+          resultData.bye_player = 'player1';
+          // Ensure player2 is marked as BYE
+          resultData.player2 = 'BYE';
+          resultData.player2_id = null;
+        } else {
+          resultData.score1 = 0;
+          resultData.score2 = 400;
+          resultData.bye_player = 'player2';
+          // Ensure player1 is marked as BYE
+          resultData.player1 = 'BYE';
+          resultData.player1_id = null;
+        }
       }
-      if (matchup.player2?.player_id) {
-        resultData.player2_id = matchup.player2.player_id;
+      
+      // For forfeit/withdrawal matches, ensure the correct player gets the forfeit score
+      if ((matchStatus === 'forfeit' || matchStatus === 'withdrawal') && forfeitPlayer) {
+        if (forfeitPlayer === 'player1') {
+          resultData.score1 = 0;
+          resultData.score2 = 400;
+          resultData.forfeit_player = 'player1';
+        } else {
+          resultData.score1 = 400;
+          resultData.score2 = 0;
+          resultData.forfeit_player = 'player2';
+        }
       }
 
       console.log('ScoreEntryModal submitting resultData:', resultData);

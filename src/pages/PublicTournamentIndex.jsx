@@ -115,9 +115,7 @@ const PublicTournamentIndex = () => {
 
     // Group matches by round and determine round status
     const roundsData = useMemo(() => {
-        if (!matches.length) return [];
-
-        // Group matches by round
+        // Even if no matches, we should still show rounds based on tournament info
         const rounds = matches.reduce((acc, match) => {
             if (!acc[match.round]) {
                 acc[match.round] = [];
@@ -125,6 +123,13 @@ const PublicTournamentIndex = () => {
             acc[match.round].push(match);
             return acc;
         }, {});
+
+        // If no matches but we have a tournament with rounds, create round entries
+        if (!matches.length && tournament && tournament.rounds) {
+            for (let i = 1; i <= tournament.rounds; i++) {
+                rounds[i] = [];
+            }
+        }
 
         // Sort rounds by round number
         const sortedRounds = Object.keys(rounds)
@@ -140,14 +145,18 @@ const PublicTournamentIndex = () => {
             const roundResults = results.filter(result => result.round === round.round);
             const hasResults = roundResults.length > 0;
 
+            // Also check if pairings exist for this round
+            const hasPairings = round.matches && round.matches.length > 0;
+
             return {
                 ...round,
-                hasResults
+                hasResults,
+                hasPairings
             };
         });
 
         return roundsWithStatus;
-    }, [matches, results]);
+    }, [matches, results, tournament]);
 
     if (loading) {
         return (
@@ -190,6 +199,19 @@ const PublicTournamentIndex = () => {
             iconColor: 'text-purple-500'
         }
     ];
+
+    // Add remote submission if enabled
+    if (tournament?.remote_submission_enabled) {
+        menuItems.push({
+            id: 'submit-results',
+            title: 'Submit Results',
+            description: 'Submit your match results remotely',
+            icon: 'Upload',
+            path: `/tournament/${tournamentSlug}/submit-results`,
+            color: 'from-blue-500/20 to-blue-600/20',
+            iconColor: 'text-blue-500'
+        });
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground">
@@ -308,9 +330,19 @@ const PublicTournamentIndex = () => {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <div className="col-span-2 flex items-center justify-center">
-                                                    <p className="text-muted-foreground text-xs sm:text-sm">Waiting for results...</p>
-                                                </div>
+                                                <>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="h-auto p-2 sm:p-3 flex flex-col items-center justify-center space-y-1 text-xs sm:text-sm"
+                                                        onClick={() => navigate(`/tournament/${tournamentSlug}/public-pairings?round=${round.round}`)}
+                                                    >
+                                                        <Icon name="Swords" size={16} className="text-primary sm:w-5 sm:h-5" />
+                                                        <span className="font-medium text-foreground">Pairings</span>
+                                                    </Button>
+                                                    <div className="col-span-1 flex items-center justify-center">
+                                                        <p className="text-muted-foreground text-xs sm:text-sm">Waiting for results...</p>
+                                                    </div>
+                                                </>
                                             )}
                                         </div>
                                     </motion.div>
@@ -357,10 +389,10 @@ const PublicTournamentIndex = () => {
                     </div>
 
                     {/* Remote Results Submission */}
-                    {tournament.remote_results_enabled && (
+                    {tournament?.remote_submission_enabled && (
                         <div className="space-y-3 sm:space-y-4">
                             <h2 className="text-base sm:text-lg font-semibold text-foreground px-1 sm:px-2">Submit Results</h2>
-                            
+
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}

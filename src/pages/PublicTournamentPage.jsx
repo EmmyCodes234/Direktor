@@ -1064,8 +1064,13 @@ const PublicTournamentPage = () => {
                                                                 } 
                                                                 // Handle pairing_schedule format
                                                                 else if (match.player1?.name && match.player2?.name) {
+                                                                    // Handle bye pairings
+                                                                    if (match.player2.name === 'BYE') {
+                                                                        player1 = players.find(p => p.name === match.player1.name);
+                                                                        player2 = { name: 'BYE' };
+                                                                    }
                                                                     // If pairing has generic names like "Player 1", map by position
-                                                                    if (match.player1.name.startsWith('Player ')) {
+                                                                    else if (match.player1.name.startsWith('Player ')) {
                                                                         const player1Num = parseInt(match.player1.name.split(' ')[1]);
                                                                         const player2Num = parseInt(match.player2.name.split(' ')[1]);
                                                                         
@@ -1088,14 +1093,77 @@ const PublicTournamentPage = () => {
                                                                     hasPlayerNames: !!(match.player1?.name && match.player2?.name)
                                                                 });
                                                                 
-                                                                // Simple debug alert for first match only
-                                                                if (currentTableNumber === 1) {
-                                                                    alert(`Debug Info:
-Match Data: ${JSON.stringify(match, null, 2)}
-Players Count: ${players.length}
-First Player: ${players[0]?.name || 'none'}
-Player1 Found: ${player1?.name || 'none'}
-Player2 Found: ${player2?.name || 'none'}`);
+                                                                // Handle bye pairing display
+                                                                if (player2 && player2.name === 'BYE') {
+                                                                    return (
+                                                                        <motion.div 
+                                                                            key={match.id || match.table || `${roundNum}-${currentTableNumber}`} 
+                                                                            className="bg-card border border-border/20 rounded-xl p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/30"
+                                                                            initial={{ opacity: 0, y: 20 }}
+                                                                            animate={{ opacity: 1, y: 0 }}
+                                                                            transition={{ duration: 0.3, delay: currentTableNumber * 0.1 }}
+                                                                        >
+                                                                            <div className="flex items-center justify-center mb-4">
+                                                                                <span className="text-sm font-mono text-primary bg-primary/10 px-3 py-1.5 rounded-full font-semibold">
+                                                                                    Table {currentTableNumber}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="space-y-4">
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex-1 text-center group">
+                                                                                        <a 
+                                                                                            href={player1?.slug ? `/players/${player1.slug}` : '#'} 
+                                                                                            onClick={(e) => {
+                                                                                                if (!player1?.slug) e.preventDefault();
+                                                                                                if (player1) handlePlayerClick(e, player1);
+                                                                                            }} 
+                                                                                            className={`block p-3 rounded-lg transition-colors duration-200 ${
+                                                                                                player1 ? 'hover:bg-muted/20 cursor-pointer' : 'cursor-default'
+                                                                                            }`}
+                                                                                        >
+                                                                                            {/* Player 1 Avatar */}
+                                                                                            <div className="flex justify-center mb-3">
+                                                                                                <PlayerAvatar 
+                                                                                                    player={player1} 
+                                                                                                    size="lg" 
+                                                                                                    className="ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200"
+                                                                                                />
+                                                                                            </div>
+                                                                                            <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                                                                                                {player1?.name || 'TBD'}
+                                                                                            </div>
+                                                                                            <div className="text-sm text-muted-foreground mt-1">
+                                                                                                Seed #{player1?.seed || 'TBD'}
+                                                                                            </div>
+                                                                                            {player1?.rating && (
+                                                                                                <div className="text-xs text-primary/70 mt-1 font-mono">
+                                                                                                    {player1.rating}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </a>
+                                                                                    </div>
+                                                                                    <div className="mx-4 flex-shrink-0">
+                                                                                        <div className="bg-gradient-to-r from-primary/20 to-primary/10 px-4 py-2 rounded-full">
+                                                                                            <span className="text-lg font-bold text-primary">BYE</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="flex-1 text-center">
+                                                                                        <div className="p-3 rounded-lg bg-muted/10">
+                                                                                            <div className="font-semibold text-base text-foreground">
+                                                                                                Bye Round
+                                                                                            </div>
+                                                                                            <div className="text-sm text-muted-foreground mt-1">
+                                                                                                Automatic Win
+                                                                                            </div>
+                                                                                            <div className="text-xs text-green-600 mt-1 font-semibold">
+                                                                                                400 - 0
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    );
                                                                 }
                                                                 
                                                                 return (
