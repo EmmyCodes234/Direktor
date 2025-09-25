@@ -28,7 +28,7 @@ const PublicTournamentIndex = () => {
             // Fetch tournament data
             const { data: tournamentData, error: tournamentError } = await supabase
                 .from('tournaments')
-                .select('*')
+                .select('*, pairing_schedule')
                 .eq('slug', tournamentSlug)
                 .single();
 
@@ -115,7 +115,7 @@ const PublicTournamentIndex = () => {
 
     // Group matches by round and determine round status
     const roundsData = useMemo(() => {
-        // Even if no matches, we should still show rounds based on tournament info
+        // Group matches by round
         const rounds = matches.reduce((acc, match) => {
             if (!acc[match.round]) {
                 acc[match.round] = [];
@@ -124,11 +124,16 @@ const PublicTournamentIndex = () => {
             return acc;
         }, {});
 
-        // If no matches but we have a tournament with rounds, create round entries
-        if (!matches.length && tournament && tournament.rounds) {
-            for (let i = 1; i <= tournament.rounds; i++) {
-                rounds[i] = [];
-            }
+        // Also check tournament pairing_schedule for rounds
+        if (tournament?.pairing_schedule) {
+            Object.keys(tournament.pairing_schedule).forEach(roundNum => {
+                const roundNumber = parseInt(roundNum);
+                if (!rounds[roundNumber]) {
+                    rounds[roundNumber] = [];
+                }
+                // Add pairings from schedule to the round
+                rounds[roundNumber] = [...rounds[roundNumber], ...tournament.pairing_schedule[roundNum]];
+            });
         }
 
         // Sort rounds by round number
@@ -145,7 +150,7 @@ const PublicTournamentIndex = () => {
             const roundResults = results.filter(result => result.round === round.round);
             const hasResults = roundResults.length > 0;
 
-            // Also check if pairings exist for this round
+            // Check if pairings exist for this round
             const hasPairings = round.matches && round.matches.length > 0;
 
             return {
@@ -155,7 +160,8 @@ const PublicTournamentIndex = () => {
             };
         });
 
-        return roundsWithStatus;
+        // Filter to only show rounds with pairings
+        return roundsWithStatus.filter(round => round.hasPairings);
     }, [matches, results, tournament]);
 
     if (loading) {
@@ -283,10 +289,10 @@ const PublicTournamentIndex = () => {
                     </motion.div>
 
                     {/* Rounds Section */}
-                    {roundsData.length > 0 && (
-                        <div className="space-y-3 sm:space-y-4">
-                            <h2 className="text-base sm:text-lg font-semibold text-foreground px-1 sm:px-2">Rounds</h2>
+                    <div className="space-y-3 sm:space-y-4">
+                        <h2 className="text-base sm:text-lg font-semibold text-foreground px-1 sm:px-2">Rounds</h2>
 
+                        {roundsData.length > 0 ? (
                             <div className="space-y-3 sm:space-y-4">
                                 {roundsData.map((round, index) => (
                                     <motion.div
@@ -348,8 +354,12 @@ const PublicTournamentIndex = () => {
                                     </motion.div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="bg-card border border-border/20 rounded-xl sm:rounded-2xl p-4 sm:p-5">
+                                <p className="text-muted-foreground text-center">No rounds with pairings available yet.</p>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Navigation Menu */}
                     <div className="space-y-3 sm:space-y-4">
@@ -388,39 +398,6 @@ const PublicTournamentIndex = () => {
                         </div>
                     </div>
 
-                    {/* Remote Results Submission */}
-                    {tournament?.remote_submission_enabled && (
-                        <div className="space-y-3 sm:space-y-4">
-                            <h2 className="text-base sm:text-lg font-semibold text-foreground px-1 sm:px-2">Submit Results</h2>
-
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5, duration: 0.3 }}
-                            >
-                                <Button
-                                    variant="ghost"
-                                    className="w-full h-auto p-0 hover:bg-transparent"
-                                    onClick={() => navigate(`/tournament/${tournamentSlug}/submit-results`)}
-                                >
-                                    <div className="w-full bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-border/20 rounded-xl sm:rounded-2xl p-4 sm:p-5 text-left transition-all duration-200 hover:shadow-lg hover:border-primary/30 active:scale-[0.98]">
-                                        <div className="flex items-start space-x-3 sm:space-x-4">
-                                            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-background/50 flex items-center justify-center text-blue-500">
-                                                <Icon name="Upload" size={20} className="sm:w-6 sm:h-6" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-foreground text-base sm:text-lg mb-0.5 sm:mb-1">Submit Match Results</h3>
-                                                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">Players can submit their match results remotely</p>
-                                            </div>
-                                            <div className="flex-shrink-0 flex items-center text-muted-foreground">
-                                                <Icon name="ChevronRight" size={18} className="sm:w-5 sm:h-5" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Button>
-                            </motion.div>
-                        </div>
-                    )}
                 </div>
             </main>
         </div>
