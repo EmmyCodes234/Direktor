@@ -43,16 +43,36 @@ const PublicTournamentIndex = () => {
                 .select('*, players (*)')
                 .eq('tournament_id', tournamentData.id);
 
-            if (playersError) throw playersError;
-
-            const enrichedPlayers = playersData.map(tp => ({
-                ...tp.players,
-                player_id: tp.players.id,
-                seed: tp.seed,
-                team_id: tp.team_id,
-                status: tp.status
-            }));
-            setPlayers(enrichedPlayers);
+            if (playersError) {
+                console.error('Error fetching players:', playersError);
+                // Continue with empty array instead of throwing error
+                setPlayers([]);
+            } else {
+                // More robust player data enrichment
+                const enrichedPlayers = (playersData || []).map(tp => {
+                    // Ensure we have valid player data
+                    if (!tp.players) {
+                        return {
+                            id: tp.player_id || tp.id,
+                            name: 'Unknown Player',
+                            seed: tp.seed,
+                            team_id: tp.team_id,
+                            status: tp.status,
+                            ...tp
+                        };
+                    }
+                    
+                    return {
+                        ...tp.players,
+                        player_id: tp.players.id,
+                        seed: tp.seed,
+                        team_id: tp.team_id,
+                        status: tp.status
+                    };
+                }).filter(Boolean); // Remove any null/undefined entries
+                
+                setPlayers(enrichedPlayers);
+            }
 
             // Fetch results
             const { data: resultsData, error: resultsError } = await supabase
@@ -61,8 +81,13 @@ const PublicTournamentIndex = () => {
                 .eq('tournament_id', tournamentData.id)
                 .order('created_at', { ascending: false });
 
-            if (resultsError) throw resultsError;
-            setResults(resultsData);
+            if (resultsError) {
+                console.error('Error fetching results:', resultsError);
+                // Continue with empty array instead of throwing error
+                setResults([]);
+            } else {
+                setResults(resultsData || []);
+            }
 
             // Fetch matches
             const { data: matchesData, error: matchesError } = await supabase
@@ -71,8 +96,13 @@ const PublicTournamentIndex = () => {
                 .eq('tournament_id', tournamentData.id)
                 .order('round', { ascending: true });
 
-            if (matchesError) throw matchesError;
-            setMatches(matchesData);
+            if (matchesError) {
+                console.error('Error fetching matches:', matchesError);
+                // Continue with empty array instead of throwing error
+                setMatches([]);
+            } else {
+                setMatches(matchesData || []);
+            }
 
         } catch (err) {
             console.error('Error fetching tournament data:', err);
@@ -140,12 +170,28 @@ const PublicTournamentIndex = () => {
     useEffect(() => {
         if (!tournament) return;
         const channel = supabase.channel(`public-tournament-index-${tournament.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, fetchTournamentData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, fetchTournamentData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, fetchTournamentData)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, fetchTournamentData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'results', filter: `tournament_id=eq.${tournament.id}` }, (payload) => {
+                console.log('Results changed:', payload);
+                fetchTournamentData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_players', filter: `tournament_id=eq.${tournament.id}` }, (payload) => {
+                console.log('Players changed:', payload);
+                fetchTournamentData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments', filter: `id=eq.${tournament.id}` }, (payload) => {
+                console.log('Tournament changed:', payload);
+                fetchTournamentData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `tournament_id=eq.${tournament.id}` }, (payload) => {
+                console.log('Matches changed:', payload);
+                fetchTournamentData();
+            })
             .subscribe();
+            
+        console.log('Subscribed to real-time updates for tournament:', tournament.id);
+        
         return () => {
+            console.log('Unsubscribing from real-time updates for tournament:', tournament.id);
             if (channel) supabase.removeChannel(channel);
         };
     }, [tournament, fetchTournamentData]);

@@ -114,6 +114,31 @@ const PublicTournamentRoster = () => {
         fetchPublicData();
     }, [fetchPublicData]);
 
+    // Add real-time updates for player roster
+    useEffect(() => {
+        if (!tournament) return;
+        
+        const channel = supabase
+            .channel(`public-tournament-roster-${tournament.id}`)
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'tournament_players',
+                filter: `tournament_id=eq.${tournament.id}`
+            }, fetchPublicData)
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'tournaments',
+                filter: `id=eq.${tournament.id}`
+            }, fetchPublicData)
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [tournament, fetchPublicData]);
+
     const handlePlayerClick = (e, player) => {
         e.preventDefault();
         if (player?.slug) {
