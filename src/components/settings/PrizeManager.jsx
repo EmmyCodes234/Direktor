@@ -16,26 +16,39 @@ const PrizeManager = ({ currency = '$', tournamentId }) => {
             return;
         }
 
-        // Temporarily disable data fetching to prevent loading issues
-        // const fetchPrizes = async () => {
-        //     setLoading(true);
-        //     const { data, error } = await supabase
-        //         .from('prizes')
-        //         .select('*')
-        //         .eq('tournament_id', tournamentId)
-        //         .order('rank', { ascending: true });
-        //     if (error) {
-        //         toast.error(`Failed to load prizes: ${error.message}`);
-        //     } else {
-        //         setPrizes(data);
-        //         setNewPrize({ rank: data.length + 1, value: '', description: '' });
-        //     }
-        //     setLoading(false);
-        // };
-        // fetchPrizes();
-        
-        // Set loading to false immediately
-        setLoading(false);
+        // Fetch existing prizes for the tournament
+        const fetchPrizes = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('prizes')
+                .select('*')
+                .eq('tournament_id', tournamentId)
+                .order('rank', { ascending: true });
+            if (error) {
+                toast.error(`Failed to load prizes: ${error.message}`);
+            } else {
+                // Remove duplicates by keeping the first occurrence of each rank
+                const uniquePrizes = [];
+                const seenRanks = new Set();
+                
+                data.forEach(prize => {
+                    if (!seenRanks.has(prize.rank)) {
+                        uniquePrizes.push(prize);
+                        seenRanks.add(prize.rank);
+                    }
+                });
+                
+                if (uniquePrizes.length !== data.length) {
+                    toast.warning('Duplicate prizes were found and removed.');
+                }
+                
+                setPrizes(uniquePrizes);
+                // Set the next rank based on existing prizes
+                setNewPrize(prev => ({ ...prev, rank: uniquePrizes.length > 0 ? Math.max(...uniquePrizes.map(p => p.rank)) + 1 : 1 }));
+            }
+            setLoading(false);
+        };
+        fetchPrizes();
     }, [tournamentId]);
 
     const handleAddPrize = async () => {
@@ -49,6 +62,7 @@ const PrizeManager = ({ currency = '$', tournamentId }) => {
             return;
         }
 
+        // Check for duplicates in local state (should be redundant with DB constraint)
         if (prizes.some(p => p.rank === newPrize.rank)) {
             toast.error(`A prize for rank ${newPrize.rank} already exists.`);
             return;
@@ -60,11 +74,18 @@ const PrizeManager = ({ currency = '$', tournamentId }) => {
             .select();
         
         if (error) {
-            toast.error(`Failed to add prize: ${error.message || 'An unknown error occurred.'}`);
+            // Check if it's a duplicate key error
+            if (error.code === '23505') { // unique_violation
+                toast.error(`A prize for rank ${newPrize.rank} already exists.`);
+            } else {
+                toast.error(`Failed to add prize: ${error.message || 'An unknown error occurred.'}`);
+            }
         } else {
             const updatedPrizes = [...prizes, ...data].sort((a, b) => a.rank - b.rank);
             setPrizes(updatedPrizes);
-            setNewPrize({ rank: updatedPrizes.length + 1, value: '', description: '' });
+            // Set next rank to be one more than the highest rank
+            const nextRank = updatedPrizes.length > 0 ? Math.max(...updatedPrizes.map(p => p.rank)) + 1 : 1;
+            setNewPrize({ rank: nextRank, value: '', description: '' });
             toast.success("Prize added successfully.");
         }
     };
@@ -80,7 +101,9 @@ const PrizeManager = ({ currency = '$', tournamentId }) => {
         } else {
             const updatedPrizes = prizes.filter(p => p.id !== prizeId);
             setPrizes(updatedPrizes);
-            setNewPrize({ rank: updatedPrizes.length + 1, value: '', description: '' });
+            // Update the newPrize rank to be one more than the highest rank
+            const nextRank = updatedPrizes.length > 0 ? Math.max(...updatedPrizes.map(p => p.rank)) + 1 : 1;
+            setNewPrize({ ...newPrize, rank: nextRank });
             toast.success("Prize removed.");
         }
     };

@@ -1,4 +1,5 @@
 -- Create player_photos table with proper references
+-- NOTE: This migration should run AFTER the basic tables are created
 CREATE TABLE IF NOT EXISTS player_photos (
     id BIGSERIAL PRIMARY KEY,
     tournament_id BIGINT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,

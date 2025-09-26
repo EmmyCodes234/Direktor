@@ -321,7 +321,7 @@ const PublicTournamentIndex = () => {
             )}
 
             {/* Main Content */}
-            <main className="pt-36 sm:pt-44 pb-6 sm:pb-8 px-3 sm:px-4">
+            <main className="pt-40 sm:pt-52 pb-6 sm:pb-8 px-3 sm:px-4">
                 <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
                     {/* Tournament Info Card */}
                     <motion.div
