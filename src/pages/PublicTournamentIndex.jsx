@@ -17,6 +17,7 @@ const PublicTournamentIndex = () => {
     const [matches, setMatches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [announcements, setAnnouncements] = useState([]);
 
     const fetchTournamentData = useCallback(async () => {
         if (!tournamentSlug) return;
@@ -84,6 +85,56 @@ const PublicTournamentIndex = () => {
     useEffect(() => {
         fetchTournamentData();
     }, [fetchTournamentData]);
+
+    // Fetch announcements
+    useEffect(() => {
+        if (!tournamentSlug) return;
+
+        const fetchAnnouncements = async () => {
+            try {
+                // First get tournament id
+                const { data: tournamentData, error: tournamentError } = await supabase
+                    .from('tournaments')
+                    .select('id')
+                    .eq('slug', tournamentSlug)
+                    .single();
+
+                if (tournamentError) throw tournamentError;
+
+                // Then fetch announcements
+                const { data: announcementsData, error: announcementsError } = await supabase
+                    .from('announcements')
+                    .select('*')
+                    .eq('tournament_id', tournamentData.id)
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (announcementsError) throw announcementsError;
+                setAnnouncements(announcementsData || []);
+            } catch (err) {
+                console.error('Error fetching announcements:', err);
+                setAnnouncements([]);
+            }
+        };
+
+        fetchAnnouncements();
+
+        // Set up real-time subscription
+        const channel = supabase
+            .channel(`public-announcements-${tournamentSlug}`)
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'announcements' 
+            }, () => {
+                fetchAnnouncements();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [tournamentSlug]);
 
     // Real-time updates
     useEffect(() => {
@@ -246,8 +297,31 @@ const PublicTournamentIndex = () => {
                 <TournamentTicker messages={tickerMessages} />
             </div>
 
+            {/* Announcements Section */}
+            {announcements.length > 0 && (
+                <div className="fixed top-20 sm:top-24 left-0 right-0 z-30 bg-background/90 backdrop-blur-sm border-b border-border/10">
+                    <div className="max-w-3xl mx-auto px-3 sm:px-4 py-2">
+                        <div className="flex items-center overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            <style>{`
+                                .hide-scrollbar::-webkit-scrollbar {
+                                    display: none;
+                                }
+                            `}</style>
+                            {announcements.map((announcement, index) => (
+                                <div key={announcement.id} className="flex items-center flex-shrink-0 mr-6">
+                                    <Icon name="Megaphone" size={14} className="text-primary mr-2" />
+                                    <span className="text-xs text-foreground whitespace-nowrap">
+                                        {announcement.message}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Main Content */}
-            <main className="pt-28 sm:pt-32 pb-6 sm:pb-8 px-3 sm:px-4">
+            <main className="pt-36 sm:pt-44 pb-6 sm:pb-8 px-3 sm:px-4">
                 <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
                     {/* Tournament Info Card */}
                     <motion.div

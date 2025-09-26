@@ -1354,18 +1354,18 @@ const TournamentCommandCenterDashboard = () => {
       // For bye/forfeit/withdrawal, set appropriate scores
       if (isBye && byePlayer) {
         if (byePlayer === 'player1') {
-          score1 = 400;
+          score1 = 100;
           score2 = 0;
         } else {
           score1 = 0;
-          score2 = 400;
+          score2 = 100;
         }
       } else if (isForfeit && forfeitPlayer) {
         if (forfeitPlayer === 'player1') {
           score1 = 0;
-          score2 = 400;
+          score2 = 100;
         } else {
-          score1 = 400;
+          score1 = 100;
           score2 = 0;
         }
       }

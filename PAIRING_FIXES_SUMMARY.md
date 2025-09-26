@@ -6,13 +6,13 @@
 **Problem**: Bye matches were not properly setting player IDs and scores.
 **Fix**: Enhanced the ScoreEntryModal.jsx to properly handle bye matches:
 - Correctly set player IDs for bye matches
-- Ensure bye recipients get 400-0 scores
+- Ensure bye recipients get 100-0 scores
 - Properly mark players as receiving a bye in the database
 
 ### 2. Forfeit and Withdrawal Functionality
 **Problem**: Forfeit and withdrawal matches were not consistently applying scoring rules.
 **Fix**: Improved ScoreEntryModal.jsx to ensure consistent scoring:
-- Both forfeit and withdrawal now use the same scoring system (0-400 for forfeiting player)
+- Both forfeit and withdrawal now use the same scoring system (0-100 for forfeiting player)
 - Properly track which player forfeited/withdrew
 - Ensure scores are correctly set before submission
 
@@ -73,7 +73,7 @@ All fixes have been implemented and tested to ensure:
 To verify these fixes:
 1. Create a new tournament with an odd number of players
 2. Generate pairings for round 1 (should include a bye)
-3. Enter a result for the bye match (bye player should get 400-0)
+3. Enter a result for the bye match (bye player should get 100-0)
 4. Check that the pairing displays correctly on the public tournament page
 5. Verify that forfeit/withdrawal matches work correctly
 6. Confirm that pairings are consistent between dashboard and public views

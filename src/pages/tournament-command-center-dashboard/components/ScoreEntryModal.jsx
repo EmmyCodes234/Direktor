@@ -134,7 +134,7 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       // For bye matches, ensure the correct player gets the bye score and proper player IDs
       if (matchStatus === 'bye' && byePlayer) {
         if (byePlayer === 'player1') {
-          resultData.score1 = 400;
+          resultData.score1 = 100;
           resultData.score2 = 0;
           resultData.bye_player = 'player1';
           // Ensure player2 is marked as BYE
@@ -142,7 +142,7 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
           resultData.player2_id = null;
         } else {
           resultData.score1 = 0;
-          resultData.score2 = 400;
+          resultData.score2 = 100;
           resultData.bye_player = 'player2';
           // Ensure player1 is marked as BYE
           resultData.player1 = 'BYE';
@@ -154,10 +154,10 @@ const ScoreEntryModal = ({ isOpen, onClose, matchup, onResultSubmit, existingRes
       if ((matchStatus === 'forfeit' || matchStatus === 'withdrawal') && forfeitPlayer) {
         if (forfeitPlayer === 'player1') {
           resultData.score1 = 0;
-          resultData.score2 = 400;
+          resultData.score2 = 100;
           resultData.forfeit_player = 'player1';
         } else {
-          resultData.score1 = 400;
+          resultData.score1 = 100;
           resultData.score2 = 0;
           resultData.forfeit_player = 'player2';
         }
