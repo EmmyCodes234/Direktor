@@ -7,6 +7,7 @@ const TeamManagerModal = ({ isOpen, onClose, teams, players, onSave }) => {
   const [selectedTeamId, setSelectedTeamId] = useState(teams[0]?.id || null);
   const [logoUrl, setLogoUrl] = useState('');
   const [color, setColor] = useState('#cccccc');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleTeamChange = (id, field, value) => {
     setEditTeams(ts => ts.map(t => t.id === id ? { ...t, [field]: value } : t));
@@ -24,9 +25,17 @@ const TeamManagerModal = ({ isOpen, onClose, teams, players, onSave }) => {
     setEditTeams(ts => ts.map(t => t.id === id ? { ...t, branding: { logo, color } } : t));
   };
 
-  const handleSave = () => {
-    onSave(editTeams);
-    onClose();
+  const handleSave = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await onSave(editTeams);
+      onClose();
+    } catch (error) {
+      console.error("Failed to save teams", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -36,7 +45,7 @@ const TeamManagerModal = ({ isOpen, onClose, teams, players, onSave }) => {
           <ul>
             {editTeams.map(team => (
               <li key={team.id} className={`p-2 cursor-pointer rounded ${selectedTeamId === team.id ? 'bg-primary/10' : ''}`}
-                  onClick={() => setSelectedTeamId(team.id)}>
+                onClick={() => setSelectedTeamId(team.id)}>
                 <span className="font-bold">{team.name}</span>
               </li>
             ))}
@@ -68,8 +77,8 @@ const TeamManagerModal = ({ isOpen, onClose, teams, players, onSave }) => {
         </div>
       </div>
       <div className="flex justify-end gap-2 mt-4">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button onClick={handleSave}>Save Changes</Button>
+        <Button variant="ghost" onClick={onClose} disabled={isProcessing}>Cancel</Button>
+        <Button onClick={handleSave} loading={isProcessing}>Save Changes</Button>
       </div>
     </ConfirmationModal>
   );

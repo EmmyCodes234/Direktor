@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/ui/Header';
 import { useParams, useNavigate } from 'react-router-dom';
-import DashboardSidebar from './tournament-command-center-dashboard/components/DashboardSidebar';
+import DashboardLayout from '../components/dashboard/DashboardLayout';
 import TournamentConfigSection from '../components/settings/TournamentConfigSection';
 import PlayerManagementSection from '../components/settings/PlayerManagementSection';
 import ScoringParametersSection from '../components/settings/ScoringParametersSection';
@@ -11,6 +11,7 @@ import PrizeManager from '../components/settings/PrizeManager';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ResetTournamentModal from '../components/settings/ResetTournamentModal';
 import PhotoDatabaseManager from '../components/PhotoDatabaseManager';
+import PhotoMatcherUtility from '../components/admin/PhotoMatcherUtility';
 import CarryoverConfigSection from '../components/settings/CarryoverConfigSection';
 import PromotionEventsHistory from '../components/players/PromotionEventsHistory';
 import LadderSystemConfigSection from '../components/settings/LadderSystemConfigSection';
@@ -19,57 +20,58 @@ import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
+import { Card, CardHeader, CardContent } from '../components/ui/Card';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AuditLogModal = ({ isOpen, onClose, log }) => {
-  const isDesktop = useMediaQuery('(min-width: 768px)');
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:justify-end bg-black/40 backdrop-blur-sm"
-          onClick={onClose}
-          aria-modal="true"
-          role="dialog"
-        >
-          <motion.div
-            initial={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
-            animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }}
-            exit={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className={
-              isDesktop
-                ? 'glass-card w-full max-w-md h-full md:h-auto md:max-h-[90vh] md:rounded-l-xl shadow-xl p-6 md:mr-0 md:mt-0 md:mb-0 md:ml-0 md:rounded-none border-l border-border flex flex-col'
-                : 'glass-card w-full max-w-lg mx-auto rounded-t-xl shadow-xl p-6 pb-8 mb-0 border-t border-border flex flex-col'
-            }
-            style={isDesktop ? { height: '100vh', maxHeight: '90vh', marginRight: 0 } : {}}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
-              <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
-            </div>
-            <div className="overflow-y-auto flex-1 min-h-0 max-h-[60vh] md:max-h-[70vh]">
-              {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
-                <ul className="space-y-2">
-                  {log.map((entry, i) => (
-                    <li key={i} className="p-2 bg-muted/10 rounded text-sm">
-                      <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br/>
-                      <span>{entry.action}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+    const isDesktop = useMediaQuery('(min-width: 768px)');
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:justify-end bg-black/40 backdrop-blur-sm"
+                    onClick={onClose}
+                    aria-modal="true"
+                    role="dialog"
+                >
+                    <motion.div
+                        initial={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+                        animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1 }}
+                        exit={isDesktop ? { x: 300, opacity: 0 } : { y: 300, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className={
+                            isDesktop
+                                ? 'glass-card w-full max-w-md h-full md:h-auto md:max-h-[90vh] md:rounded-l-xl shadow-xl p-6 md:mr-0 md:mt-0 md:mb-0 md:ml-0 md:rounded-none border-l border-border flex flex-col'
+                                : 'glass-card w-full max-w-lg mx-auto rounded-t-xl shadow-xl p-6 pb-8 mb-0 border-t border-border flex flex-col'
+                        }
+                        style={isDesktop ? { height: '100vh', maxHeight: '90vh', marginRight: 0 } : {}}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-heading font-semibold">Audit Log</h2>
+                            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close audit log"><Icon name="X" /></Button>
+                        </div>
+                        <div className="overflow-y-auto flex-1 min-h-0 max-h-[60vh] md:max-h-[70vh]">
+                            {log.length === 0 ? <p className="text-muted-foreground">No actions logged yet.</p> : (
+                                <ul className="space-y-2">
+                                    {log.map((entry, i) => (
+                                        <li key={i} className="p-2 bg-muted/10 rounded text-sm">
+                                            <span className="font-mono text-xs text-muted-foreground">{entry.time}</span><br />
+                                            <span>{entry.action}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
 };
 
 const ShareSection = ({ tournamentSlug }) => {
@@ -96,12 +98,79 @@ const ShareSection = ({ tournamentSlug }) => {
     );
 };
 
+const BannerUploadSection = ({ currentBanner, onFileChange }) => {
+    const handleFileSelect = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            // Strict Dimension Check
+            const REQUIRED_WIDTH = 1500;
+            const REQUIRED_HEIGHT = 375;
+
+            if (img.width !== REQUIRED_WIDTH || img.height !== REQUIRED_HEIGHT) {
+                toast.error(`Invalid Banner Size! Required: ${REQUIRED_WIDTH}x${REQUIRED_HEIGHT}px. Your image: ${img.width}x${img.height}px.`);
+                e.target.value = null; // Clear input
+                onFileChange(null);
+            } else {
+                onFileChange(file);
+                toast.success("Banner dimensions verified.");
+            }
+        };
+    };
+
+    return (
+        <Card className="bg-card border border-border shadow-sm">
+            <CardHeader className="pb-4 border-b border-border">
+                <h3 className="font-semibold flex items-center gap-2">
+                    <Icon name="Image" size={18} /> Public Page Banner
+                </h3>
+            </CardHeader>
+            <CardContent className="pt-6">
+                <div className="space-y-4">
+                    {currentBanner && (
+                        <div className="w-full h-32 md:h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
+                            <img src={currentBanner} alt="Current Banner" className="w-full h-full object-cover" />
+                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">Current</div>
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1.5">Upload New Banner</label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                                className="block w-full text-sm text-slate-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-violet-50 file:text-violet-700
+                                  hover:file:bg-violet-100
+                                "
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            Required dimensions: <strong>1500x375 pixels</strong>.
+                            Images with different dimensions will be rejected.
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
+
 const TournamentSettingsAdministration = () => {
     const { tournamentSlug } = useParams();
     const navigate = useNavigate();
-    const [settings, setSettings] = useState(null);
+    const [tournamentInfo, setTournamentInfo] = useState(null);
     const [bannerFile, setBannerFile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showResetModal, setShowResetModal] = useState(false);
@@ -115,7 +184,7 @@ const TournamentSettingsAdministration = () => {
     useEffect(() => {
         const fetchTournament = async () => {
             setLoading(true);
-            
+
             // Check if user is logged in
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -123,7 +192,7 @@ const TournamentSettingsAdministration = () => {
                 navigate('/login');
                 return;
             }
-            
+
             const { data, error } = await supabase
                 .from('tournaments')
                 .select('*')
@@ -138,14 +207,14 @@ const TournamentSettingsAdministration = () => {
                     navigate('/lobby');
                     return;
                 }
-                setSettings(data);
-                
+                setTournamentInfo(data);
+
                 // Fetch players for photo database
                 const { data: playersData, error: playersError } = await supabase
                     .from('tournament_players')
                     .select('*, players(id, name, rating, photo_url, slug)')
                     .eq('tournament_id', data.id);
-                
+
                 if (!playersError && playersData) {
                     const combinedPlayers = playersData.map(tp => ({
                         ...tp.players,
@@ -153,7 +222,7 @@ const TournamentSettingsAdministration = () => {
                     }));
                     setPlayers(combinedPlayers);
                 }
-                
+
                 // Fetch audit log (you might want to implement this based on your needs)
                 // For now, we'll set an empty array
                 setAuditLog([]);
@@ -164,26 +233,29 @@ const TournamentSettingsAdministration = () => {
     }, [tournamentSlug, navigate]);
 
     const handleSettingsChange = (field, value) => {
-        setSettings(prev => ({ ...prev, [field]: value }));
+        setTournamentInfo(prev => ({ ...prev, [field]: value }));
         setHasUnsavedChanges(true);
     };
-    
+
     const handleBannerFileChange = (file) => {
         setBannerFile(file);
-        setHasUnsavedChanges(true);
-    }
+        if (file) setHasUnsavedChanges(true);
+    };
 
-    const handleSaveSettings = async () => {
+    const handleSaveSettings = async (e) => {
+        if (e) e.preventDefault();
+        setSaving(true);
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user || settings.user_id !== user.id) {
+        if (!user || tournamentInfo.user_id !== user.id) {
             toast.error("You don't have permission to modify this tournament.");
+            setSaving(false);
             return;
         }
-        
-        let updateData = { ...settings };
+
+        let updateData = { ...tournamentInfo };
 
         if (bannerFile) {
-            const filePath = `public/${settings.id}/banner-${bannerFile.name}`;
+            const filePath = `public/${tournamentInfo.id}/banner-${bannerFile.name}`;
             const { error: uploadError } = await supabase.storage
                 .from('tournament-banners')
                 .upload(filePath, bannerFile, {
@@ -193,235 +265,233 @@ const TournamentSettingsAdministration = () => {
 
             if (uploadError) {
                 toast.error(`Banner upload failed: ${uploadError.message}`);
+                setSaving(false);
                 return;
             }
 
             const { data: { publicUrl } } = supabase.storage
                 .from('tournament-banners')
                 .getPublicUrl(filePath);
-            
+
             updateData.banner_url = publicUrl;
         }
-        
+
         const { id, created_at, ...finalUpdateData } = updateData;
 
         const { error } = await supabase
             .from('tournaments')
             .update(finalUpdateData)
-            .eq('id', settings.id)
+            .eq('id', tournamentInfo.id)
             .eq('user_id', user.id);
-        
+
         if (error) {
             toast.error(`Failed to save settings: ${error.message}`);
         } else {
             toast.success("Settings saved successfully!");
-            setSettings(updateData);
+            setTournamentInfo(updateData);
             setBannerFile(null);
             setHasUnsavedChanges(false);
         }
+        setSaving(false);
     };
-    
+
     const handleDeleteTournament = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user || settings.user_id !== user.id) {
+        if (!user || tournamentInfo.user_id !== user.id) {
             toast.error("You don't have permission to delete this tournament.");
             return;
         }
-        
-        const { error } = await supabase.from('tournaments').delete().eq('id', settings.id).eq('user_id', user.id);
-        if (error) {
-            toast.error(`Failed to delete tournament: ${error.message}`);
-        } else {
-            toast.success("Tournament has been permanently deleted.");
-            navigate('/');
-        }
-        setShowDeleteModal(false);
-    };
-
-    const handleResetTournament = async (resetType) => {
-        if (!settings) return;
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || settings.user_id !== user.id) {
-            toast.error("You don't have permission to reset this tournament.");
-            return;
-        }
-        
-        toast.info("Resetting tournament...");
-        setShowResetModal(false);
+        if (!window.confirm("Are you sure you want to delete this tournament? This action cannot be undone.")) return;
 
         try {
-            if (resetType === 'results_only') {
-                const { error: resultsError } = await supabase.from('results').delete().eq('tournament_id', settings.id);
-                if (resultsError) throw resultsError;
-                // Also reset player stats
-                await supabase.from('tournament_players').update({ wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }).eq('tournament_id', settings.id);
-            } else if (resetType === 'full_reset') {
-                const { error: resultsError } = await supabase.from('results').delete().eq('tournament_id', settings.id);
-                const { error: matchesError } = await supabase.from('matches').delete().eq('tournament_id', settings.id);
-                if (resultsError || matchesError) throw new Error("Failed to clear old data.");
-                
-                await supabase.from('tournaments').update({ pairing_schedule: null, status: 'setup', currentRound: 1 }).eq('id', settings.id).eq('user_id', user.id);
-                await supabase.from('tournament_players').update({ wins: 0, losses: 0, ties: 0, spread: 0, match_wins: 0 }).eq('tournament_id', settings.id);
-            }
-            toast.success("Tournament has been successfully reset.");
+            const { error } = await supabase
+                .from('tournaments')
+                .delete()
+                .eq('id', tournamentInfo.id);
+
+            if (error) throw error;
+            toast.success('Tournament deleted');
+            navigate('/lobby');
         } catch (error) {
-            toast.error(`Failed to reset tournament: ${error.message}`);
+            console.error('Delete error:', error);
+            toast.error('Failed to delete tournament');
         }
     };
 
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-background">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-background">
-            <ConfirmationModal
-                isOpen={showDeleteModal}
-                title="Delete Tournament"
-                message={`Are you sure you want to permanently delete "${settings?.name}"? This action cannot be undone.`}
-                onConfirm={handleDeleteTournament}
-                onCancel={() => setShowDeleteModal(false)}
-                confirmText="Yes, Delete It"
-            />
-            <ResetTournamentModal
-                isOpen={showResetModal}
-                onClose={() => setShowResetModal(false)}
-                onConfirm={handleResetTournament}
-            />
-            <AuditLogModal 
-                isOpen={showAuditLog} 
-                onClose={() => setShowAuditLog(false)} 
-                log={auditLog} 
-            />
-            <PhotoDatabaseManager
-                isOpen={showPhotoDatabase}
-                onClose={() => setShowPhotoDatabase(false)}
-                players={players}
-                tournamentId={settings?.id}
-                onPhotosUpdated={() => {
-                    // Refresh player data to include photos
-                    fetchTournamentData();
-                }}
-            />
-            <AnimatePresence>
-                <PromotionEventsHistory
-                    tournamentId={settings?.id}
-                    isOpen={showPromotionHistory}
-                    onClose={() => setShowPromotionHistory(false)}
-                />
-            </AnimatePresence>
+        <DashboardLayout tournamentInfo={tournamentInfo}>
             <Toaster position="top-center" richColors />
-            <Header />
-            <main className="pt-16 pb-8">
-                 <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        {isDesktop && !loading && (
-                            <div className="md:col-span-1">
-                                <DashboardSidebar tournamentSlug={tournamentSlug} />
-                            </div>
-                        )}
-                        <div className={isDesktop ? "md:col-span-3 space-y-8" : "col-span-1 space-y-8"}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <h1 className="text-3xl font-heading font-bold text-gradient mb-2">Settings</h1>
-                                    <p className="text-muted-foreground">Manage tournament rules, permissions, and system preferences.</p>
-                                </div>
-                                {hasUnsavedChanges && (
-                                    <Button onClick={handleSaveSettings} iconName="Save" iconPosition="left">
-                                        Save Changes
-                                    </Button>
-                                )}
-                            </div>
-                            {loading || !settings ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="text-center">
-                                        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                                        <p className="text-muted-foreground">Loading settings...</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <ShareSection tournamentSlug={settings.slug} />
-                                    
-                                    {/* Settings Navigation */}
-                                    <SettingsNavigation 
-                                        onSectionChange={(section) => {
-                                            // Scroll to section or handle navigation
-                                            console.log('Navigate to section:', section);
-                                        }}
-                                    />
-                                    
-                                    <TournamentConfigSection settings={settings} onSettingsChange={handleSettingsChange} onBannerFileChange={handleBannerFileChange} />
-                                    <PrizeManager currency={settings.currency} tournamentId={settings.id} />
-                                    <PlayerManagementSection settings={settings} onSettingsChange={handleSettingsChange} />
-                                    <ScoringParametersSection settings={settings} onSettingsChange={handleSettingsChange} />
-                                    
-                                    {/* Ladder and Carryover sections only for individual and team modes */}
-                                    {(settings.mode === 'individual' || settings.mode === 'team') && (
-                                        <>
-                                            <LadderSystemConfigSection tournamentId={settings.id} />
-                                            <CarryoverConfigSection tournamentId={settings.id} />
-                                        </>
-                                    )}
-                                    
-                                    {/* Promotion Events History Section */}
-                                    <div className="glass-card p-6">
-                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
-                                            <Icon name="History" size={20} className="text-primary" />
-                                            <span>Promotion Events History</span>
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground mb-4">View the complete history of player promotions and demotions with carry-over details.</p>
-                                        <Button 
-                                            onClick={() => setShowPromotionHistory(true)}
-                                            variant="outline"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Icon name="Clock" className="mr-2" size={16} />
-                                            View History
-                                        </Button>
-                                    </div>
-                                    
-                                    <SystemPreferencesSection />
-                                    
-                                    {/* Audit Log Section */}
-                                    <div className="glass-card p-6">
-                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
-                                            <Icon name="ClipboardList" size={20} className="text-primary" />
-                                            <span>Audit Log</span>
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground mb-4">View a detailed log of all tournament actions and changes.</p>
-                                        <Button 
-                                            onClick={() => setShowAuditLog(true)}
-                                            variant="outline"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Icon name="Eye" className="mr-2" size={16} />
-                                            View Audit Log
-                                        </Button>
-                                    </div>
 
-                                    {/* Photo Database Section */}
-                                    <div className="glass-card p-6">
-                                        <h3 className="font-heading font-semibold text-lg mb-4 flex items-center space-x-2">
-                                            <Icon name="Image" size={20} className="text-primary" />
-                                            <span>Photo Database</span>
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground mb-4">Manage player photos for tournament displays and public pages.</p>
-                                        <Button 
-                                            onClick={() => setShowPhotoDatabase(true)}
-                                            variant="outline"
-                                            className="w-full sm:w-auto"
-                                        >
-                                            <Icon name="Upload" className="mr-2" size={16} />
-                                            Manage Photos
-                                        </Button>
-                                    </div>
-
-                                    <EmergencyControlsSection onDeleteTournament={() => setShowDeleteModal(true)} onResetTournament={() => setShowResetModal(true)} />
-                                </>
-                            )}
-                        </div>
-                    </div>
+            <div className="max-w-4xl mx-auto space-y-8">
+                {/* Header */}
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+                    <p className="text-muted-foreground mt-1">Configure tournament rules, visibility, and basic details.</p>
                 </div>
-            </main>
-        </div>
+
+                <form onSubmit={handleSaveSettings} className="space-y-6">
+                    {/* General Settings */}
+                    <Card className="bg-card border border-border shadow-sm">
+                        <CardHeader className="pb-4 border-b border-border">
+                            <h3 className="font-semibold flex items-center gap-2">
+                                <Icon name="Settings" size={18} /> General Information
+                            </h3>
+                        </CardHeader>
+                        <CardContent className="pt-6 grid gap-6">
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1.5 block">Tournament Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={tournamentInfo?.name || ''}
+                                        onChange={e => handleSettingsChange('name', e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1.5 block">Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={tournamentInfo?.date || ''}
+                                        onChange={e => handleSettingsChange('date', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-1.5 block">Location</label>
+                                <input
+                                    type="text"
+                                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    value={tournamentInfo?.location || ''}
+                                    onChange={e => handleSettingsChange('location', e.target.value)}
+                                    placeholder="Venue or Online URL"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium mb-1.5 block">Description</label>
+                                <textarea
+                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[100px]"
+                                    value={tournamentInfo?.description || ''}
+                                    onChange={e => handleSettingsChange('description', e.target.value)}
+                                    placeholder="Event details..."
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Share Section - Public URL */}
+                    <ShareSection tournamentSlug={tournamentSlug} />
+
+                    {/* Banner Configuration */}
+                    <BannerUploadSection
+                        currentBanner={tournamentInfo?.banner_url || tournamentInfo?.banner_path || null}
+                        onFileChange={handleBannerFileChange}
+                    />
+
+                    {/* Photo Management Section */}
+                    {tournamentInfo && players.length > 0 && (
+                        <PhotoMatcherUtility
+                            tournamentId={tournamentInfo.id}
+                            players={players}
+                            onComplete={() => toast.success("Photos updated!")}
+                        />
+                    )}
+
+                    {/* Rules & Format */}
+                    <Card className="bg-card border border-border shadow-sm">
+                        <CardHeader className="pb-4 border-b border-border">
+                            <h3 className="font-semibold flex items-center gap-2">
+                                <Icon name="List" size={18} /> Format & Rules
+                            </h3>
+                        </CardHeader>
+                        <CardContent className="pt-6 grid gap-6">
+                            <div className="grid md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1.5 block">Total Rounds</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="50"
+                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={tournamentInfo?.rounds || ''}
+                                        onChange={e => handleSettingsChange('rounds', parseInt(e.target.value))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1.5 block">Pairing System</label>
+                                    <select
+                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={tournamentInfo?.pairing_system || 'swiss'}
+                                        onChange={e => handleSettingsChange('pairing_system', e.target.value)}
+                                    >
+                                        <option value="swiss">Swiss System</option>
+                                        <option value="round_robin">Round Robin</option>
+                                        <option value="random">Random</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1.5 block">Scoring</label>
+                                    <select
+                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        value={tournamentInfo?.scoring_system || 'standard'}
+                                        onChange={e => handleSettingsChange('scoring_system', e.target.value)}
+                                    >
+                                        <option value="standard">Standard (W/L/T)</option>
+                                        <option value="handicap">Handicap</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/20">
+                                <div>
+                                    <h4 className="font-medium text-sm">Public Visibility</h4>
+                                    <p className="text-xs text-muted-foreground">Allow anyone with the link to view standings and pairings.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={tournamentInfo?.is_public || false}
+                                        onChange={e => handleSettingsChange('is_public', e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-4">
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            variantType="outline"
+                            onClick={handleDeleteTournament}
+                            className="text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-500/20"
+                        >
+                            Delete Tournament
+                        </Button>
+                        <Button
+                            type="submit"
+                            className="w-32"
+                            loading={saving}
+                        >
+                            Save Changes
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </DashboardLayout>
     );
 };
 

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Header from '../components/ui/Header';
-import DashboardSidebar from './tournament-command-center-dashboard/components/DashboardSidebar';
+import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { Toaster, toast } from 'sonner';
 import Icon from '../components/AppIcon';
 import Button from '../components/ui/Button';
-import { format } from 'date-fns';
+import ReportFooter from 'components/public/ReportFooter';
+import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
 
 const WallChartPage = () => {
     const { tournamentSlug } = useParams();
@@ -31,20 +31,20 @@ const WallChartPage = () => {
             // Fetch tournament data - only select columns that exist
             const { data: tournamentData, error: tError } = await supabase
                 .from('tournaments')
-                .select('id, name, rounds, current_round, status, start_date, end_date, divisions')
+                .select('id, name, rounds, current_round, status, start_date, end_date, divisions, type') // Added type to selection
                 .eq('slug', tournamentSlug)
                 .single();
 
             if (tError) throw tError;
-            
+
             // Check if wallchart is accessible for this tournament mode
-            if (tournamentData.type !== 'individual' && tournamentData.type !== 'team') {
+            if (tournamentData.type && tournamentData.type !== 'individual' && tournamentData.type !== 'team') {
                 console.log(`Wall Chart access denied: Tournament type '${tournamentData.type}' is not supported. Only 'individual' and 'team' modes are allowed.`);
                 setAccessDenied(true);
                 setLoading(false);
                 return;
             }
-            
+
             setTournament(tournamentData);
 
             // Fetch players with enhanced data - using the correct table structure
@@ -58,7 +58,7 @@ const WallChartPage = () => {
                 .order('rank', { ascending: true });
 
             if (pError) throw pError;
-            
+
             // Map players with proper data structure
             const mappedPlayers = playersData.map(p => {
                 // Try to get division name from tournament divisions
@@ -69,23 +69,9 @@ const WallChartPage = () => {
                         groupName = division.name;
                     }
                 }
-                
-                // Log for debugging
-                console.log(`Player ${p.players?.name}:`, {
-                    group_id: p.group_id,
-                    wins: p.wins,
-                    losses: p.losses,
-                    ties: p.ties,
-                    spread: p.spread,
-                    match_wins: p.match_wins,
-                    match_losses: p.match_losses,
-                    current_wins: p.current_wins,
-                    current_losses: p.current_losses,
-                    total_wins: p.total_wins
-                });
-                
+
                 return {
-                    ...p, 
+                    ...p,
                     name: p.players?.name || 'Unknown Player',
                     rating: p.players?.rating || 0,
                     photo_url: p.players?.photo_url || null,
@@ -96,7 +82,7 @@ const WallChartPage = () => {
                     spread: p.spread || 0
                 };
             });
-            
+
             setPlayers(mappedPlayers);
 
             // Try to fetch results if they exist
@@ -108,13 +94,13 @@ const WallChartPage = () => {
                     .order('created_at', { ascending: true });
 
                 if (rError) {
-                    console.log('Results table not available or no results found');
+                    // console.log('Results table not available or no results found'); // Silent fallback
                     setResults([]);
                 } else {
                     setResults(resultsData || []);
                 }
             } catch (resultsError) {
-                console.log('Results table not available, using matches only');
+                // console.log('Results table not available, using matches only'); // Silent fallback
                 setResults([]);
             }
 
@@ -130,69 +116,12 @@ const WallChartPage = () => {
                     setMatches(matchesData);
                 }
             } catch (matchError) {
-                console.log('Matches table not available');
+                // console.log('Matches table not available'); // Silent fallback
                 setMatches([]);
-            }
-
-            // If no results found, try to create mock data from matches for demonstration
-            if (results.length === 0 && matches.length > 0) {
-                console.log('No results found, creating mock data from matches for demonstration');
-                const mockResults = matches.map(match => ({
-                    id: match.id,
-                    tournament_id: match.tournament_id,
-                    round: match.round,
-                    player1_name: players.find(p => p.player_id === match.player1_id)?.name || 'Player 1',
-                    player2_name: players.find(p => p.player_id === match.player2_id)?.name || 'Player 2',
-                    score1: match.player1_score || 0,
-                    score2: match.player2_score || 0,
-                    created_at: match.created_at,
-                    submitted_by_name: 'System'
-                }));
-                setResults(mockResults);
-            }
-
-            // If still no results, create demo data for demonstration
-            if (results.length === 0 && players.length > 0) {
-                console.log('Creating demo wallchart data for demonstration');
-                const demoResults = [];
-                // Use total_rounds if rounds doesn't exist, fallback to 8
-                const rounds = tournamentData.rounds || tournamentData.total_rounds || 8;
-                
-                players.forEach((player, playerIndex) => {
-                    for (let round = 1; round <= rounds; round++) {
-                        const opponentIndex = (playerIndex + round) % players.length;
-                        if (opponentIndex !== playerIndex) {
-                            const opponent = players[opponentIndex];
-                            const playerScore = Math.floor(Math.random() * 500) + 300;
-                            const opponentScore = Math.floor(Math.random() * 500) + 300;
-                            
-                            demoResults.push({
-                                id: `demo-${player.id}-${round}`,
-                                tournament_id: tournamentData.id,
-                                round: round,
-                                player1_name: player.name,
-                                player2_name: opponent.name,
-                                score1: playerScore,
-                                score2: opponentScore,
-                                created_at: new Date().toISOString(),
-                                submitted_by_name: 'Demo'
-                            });
-                        }
-                    }
-                });
-                
-                setResults(demoResults);
             }
 
         } catch (error) {
             console.error('Error fetching tournament data:', error);
-            console.error('Error details:', {
-                code: error.code,
-                message: error.message,
-                details: error.details,
-                hint: error.hint
-            });
-            
             if (error.code === '42703') {
                 toast.error("Database schema mismatch. Please contact support.");
             } else {
@@ -212,21 +141,18 @@ const WallChartPage = () => {
         if (!tournament || !players.length) return [];
 
         // Determine number of rounds - use multiple fallbacks
-        const totalRounds = tournament.rounds || tournament.total_rounds || 
-                           (results.length > 0 ? Math.max(...results.map(r => r.round || 0)) : 8);
+        const totalRounds = tournament.rounds || tournament.total_rounds ||
+            (results.length > 0 ? Math.max(...results.map(r => r.round || 0)) : 8);
 
         return players.map(player => {
             const playerResults = Array.from({ length: totalRounds }, (_, roundIndex) => {
                 const round = roundIndex + 1;
-                
+
                 // Find results for this player in this round
-                // The results table structure varies, so we need to handle different field names
                 const result = results.find(r => {
-                    // Check if the result has round information
                     if (r.round === round) {
                         return (r.player1_name === player.name || r.player2_name === player.name);
                     }
-                    // If no round field, try to find by created_at order or other logic
                     return false;
                 });
 
@@ -237,25 +163,25 @@ const WallChartPage = () => {
                 const player2Name = result.player2_name || result.player2 || result.player2_id;
                 const score1 = result.score1 || result.player1_score || 0;
                 const score2 = result.score2 || result.player2_score || 0;
-                
+
                 const isPlayer1 = player1Name === player.name;
                 const opponentName = isPlayer1 ? player2Name : player1Name;
                 const playerScore = isPlayer1 ? score1 : score2;
                 const opponentScore = isPlayer1 ? score2 : score1;
-                
+
                 // Find opponent player data for ranking
                 const opponent = players.find(p => p.name === opponentName);
                 const opponentRank = opponent?.rank || '?';
-                
+
                 // Calculate win/loss record up to this round
                 let wins = player.wins || 0;
                 let losses = player.losses || 0;
-                
+
                 // Calculate current round result
                 const isWinner = playerScore > opponentScore;
                 if (isWinner) wins++;
                 else if (playerScore < opponentScore) losses++;
-                
+
                 // Calculate point differences
                 const roundSpread = playerScore - opponentScore;
                 const cumulativeSpread = (player.spread || 0) + roundSpread;
@@ -279,27 +205,15 @@ const WallChartPage = () => {
                 };
             });
 
-            // Calculate actual wins/losses from results if database fields are empty
-            const actualWins = playerResults.filter(r => r && r.is_winner === true).length;
-            const actualLosses = playerResults.filter(r => r && r.is_winner === false).length;
-            
-            // Calculate actual spread from results if database field is empty
-            const actualSpread = playerResults.reduce((total, r) => {
-                if (r && r.round_spread) {
-                    const spreadValue = parseInt(r.round_spread.replace('+', '').replace('=', '').trim());
-                    return total + (isNaN(spreadValue) ? 0 : spreadValue);
-                }
-                return total;
-            }, 0);
-            
             return {
                 ...player,
                 results: playerResults,
                 total_matches: playerResults.filter(r => r !== null).length,
-                wins: player.wins || actualWins || 0,
-                losses: player.losses || actualLosses || 0,
+                // These might need real calculation if not fully available in player record
+                wins: player.wins || 0,
+                losses: player.losses || 0,
                 ties: player.ties || 0,
-                spread: player.spread || actualSpread || 0
+                spread: player.spread || 0
             };
         });
     }, [players, results, tournament]);
@@ -312,7 +226,7 @@ const WallChartPage = () => {
             const roundNum = parseInt(selectedRound);
             filtered = filtered.map(player => ({
                 ...player,
-                results: player.results.map((res, index) => 
+                results: player.results.map((res, index) =>
                     index === roundNum - 1 ? res : null
                 )
             }));
@@ -387,492 +301,224 @@ const WallChartPage = () => {
         URL.revokeObjectURL(url);
     };
 
-    // Handle match selection for details
-    const handleMatchClick = (match) => {
-        if (match && match.match_id) {
-            setSelectedMatch(match);
-            setShowMatchDetails(true);
-        }
-    };
-
-    // Get status color for visual indicators
-    const getStatusColor = (status, isWinner, isBye, isForfeit) => {
-        if (isBye) return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-        if (isForfeit) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        if (isWinner === true) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-        if (isWinner === false) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        if (status === 'pending') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-        if (status === 'in_progress') return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    };
-
-    // Get status icon
-    const getStatusIcon = (status, isWinner, isBye, isForfeit) => {
-        if (isBye) return 'Minus';
-        if (isForfeit) return 'X';
-        if (isWinner === true) return 'Check';
-        if (isWinner === false) return 'X';
-        if (status === 'pending') return 'Clock';
-        if (status === 'in_progress') return 'Play';
-        return 'HelpCircle';
-    };
-
     if (loading) {
-        return (
-            <div className="min-h-screen bg-background">
-                <Header />
-                <main className="pt-16 pb-8">
-                    <div className="max-w-7xl mx-auto px-4 lg:px-6">
-                        <div className="flex items-center justify-center h-64">
-                            <div className="text-center">
-                                <Icon name="Loader2" className="animate-spin w-8 h-8 mx-auto mb-4 text-muted-foreground" />
-                                <p className="text-muted-foreground">Loading wallchart data...</p>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
-        );
+        return <PublicLoadingScreen />;
     }
 
     if (accessDenied) {
         return (
-            <div className="min-h-screen bg-background">
-                <Header />
-                <main className="pt-16 pb-8">
-                    <div className="max-w-7xl mx-auto px-4 lg:px-6">
-                        <div className="flex items-center justify-center h-64">
-                            <div className="text-center">
-                                <Icon name="XCircle" className="w-16 h-16 mx-auto mb-4 text-red-500" />
-                                <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-                                <p className="text-muted-foreground mb-4">
-                                    Wall Chart is only available for Individual and Team tournament modes.
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    This tournament is in {tournament?.type || 'unknown'} mode.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </main>
-            </div>
+            <DashboardLayout tournamentSlug={tournamentSlug}>
+                <div className="max-w-4xl mx-auto py-12 text-center text-muted-foreground bg-card rounded-lg border border-border">
+                    <Icon name="XCircle" className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                    <h2 className="text-lg font-semibold text-foreground">Access Denied</h2>
+                    <p>Wall Chart is only available for Individual and Team tournament modes.</p>
+                </div>
+            </DashboardLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <DashboardLayout tournamentInfo={tournament}>
             <Toaster position="top-center" richColors />
-            <Header />
-            <main className="pt-16 pb-8">
-                <div className="max-w-7xl mx-auto px-4 lg:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
-                        <DashboardSidebar tournamentSlug={tournamentSlug} />
-                        <div className="md:col-span-3">
-                            {/* Header Section */}
-                            <div className="mb-8">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <div>
-                                        <h1 className="text-3xl font-heading font-bold text-gradient mb-2">
-                                            Wall Chart - {tournament?.name}
-                                        </h1>
-                                        <p className="text-muted-foreground">
-                                            Complete tournament overview with {tournament?.rounds || 0} rounds
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => exportWallChart('csv')}
-                                            disabled={exporting}
-                                        >
-                                            <Icon name="Download" className="w-4 h-4 mr-2" />
-                                            Export CSV
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => exportWallChart('json')}
-                                            disabled={exporting}
-                                        >
-                                            <Icon name="FileText" className="w-4 h-4 mr-2" />
-                                            Export JSON
-                                        </Button>
-                                    </div>
-                                </div>
 
-                                                            {/* Tournament Info */}
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="glass-card p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Icon name="Calendar" className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">Current Round</span>
-                                    </div>
-                                    <p className="text-2xl font-bold">{tournament?.current_round || 0}</p>
-                                </div>
-                                <div className="glass-card p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Icon name="Users" className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">Players</span>
-                                    </div>
-                                    <p className="text-2xl font-bold">{players.length}</p>
-                                </div>
-                                <div className="glass-card p-4">
-                                    <div className="flex items-center gap-2">
-                                        <Icon name="Swords" className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm text-muted-foreground">Results</span>
-                                    </div>
-                                    <p className="text-2xl font-bold">{results.length}</p>
-                                </div>
-                            </div>
-
-
-                            </div>
-
-                            {/* Filters */}
-                            <div className="mb-6 flex flex-wrap gap-4">
-                                <div className="flex items-center gap-2">
-                                    <label className="text-sm font-medium text-foreground">Round:</label>
-                                    <select
-                                        value={selectedRound}
-                                        onChange={(e) => setSelectedRound(e.target.value)}
-                                        className="px-3 py-1 border border-border rounded-md bg-background text-foreground text-sm"
-                                    >
-                                        <option value="all">All Rounds</option>
-                                        {Array.from({ length: tournament?.rounds || tournament?.total_rounds || 8 }, (_, i) => (
-                                            <option key={i + 1} value={i + 1}>Round {i + 1}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <label className="text-sm font-medium text-foreground">Player:</label>
-                                    <select
-                                        value={selectedPlayer}
-                                        onChange={(e) => setSelectedPlayer(e.target.value)}
-                                        className="px-3 py-1 border border-border rounded-md bg-background text-foreground text-sm"
-                                    >
-                                        <option value="all">All Players</option>
-                                        {players.map(player => (
-                                            <option key={player.id} value={player.name}>{player.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <label className="text-sm font-medium text-foreground">View:</label>
-                                    <div className="flex border border-border rounded-md">
-                                        <button
-                                            onClick={() => setViewMode('grid')}
-                                            className={`px-3 py-1 text-sm transition-colors ${
-                                                viewMode === 'grid' 
-                                                    ? 'bg-primary text-primary-foreground' 
-                                                    : 'bg-background text-foreground hover:bg-muted'
-                                            }`}
-                                        >
-                                            Grid
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode('list')}
-                                            className={`px-3 py-1 text-sm transition-colors ${
-                                                viewMode === 'list' 
-                                                    ? 'bg-primary text-primary-foreground' 
-                                                    : 'bg-background text-foreground hover:bg-muted'
-                                            }`}
-                                        >
-                                            List
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Wall Chart Content */}
-                            <div className="glass-card overflow-hidden">
-                                {viewMode === 'grid' ? (
-                                    /* Grid View */
-                                    <div className="overflow-x-auto">
-                                                                            <table className="w-full min-w-[800px] text-sm">
-                                        <thead>
-                                            <tr className="border-b border-border bg-muted/20">
-                                                <th className="p-3 text-left font-semibold text-foreground sticky left-0 bg-muted/20 z-10">
-                                                    Player
-                                                </th>
-                                                <th className="p-3 text-center font-semibold text-foreground">Rating</th>
-                                                <th className="p-3 text-center font-semibold text-foreground">W</th>
-                                                <th className="p-3 text-center font-semibold text-foreground">L</th>
-                                                <th className="p-3 text-center font-semibold text-foreground">T</th>
-                                                <th className="p-3 text-center font-semibold text-foreground">Spread</th>
-                                                {Array.from({ length: tournament?.rounds || tournament?.total_rounds || 8 }, (_, i) => (
-                                                    <th key={i} className="text-center font-semibold text-foreground">
-                                                        Round {i + 1}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredData.map(player => (
-                                                <tr key={player.id} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                                                    <td className="p-3 text-left font-medium text-foreground sticky left-0 bg-card z-10">
-                                                        <div className="flex items-center gap-3">
-                                                                                                                    {player.photo_url && (
-                                                            <img 
-                                                                src={player.photo_url} 
-                                                                alt={player.name}
-                                                                className="w-8 h-8 rounded-full object-cover"
-                                                                onError={(e) => {
-                                                                    console.warn(`Failed to load player photo for ${player.name}:`, e.target.src);
-                                                                    e.target.style.display = 'none';
-                                                                }}
-                                                            />
-                                                        )}
-                                                            <div>
-                                                                <p className="font-semibold">
-                                                                    {player.rank || '?'}. {player.name}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    {player.group || 'Unassigned'}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="font-mono">{player.rating || 'N/A'}</span>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="font-bold text-green-600 dark:text-green-400">
-                                                            {player.wins}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="font-bold text-red-600 dark:text-red-400">
-                                                            {player.losses}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="font-bold text-blue-600 dark:text-blue-400">
-                                                            {player.ties}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <span className="font-bold text-purple-600 dark:text-purple-400">
-                                                            {player.spread > 0 ? `+${player.spread}` : player.spread}
-                                                        </span>
-                                                    </td>
-                                                    {player.results.map((res, index) => (
-                                                        <td key={index} className="p-3 text-center">
-                                                            {res ? (
-                                                                <div className="text-xs space-y-1">
-                                                                    {/* Line 1: Scores */}
-                                                                    <div className="font-mono font-bold">
-                                                                        {res.score}
-                                                                    </div>
-                                                                    {/* Line 2: Matchup (Rank vs Rank) */}
-                                                                    <div className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-blue-800 dark:text-blue-200">
-                                                                        {res.player_rank} vs {res.opponent_rank}
-                                                                    </div>
-                                                                    {/* Line 3: Win-Loss Record */}
-                                                                    <div className="font-medium">
-                                                                        {res.win_loss_record}
-                                                                    </div>
-                                                                    {/* Line 4: Point Difference */}
-                                                                    <div className="font-mono">
-                                                                        {res.round_spread} {res.cumulative_spread}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-muted-foreground">-</span>
-                                                            )}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    </div>
-                                ) : (
-                                    /* List View */
-                                    <div className="p-6 space-y-6">
-                                        {filteredData.map(player => (
-                                            <div key={player.id} className="border border-border rounded-lg p-4">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-3">
-                                                        {player.photo_url && (
-                                                            <img 
-                                                                src={player.photo_url} 
-                                                                alt={player.name}
-                                                                className="w-12 h-12 rounded-full object-cover"
-                                                                onError={(e) => {
-                                                                    console.warn(`Failed to load player photo for ${player.name}:`, e.target.src);
-                                                                    e.target.style.display = 'none';
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <div>
-                                                            <h3 className="text-lg font-semibold">{player.name}</h3>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                Rating: {player.rating || 'N/A'} | Rank: {player.rank || 'N/A'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-4 text-sm">
-                                                        <span className="text-green-600 dark:text-green-400">
-                                                            <strong>W:</strong> {player.wins}
-                                                        </span>
-                                                        <span className="text-red-600 dark:text-red-400">
-                                                            <strong>L:</strong> {player.losses}
-                                                        </span>
-                                                        <span className="text-blue-600 dark:text-blue-400">
-                                                            <strong>Bye:</strong> {player.byes}
-                                                        </span>
-                                                        <span className="text-orange-600 dark:text-orange-400">
-                                                            <strong>FF:</strong> {player.forfeits}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {player.results.map((res, index) => (
-                                                        <div key={index} className="text-center">
-                                                            <div className="text-sm font-medium text-muted-foreground mb-1">
-                                                                Round {index + 1}
-                                                            </div>
-                                                            {res ? (
-                                                                <div className="p-3 border border-border rounded-lg bg-card hover:bg-muted/10 transition-colors">
-                                                                    <div className="space-y-2">
-                                                                        {/* Scores */}
-                                                                        <div className="font-mono font-bold text-lg">
-                                                                            {res.score}
-                                                                        </div>
-                                                                        {/* Matchup */}
-                                                                        <div className="bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded text-blue-800 dark:text-blue-200 text-xs">
-                                                                            {res.player_rank} vs {res.opponent_rank}
-                                                                        </div>
-                                                                        {/* Win-Loss Record */}
-                                                                        <div className="font-medium text-sm">
-                                                                            {res.win_loss_record}
-                                                                        </div>
-                                                                        {/* Point Difference */}
-                                                                        <div className="font-mono text-xs">
-                                                                            {res.round_spread} {res.cumulative_spread}
-                                                                        </div>
-                                                                        {/* Opponent Name */}
-                                                                        <div className="text-xs text-muted-foreground">
-                                                                            vs {res.opponent}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="p-3 text-muted-foreground border border-border rounded-lg">
-                                                                    No Match
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+            <div className="max-w-full mx-auto space-y-6">
+                {/* Header & Controls */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">Wall Chart</h1>
+                        <p className="text-muted-foreground mt-1">
+                            Complete tournament overview - {tournament?.current_round ? `Round ${tournament.current_round}` : 'Pre-tournament'}
+                        </p>
                     </div>
-                </div>
-            </main>
 
-            {/* Match Details Modal */}
-            {showMatchDetails && selectedMatch && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="glass-card max-w-md w-full p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">Match Details</h3>
+                    <div className="flex flex-wrap gap-2">
+                        <div className="flex border border-border rounded-md overflow-hidden bg-background">
                             <button
-                                onClick={() => setShowMatchDetails(false)}
-                                className="text-muted-foreground hover:text-foreground"
+                                onClick={() => setViewMode('grid')}
+                                className={`px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === 'grid'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:bg-secondary/50'
+                                    }`}
                             >
-                                <Icon name="X" className="w-5 h-5" />
+                                <Icon name="Grid" className="w-4 h-4 inline mr-1" /> Grid
+                            </button>
+                            <div className="w-[1px] bg-border my-1"></div>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                className={`px-3 py-1.5 text-sm font-medium transition-colors ${viewMode === 'list'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:bg-secondary/50'
+                                    }`}
+                            >
+                                <Icon name="List" className="w-4 h-4 inline mr-1" /> List
                             </button>
                         </div>
-                        
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Player</div>
-                                    <div className="font-semibold">You</div>
-                                </div>
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Opponent</div>
-                                    <div className="font-semibold">{selectedMatch.opponent}</div>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Your Score</div>
-                                    <div className="font-mono text-lg">{selectedMatch.player_score || 'TBD'}</div>
-                                </div>
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Opponent Score</div>
-                                    <div className="font-mono text-lg">{selectedMatch.opponent_score || 'TBD'}</div>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Matchup</div>
-                                    <div className="font-semibold">
-                                        {selectedMatch.player_rank} vs {selectedMatch.opponent_rank}
-                                    </div>
-                                </div>
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Result</div>
-                                    <div className="font-semibold">
-                                        {selectedMatch.is_winner ? 'WIN' : 'LOSS'}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Win-Loss Record</div>
-                                    <div className="font-medium">{selectedMatch.win_loss_record}</div>
-                                </div>
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Round Spread</div>
-                                    <div className="font-mono">{selectedMatch.round_spread}</div>
-                                </div>
-                            </div>
-                            
-                            <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                <div className="text-sm text-muted-foreground mb-1">Cumulative Spread</div>
-                                <div className="font-mono font-bold">{selectedMatch.cumulative_spread}</div>
-                            </div>
-                            
-                            {selectedMatch.match_date && (
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Match Date</div>
-                                    <div className="font-medium">
-                                        {format(new Date(selectedMatch.match_date), 'MMM dd, yyyy HH:mm')}
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {selectedMatch.submitted_by && (
-                                <div className="text-center p-3 bg-muted/20 rounded-lg">
-                                    <div className="text-sm text-muted-foreground mb-1">Submitted By</div>
-                                    <div className="font-medium">{selectedMatch.submitted_by}</div>
-                                </div>
-                            )}
+
+                        <select
+                            value={selectedRound}
+                            onChange={(e) => setSelectedRound(e.target.value)}
+                            className="h-9 rounded-md border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
+                        >
+                            <option value="all">All Rounds</option>
+                            {Array.from({ length: tournament?.rounds || tournament?.total_rounds || 8 }, (_, i) => (
+                                <option key={i + 1} value={i + 1}>Round {i + 1}</option>
+                            ))}
+                        </select>
+
+                        <Button
+                            variant="secondary"
+                            onClick={() => exportWallChart('csv')}
+                            disabled={exporting}
+                            iconName="Download"
+                            className="h-9"
+                        >
+                            Export
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-card border border-border p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Players</p>
+                            <p className="text-2xl font-bold text-foreground">{players.length}</p>
                         </div>
-                        
-                        <div className="mt-6 flex justify-end">
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowMatchDetails(false)}
-                            >
-                                Close
-                            </Button>
+                        <div className="p-3 bg-primary/10 rounded-full text-primary">
+                            <Icon name="Users" size={20} />
+                        </div>
+                    </div>
+                    <div className="bg-card border border-border p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Matches Data</p>
+                            <p className="text-2xl font-bold text-foreground">{results.length}</p>
+                        </div>
+                        <div className="p-3 bg-blue-500/10 rounded-full text-blue-500">
+                            <Icon name="Swords" size={20} />
+                        </div>
+                    </div>
+                    <div className="bg-card border border-border p-4 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Leaders</p>
+                            <p className="text-2xl font-bold text-foreground truncate max-w-[120px]">
+                                {players.length > 0 ? players[0].name.split(' ')[0] : '-'}
+                            </p>
+                        </div>
+                        <div className="p-3 bg-yellow-500/10 rounded-full text-yellow-500">
+                            <Icon name="Trophy" size={20} />
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+
+                {/* Wall Chart Table (Grid View) */}
+                {viewMode === 'grid' && (
+                    <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm border-collapse">
+                                <thead>
+                                    <tr className="bg-secondary/30 border-b border-border text-left">
+                                        <th className="p-4 pl-6 font-semibold text-foreground min-w-[200px] sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Player</th>
+                                        <th className="p-4 text-center font-semibold text-muted-foreground w-16">Rtg</th>
+                                        <th className="p-4 text-center font-semibold text-green-600 dark:text-green-500 w-12">W</th>
+                                        <th className="p-4 text-center font-semibold text-red-600 dark:text-red-500 w-12">L</th>
+                                        <th className="p-4 text-center font-semibold text-blue-600 dark:text-blue-500 w-12">T</th>
+                                        <th className="p-4 text-center font-semibold text-purple-600 dark:text-purple-500 w-16">spr</th>
+                                        {Array.from({ length: tournament?.rounds || tournament?.total_rounds || 8 }, (_, i) => (
+                                            <th key={i} className="p-4 text-center font-semibold text-foreground min-w-[140px] border-l border-border/50">
+                                                Rd {i + 1}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {filteredData.map((player, idx) => (
+                                        <tr key={player.id} className="hover:bg-secondary/10 transition-colors group">
+                                            <td className="p-4 pl-6 sticky left-0 bg-card z-10 group-hover:bg-background/95 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs font-mono text-muted-foreground w-5 text-right">{player.rank || idx + 1}.</span>
+                                                    <div>
+                                                        <p className="font-medium text-foreground">{player.name}</p>
+                                                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{player.group || 'OPEN'}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-2 text-center text-muted-foreground font-mono">{player.rating || '-'}</td>
+                                            <td className="p-2 text-center font-bold text-green-600 dark:text-green-500">{player.wins}</td>
+                                            <td className="p-2 text-center font-bold text-red-600 dark:text-red-500">{player.losses}</td>
+                                            <td className="p-2 text-center font-bold text-blue-600 dark:text-blue-500">{player.ties}</td>
+                                            <td className="p-2 text-center font-mono text-purple-600 dark:text-purple-500 text-xs">{player.spread > 0 ? `+${player.spread}` : player.spread}</td>
+
+                                            {player.results.map((res, index) => (
+                                                <td key={index} className="p-2 text-center border-l border-border/50 align-top h-full">
+                                                    {res ? (
+                                                        <div className="flex flex-col items-center justify-center gap-1 min-h-[50px]">
+                                                            <div className="font-bold text-base font-mono leading-none">{res.score}</div>
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-secondary/30 px-1.5 py-0.5 rounded-full">
+                                                                <span>#{res.player_rank}</span>
+                                                                <span className="text-muted-foreground/50">vs</span>
+                                                                <span>#{res.opponent_rank}</span>
+                                                            </div>
+                                                            <div className={`text-[10px] font-medium px-1 rounded ${res.round_spread.startsWith('+') ? 'text-green-600 bg-green-50 dark:bg-green-900/10' :
+                                                                res.round_spread.startsWith('-') ? 'text-red-600 bg-red-50 dark:bg-red-900/10' :
+                                                                    'text-muted-foreground'
+                                                                }`}>
+                                                                {res.round_spread}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-full w-full min-h-[50px] flex items-center justify-center">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-border"></span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* List View */}
+                {viewMode === 'list' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredData.map((player) => (
+                            <div key={player.id} className="bg-card border border-border rounded-lg p-5 hover:border-primary/40 transition-colors">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="font-semibold text-foreground text-lg">{player.name}</h3>
+                                        <p className="text-xs text-muted-foreground mt-0.5">Rank {player.rank || '-'} • Rating {player.rating || '-'}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end">
+                                        <div className="text-sm font-bold text-foreground">
+                                            <span className="text-green-600">{player.wins}W</span> - <span className="text-red-600">{player.losses}L</span> - <span className="text-blue-600">{player.ties}T</span>
+                                        </div>
+                                        <span className="text-xs text-purple-600 font-mono mt-0.5">{player.spread > 0 ? `+${player.spread}` : player.spread} spr</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-3">
+                                    {player.results.map((res, i) => res && (
+                                        <div key={i} className="flex justify-between items-center text-sm p-2 bg-secondary/10 rounded border border-transparent hover:border-border transition-colors">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-mono text-muted-foreground w-4">R{res.round}</span>
+                                                <span className="font-medium text-foreground">{res.score}</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-muted-foreground">vs #{res.opponent_rank}</div>
+                                                <div className={`text-[10px] font-mono ${res.round_spread.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>{res.round_spread}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                <ReportFooter />
+            </div>
+        </DashboardLayout>
     );
 };
 

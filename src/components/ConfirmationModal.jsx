@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardFooter } from './ui/Card';
 import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
 import { cn } from '../utils/cn';
 
-const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel" }) => {
+const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "Confirm", cancelText = "Cancel", isLoading = false }) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -29,27 +29,27 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel, confir
               <CardHeader className="p-6">
                 <div className="flex items-start space-x-4">
                   <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-destructive/10 sm:mx-0 sm:h-10 sm:w-10">
-                      <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
+                    <Icon name="AlertTriangle" className="h-6 w-6 text-destructive" />
                   </div>
                   <div className="mt-0 text-left">
-                      <h3 className="text-lg font-semibold leading-6 text-foreground" id="modal-title">
-                          {title}
-                      </h3>
-                      <div className="mt-2">
-                          <p className="text-sm text-muted-foreground">
-                              {message}
-                          </p>
-                      </div>
+                    <h3 className="text-lg font-semibold leading-6 text-foreground" id="modal-title">
+                      {title}
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-muted-foreground">
+                        {message}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
               <CardFooter className="bg-muted/10 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 rounded-b-lg">
-                  <Button variant="destructive" onClick={onConfirm} className="w-full sm:ml-3 sm:w-auto">
-                      {confirmText}
-                  </Button>
-                  <Button variant="outline" onClick={onCancel} className="mt-3 w-full sm:mt-0 sm:w-auto">
-                      {cancelText}
-                  </Button>
+                <Button variant="destructive" onClick={onConfirm} loading={isLoading} className="w-full sm:ml-3 sm:w-auto">
+                  {confirmText}
+                </Button>
+                <Button variant="outline" onClick={onCancel} disabled={isLoading} className="mt-3 w-full sm:mt-0 sm:w-auto">
+                  {cancelText}
+                </Button>
               </CardFooter>
             </Card>
           </motion.div>

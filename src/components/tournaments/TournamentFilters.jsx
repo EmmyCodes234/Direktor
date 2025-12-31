@@ -49,11 +49,11 @@ const TournamentFilters = ({ onFilterChange, onViewChange, currentView = 'grid' 
           <h2 className="text-lg font-semibold text-foreground">Tournament Filters</h2>
           <p className="text-sm text-muted-foreground">Filter and organize your tournaments</p>
         </div>
-        
+
         {/* View Toggle */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">View:</span>
-          <ExpandableTabsJS 
+          <ExpandableTabsJS
             tabs={viewTabs}
             activeColor="text-purple-500"
             className="border-purple-800"
@@ -61,12 +61,12 @@ const TournamentFilters = ({ onFilterChange, onViewChange, currentView = 'grid' 
           />
         </div>
       </div>
-      
+
       {/* Filter Tabs */}
-      <ExpandableTabsJS 
+      <ExpandableTabsJS
         tabs={filterTabs}
-        activeColor="text-purple-500"
-        className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/50 dark:to-pink-950/50"
+        activeColor="text-foreground"
+        className="border-border bg-card"
         onChange={handleFilterChange}
       />
     </div>

@@ -4,22 +4,23 @@ import Icon from './AppIcon';
 import Button from './ui/Button';
 import { toast } from 'sonner';
 
-const ManualPairingModal = ({ 
-  isOpen, 
-  onClose, 
-  players = [], 
-  onSavePairings, 
+const ManualPairingModal = ({
+  isOpen,
+  onClose,
+  players = [],
+  onSavePairings,
   existingPairings = [],
-  onAutoPairRemaining 
+  onAutoPairRemaining
 }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [manualPairings, setManualPairings] = useState([]);
   const [availablePlayers, setAvailablePlayers] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Calculate available players (not already paired)
   useEffect(() => {
     const pairedPlayerIds = new Set();
-    
+
     // Add players from existing pairings
     if (existingPairings && Array.isArray(existingPairings)) {
       existingPairings.forEach(pairing => {
@@ -29,7 +30,7 @@ const ManualPairingModal = ({
         }
       });
     }
-    
+
     // Add players from new manual pairings
     if (manualPairings && Array.isArray(manualPairings)) {
       manualPairings.forEach(pairing => {
@@ -63,7 +64,7 @@ const ManualPairingModal = ({
         table: manualPairings.length + 1,
         division: selectedPlayer.division || 'Open'
       };
-      
+
       setManualPairings(prev => [...prev, newPairing]);
       setSelectedPlayer(null);
       toast.success(`Paired ${selectedPlayer.name} vs ${player.name} on Table ${newPairing.table}`);
@@ -79,7 +80,7 @@ const ManualPairingModal = ({
       table: 'BYE',
       division: player.division || 'Open'
     };
-    
+
     setManualPairings(prev => [...prev, byePairing]);
     toast.success(`${player.name} gets a BYE`);
   };
@@ -94,21 +95,21 @@ const ManualPairingModal = ({
   const handleSave = async () => {
     try {
       const allPairings = [...(existingPairings || []), ...manualPairings];
-      
+
       // Auto-pair remaining players if any
       if (availablePlayers.length > 1 && onAutoPairRemaining) {
         const loadingToast = toast.loading('Auto-pairing remaining players...');
         const autoPairings = await onAutoPairRemaining(availablePlayers, allPairings);
-        
+
         // Dismiss the loading toast
         toast.dismiss(loadingToast);
-        
+
         if (autoPairings && autoPairings.length > 0) {
           const validAutoPairings = autoPairings.filter(pairing => {
-            return pairing.player1?.player_id && 
-                   (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
+            return pairing.player1?.player_id &&
+              (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
           });
-          
+
           const finalPairings = [...allPairings, ...validAutoPairings];
           await onSavePairings(finalPairings);
           toast.success(`Saved ${allPairings.length} manual + ${validAutoPairings.length} auto pairings!`);
@@ -120,7 +121,7 @@ const ManualPairingModal = ({
         await onSavePairings(allPairings);
         toast.success(`Saved ${allPairings.length} manual pairings!`);
       }
-      
+
       onClose();
     } catch (error) {
       console.error('Error saving pairings:', error);
@@ -138,16 +139,16 @@ const ManualPairingModal = ({
     try {
       const loadingToast = toast.loading('Auto-pairing all remaining players...');
       const autoPairings = await onAutoPairRemaining(availablePlayers, existingPairings);
-      
+
       // Dismiss the loading toast
       toast.dismiss(loadingToast);
-      
+
       if (autoPairings && autoPairings.length > 0) {
         const validAutoPairings = autoPairings.filter(pairing => {
-          return pairing.player1?.player_id && 
-                 (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
+          return pairing.player1?.player_id &&
+            (pairing.player2?.player_id || pairing.player2?.name === 'BYE');
         });
-        
+
         const allPairings = [...(existingPairings || []), ...manualPairings, ...validAutoPairings];
         await onSavePairings(allPairings);
         toast.success(`Auto-paired ${validAutoPairings.length} players!`);
@@ -222,7 +223,7 @@ const ManualPairingModal = ({
                 <Icon name="Users" className="w-5 h-5" />
                 Available Players ({availablePlayers.length})
               </h3>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {availablePlayers.map((player) => (
                   <motion.div
@@ -274,7 +275,7 @@ const ManualPairingModal = ({
                   <Icon name="Swords" className="w-5 h-5" />
                   Manual Pairings ({manualPairings.length})
                 </h3>
-                
+
                 <div className="space-y-3">
                   {manualPairings.map((pairing) => (
                     <motion.div
@@ -291,7 +292,7 @@ const ManualPairingModal = ({
                               Rating: {pairing.player1.rating || 'N/A'}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <Icon name="Swords" className="w-4 h-4 text-green-600" />
                             <span className="text-sm font-medium text-green-700">
@@ -299,7 +300,7 @@ const ManualPairingModal = ({
                             </span>
                             <Icon name="Swords" className="w-4 h-4 text-green-600" />
                           </div>
-                          
+
                           <div className="text-center">
                             <div className="font-semibold">
                               {pairing.player2.name === 'BYE' ? 'BYE' : pairing.player2.name}
@@ -311,12 +312,13 @@ const ManualPairingModal = ({
                             )}
                           </div>
                         </div>
-                        
+
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleRemovePairing(pairing.id)}
                           className="text-red-600 hover:text-red-700"
+                          disabled={isProcessing}
                         >
                           <Icon name="Trash" className="w-4 h-4" />
                         </Button>
@@ -331,17 +333,19 @@ const ManualPairingModal = ({
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
               <Button
                 onClick={handleAutoPairAll}
-                disabled={availablePlayers.length < 2}
+                disabled={availablePlayers.length < 2 || isProcessing}
+                loading={isProcessing}
                 className="flex-1"
                 size="lg"
               >
                 <Icon name="Zap" className="mr-2" />
                 Auto-Pair All Remaining ({availablePlayers.length} players)
               </Button>
-              
+
               <Button
                 onClick={handleSave}
-                disabled={manualPairings.length === 0 && availablePlayers.length < 2}
+                disabled={(manualPairings.length === 0 && availablePlayers.length < 2) || isProcessing}
+                loading={isProcessing}
                 className="flex-1"
                 size="lg"
               >

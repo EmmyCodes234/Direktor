@@ -37,7 +37,7 @@ const ProfileSettings = () => {
             });
 
             if (error) throw error;
-            
+
             toast.success("Profile updated successfully!");
         } catch (error) {
             toast.error(error.message);
@@ -57,7 +57,7 @@ const ProfileSettings = () => {
 
             // Reset the local onboarding state
             resetOnboarding();
-            
+
             toast.success("Onboarding has been reset. You can now go through it again!");
         } catch (error) {
             toast.error("Failed to reset onboarding: " + error.message);
@@ -75,11 +75,11 @@ const ProfileSettings = () => {
                         animate={{ opacity: 1, y: 0 }}
                     >
                         <div className="mb-8">
-                            <h1 className="text-3xl font-heading font-bold text-gradient">Profile Settings</h1>
+                            <h1 className="text-3xl font-heading font-bold text-foreground">Profile Settings</h1>
                             <p className="text-muted-foreground">Update your personal information.</p>
                         </div>
 
-                        <div className="glass-card p-8">
+                        <div className="bg-card border border-border rounded-xl p-8 shadow-sm">
                             <form onSubmit={handleUpdateProfile} className="space-y-6">
                                 <Input
                                     label="Email Address"
@@ -110,13 +110,13 @@ const ProfileSettings = () => {
                         </div>
 
                         {/* Onboarding Reset Section */}
-                        <div className="glass-card p-8 mt-6">
+                        <div className="bg-card border border-border rounded-xl p-8 mt-6 shadow-sm">
                             <h3 className="text-xl font-semibold text-foreground mb-4">Onboarding</h3>
                             <p className="text-muted-foreground mb-4">
                                 Reset your onboarding experience to go through the setup process again.
                             </p>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={handleResetOnboarding}
                                 className="w-full sm:w-auto"
                             >

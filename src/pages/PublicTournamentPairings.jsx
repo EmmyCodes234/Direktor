@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../supabaseClient';
-import PairingsTable from '../components/PairingsTable';
+import ClassicalPairingsTable from 'components/ClassicalPairingsTable';
 import Icon from 'components/AppIcon';
 import Button from 'components/ui/Button';
 import ShareButton from 'components/ui/ShareButton';
+import PublicTournamentBanner from 'components/public/PublicTournamentBanner';
+import ReportFooter from 'components/public/ReportFooter';
+import PlayerStatsModal from 'components/PlayerStatsModal';
+import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
 import { applyGibsonRuleToPairings } from '../utils/gibsonRule';
 
 const PublicTournamentPairings = () => {
@@ -19,7 +23,7 @@ const PublicTournamentPairings = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Extract round from query parameters
   const searchParams = new URLSearchParams(location.search);
   const roundParam = searchParams.get('round');
@@ -28,6 +32,137 @@ const PublicTournamentPairings = () => {
   useEffect(() => {
     fetchTournamentData();
   }, [tournamentSlug]);
+
+  const generatePairings = () => {
+    // First, check if tournament has pairing_schedule data
+    if (tournament?.pairing_schedule) {
+      // Get pairings for the selected round or all rounds
+      if (selectedRound && tournament.pairing_schedule[selectedRound]) {
+        // Format pairing schedule data for display
+        return tournament.pairing_schedule[selectedRound].map((pairing, index) => ({
+          id: `pairing-${selectedRound}-${index}`,
+          round: selectedRound,
+          player1_id: pairing.player1?.player_id || pairing.player1_id,
+          player2_id: pairing.player2?.player_id || pairing.player2_id,
+          player1_name: pairing.player1?.name || 'Unknown Player',
+          player2_name: pairing.player2?.name || 'Unknown Player',
+          player1: pairing.player1,
+          player2: pairing.player2,
+          table: pairing.table
+        }));
+      } else if (!selectedRound) {
+        // Return all pairings from all rounds
+        const allPairings = [];
+        Object.keys(tournament.pairing_schedule).forEach(roundNum => {
+          const roundPairings = tournament.pairing_schedule[roundNum];
+          roundPairings.forEach((pairing, index) => {
+            allPairings.push({
+              id: `pairing-${roundNum}-${index}`,
+              round: parseInt(roundNum),
+              player1_id: pairing.player1?.player_id || pairing.player1_id,
+              player2_id: pairing.player2?.player_id || pairing.player2_id,
+              player1_name: pairing.player1?.name || 'Unknown Player',
+              player2_name: pairing.player2?.name || 'Unknown Player',
+              player1: pairing.player1,
+              player2: pairing.player2,
+              table: pairing.table
+            });
+          });
+        });
+        return allPairings;
+      }
+    }
+
+    // For best of league tournaments, use matches data directly if available
+    if (tournament?.type === 'best_of_league' && matches.length > 0) {
+      let matchPairings = matches;
+
+      // If a specific round is selected, only show pairings for that round
+      if (selectedRound) {
+        matchPairings = matches.filter(m => m.round === selectedRound);
+      }
+
+      // Enrich matches with player names
+      return matchPairings.map(match => ({
+        ...match,
+        player1_name: getPlayerName(match.player1_id),
+        player2_name: getPlayerName(match.player2_id)
+      }));
+    }
+
+    // For other tournament types or when no matches data, use results data
+    if (!results.length) return [];
+
+    const rounds = [...new Set(results.map(r => r.round))];
+    const pairings = [];
+
+    rounds.forEach(round => {
+      // Skip if we're filtering by round and this isn't the selected round
+      if (selectedRound && round !== selectedRound) return;
+
+      const roundResults = results.filter(r => r.round === round);
+      const uniqueMatches = new Map();
+
+      roundResults.forEach(result => {
+        const matchKey = `${Math.min(result.player1_id, result.player2_id)}-${Math.max(result.player1_id, result.player2_id)}-${round}`;
+
+        if (!uniqueMatches.has(matchKey)) {
+          // Create a pairing with aggregated result data
+          const pairing = {
+            id: matchKey,
+            key: matchKey,
+            round,
+            player1_id: result.player1_id,
+            player2_id: result.player2_id,
+            player1_name: getPlayerName(result.player1_id),
+            player2_name: getPlayerName(result.player2_id),
+            player1_team_id: result.player1_team_id,
+            player2_team_id: result.player2_team_id,
+            // For single game tournaments, use the result directly
+            score1: result.score1,
+            score2: result.score2,
+            winner_id: result.winner_id
+          };
+
+          uniqueMatches.set(matchKey, pairing);
+        }
+      });
+
+      pairings.push(...Array.from(uniqueMatches.values()));
+    });
+
+    // Apply Gibson rule if enabled
+    if (tournament?.gibson_rule_enabled && tournament?.currentRound) {
+      const totalRounds = tournament.rounds || 10;
+      const prizeCount = tournament.prizes?.length || 3;
+      return applyGibsonRuleToPairings(pairings, players, tournament.currentRound, totalRounds, prizeCount, tournament?.type);
+    }
+
+    return pairings;
+  };
+
+  // Sorting Logic - Moved to top to prevent "Rendered more hooks" error
+  const pairings = generatePairings();
+  const sortParam = searchParams.get('sort');
+
+  const sortedPairings = useMemo(() => {
+    // If not loaded, return empty to prevent errors
+    if (!pairings.length) return [];
+
+    let sorted = [...pairings];
+    if (sortParam === 'alpha') {
+      sorted.sort((a, b) => (a.player1_name || '').localeCompare(b.player1_name || ''));
+    } else if (sortParam === 'rank') {
+      sorted.sort((a, b) => {
+        const r1 = a.player1?.rank || 9999;
+        const r2 = b.player1?.rank || 9999;
+        return r1 - r2;
+      });
+    } else {
+      sorted.sort((a, b) => a.table - b.table);
+    }
+    return sorted;
+  }, [pairings, sortParam]);
 
   const fetchTournamentData = async () => {
     try {
@@ -123,11 +258,11 @@ const PublicTournamentPairings = () => {
       const p2Wins = match.player2_wins || 0;
       const totalGames = p1Wins + p2Wins;
       const winsNeeded = Math.ceil((tournament?.games_per_match || 15) / 2);
-      
+
       if (totalGames === 0) {
         return { status: 'pending', score: null };
       }
-      
+
       if (p1Wins >= winsNeeded) {
         return { status: 'completed', winner: 'player1', score: `${p1Wins}-${p2Wins}` };
       } else if (p2Wins >= winsNeeded) {
@@ -136,10 +271,10 @@ const PublicTournamentPairings = () => {
         return { status: 'in_progress', score: `${p1Wins}-${p2Wins}` };
       }
     }
-    
+
     // For results from the results table
-    const matchResults = results.filter(r => 
-      r.player1_id === match.player1_id && 
+    const matchResults = results.filter(r =>
+      r.player1_id === match.player1_id &&
       r.player2_id === match.player2_id &&
       r.round === match.round
     );
@@ -172,147 +307,28 @@ const PublicTournamentPairings = () => {
     }
   };
 
-  const generatePairings = () => {
-    // First, check if tournament has pairing_schedule data
-    if (tournament?.pairing_schedule) {
-      // Get pairings for the selected round or all rounds
-      if (selectedRound && tournament.pairing_schedule[selectedRound]) {
-        // Format pairing schedule data for display
-        return tournament.pairing_schedule[selectedRound].map((pairing, index) => ({
-          id: `pairing-${selectedRound}-${index}`,
-          round: selectedRound,
-          player1_id: pairing.player1?.player_id || pairing.player1_id,
-          player2_id: pairing.player2?.player_id || pairing.player2_id,
-          player1_name: pairing.player1?.name || 'Unknown Player',
-          player2_name: pairing.player2?.name || 'Unknown Player',
-          table: pairing.table
-        }));
-      } else if (!selectedRound) {
-        // Return all pairings from all rounds
-        const allPairings = [];
-        Object.keys(tournament.pairing_schedule).forEach(roundNum => {
-          const roundPairings = tournament.pairing_schedule[roundNum];
-          roundPairings.forEach((pairing, index) => {
-            allPairings.push({
-              id: `pairing-${roundNum}-${index}`,
-              round: parseInt(roundNum),
-              player1_id: pairing.player1?.player_id || pairing.player1_id,
-              player2_id: pairing.player2?.player_id || pairing.player2_id,
-              player1_name: pairing.player1?.name || 'Unknown Player',
-              player2_name: pairing.player2?.name || 'Unknown Player',
-              table: pairing.table
-            });
-          });
-        });
-        return allPairings;
-      }
-    }
-    
-    // For best of league tournaments, use matches data directly if available
-    if (tournament?.type === 'best_of_league' && matches.length > 0) {
-      let matchPairings = matches;
-      
-      // If a specific round is selected, only show pairings for that round
-      if (selectedRound) {
-        matchPairings = matches.filter(m => m.round === selectedRound);
-      }
-      
-      // Enrich matches with player names
-      return matchPairings.map(match => ({
-        ...match,
-        player1_name: getPlayerName(match.player1_id),
-        player2_name: getPlayerName(match.player2_id)
-      }));
-    }
-    
-    // For other tournament types or when no matches data, use results data
-    if (!results.length) return [];
 
-    const rounds = [...new Set(results.map(r => r.round))];
-    const pairings = [];
-
-    rounds.forEach(round => {
-      // Skip if we're filtering by round and this isn't the selected round
-      if (selectedRound && round !== selectedRound) return;
-      
-      const roundResults = results.filter(r => r.round === round);
-      const uniqueMatches = new Map();
-
-      roundResults.forEach(result => {
-        const matchKey = `${Math.min(result.player1_id, result.player2_id)}-${Math.max(result.player1_id, result.player2_id)}-${round}`;
-        
-        if (!uniqueMatches.has(matchKey)) {
-          // Create a pairing with aggregated result data
-          const pairing = {
-            id: matchKey,
-            key: matchKey,
-            round,
-            player1_id: result.player1_id,
-            player2_id: result.player2_id,
-            player1_name: getPlayerName(result.player1_id),
-            player2_name: getPlayerName(result.player2_id),
-            player1_team_id: result.player1_team_id,
-            player2_team_id: result.player2_team_id,
-            // For single game tournaments, use the result directly
-            score1: result.score1,
-            score2: result.score2,
-            winner_id: result.winner_id
-          };
-          
-          uniqueMatches.set(matchKey, pairing);
-        }
-      });
-
-      pairings.push(...Array.from(uniqueMatches.values()));
-    });
-
-    // Apply Gibson rule if enabled
-    if (tournament?.gibson_rule_enabled && tournament?.currentRound) {
-      const totalRounds = tournament.rounds || 10;
-      const prizeCount = tournament.prizes?.length || 3;
-      return applyGibsonRuleToPairings(pairings, players, tournament.currentRound, totalRounds, prizeCount, tournament?.type);
-    }
-
-    return pairings;
-  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center justify-center min-h-screen"
-        >
-          <div className="text-center">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-muted/20 border-t-primary rounded-full mx-auto mb-4"
-            />
-            <p className="text-muted-foreground text-base">Loading tournament pairings...</p>
-          </div>
-        </motion.div>
-      </div>
-    );
+    return <PublicLoadingScreen />;
   }
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-center min-h-screen"
+          className="flex items-center justify-center min-h-screen w-full"
         >
           <div className="text-center max-w-md mx-auto p-6">
-            <div className="text-5xl mb-4">😕</div>
-            <h1 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h1>
+            <div className="mb-4 text-muted-foreground"><Icon name="AlertTriangle" size={48} /></div>
+            <h1 className="text-xl font-heading font-bold text-foreground mb-2">Tournament Not Found</h1>
             <p className="text-muted-foreground mb-5">
               {error || "The tournament you're looking for doesn't exist or has been removed."}
             </p>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => navigate(`/tournament/${tournamentSlug}`)}
             >
               <Icon name="ArrowLeft" className="mr-2" size={16} />
@@ -324,31 +340,32 @@ const PublicTournamentPairings = () => {
     );
   }
 
-  const pairings = generatePairings();
+
+
   const rounds = [...new Set(results.map(r => r.round))].sort((a, b) => a - b);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
+    <div className="min-h-screen bg-background text-foreground tracking-normal">
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
+        className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md py-3"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                className="touch-target hover:bg-muted/20"
+                className="hover:bg-secondary text-muted-foreground hover:text-foreground"
               >
                 <Icon name="ArrowLeft" size={20} />
               </Button>
               <div>
-                <motion.h1 
-                  className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
+                <motion.h1
+                  className="text-lg font-heading font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2, duration: 0.6 }}
@@ -372,62 +389,27 @@ const PublicTournamentPairings = () => {
                 }}
                 platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
                 position="bottom-right"
-                className="touch-target"
               />
             </motion.div>
           </div>
         </div>
       </motion.header>
 
+
+
+      {/* Banner */}
+      <PublicTournamentBanner tournament={tournament} />
+
       {/* Main Content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
       >
-        {/* Page Header */}
-        <div className="text-center space-y-3 mb-6">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-              <Icon name="Swords" size={20} className="text-primary" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground">
-              {selectedRound ? `Round ${selectedRound} Pairings` : 'Pairings'}
-            </h2>
-          </div>
-          <p className="text-base text-muted-foreground max-w-xl mx-auto">
-            {selectedRound 
-              ? `View pairings for round ${selectedRound}` 
-              : 'View current and past round matchups'}
-          </p>
-        </div>
+
 
         {/* Tournament Info Card */}
-        <motion.div 
-          className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg mb-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-xl font-bold text-foreground">{players.length}</div>
-              <div className="text-xs text-muted-foreground">Total Players</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-foreground">{results.length}</div>
-              <div className="text-xs text-muted-foreground">Games Played</div>
-            </div>
-            <div className="text-center">
-              <div className="text-xl font-bold text-foreground">
-                {selectedRound ? `Round ${selectedRound}` : `${rounds.length} Rounds`}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {selectedRound ? 'Selected Round' : 'Completed'}
-              </div>
-            </div>
-          </div>
-        </motion.div>
+
 
         {/* Pairings */}
         <motion.div
@@ -435,17 +417,14 @@ const PublicTournamentPairings = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.6 }}
         >
-          <PairingsTable 
-            pairings={generatePairings()}
-            tournamentType={tournament?.type}
-            isLoading={loading}
-            selectedRound={selectedRound}
+          <ClassicalPairingsTable
+            pairings={sortedPairings}
             players={players}
-            teams={teams}
-            results={results}
-            matches={matches}
+            selectedRound={selectedRound}
           />
         </motion.div>
+
+        <ReportFooter />
       </motion.div>
     </div>
   );

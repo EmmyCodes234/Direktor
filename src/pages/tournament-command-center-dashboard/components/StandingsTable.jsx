@@ -8,12 +8,12 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
 import { toast } from 'sonner';
 
-const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings, tournamentId, onPlayerUpdate }) => {
+const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings, tournamentId, onPlayerUpdate, compact = false }) => {
   const [viewMode, setViewMode] = useState('individual');
   const navigate = useNavigate();
   const isBestOfLeague = tournamentType === 'best_of_league';
   const isMobile = useMediaQuery('(max-width: 767px)');
-  
+
   // StandingsTable received players
 
   const playersByDivision = useMemo(() => {
@@ -45,11 +45,11 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     const wins = player.wins || 0;
     const losses = player.losses || 0;
     const ties = player.ties || 0;
-    
+
     // Add 0.5 to both wins and losses for each draw
     const adjustedWins = wins + (ties * 0.5);
     const adjustedLosses = losses + (ties * 0.5);
-    
+
     // Only show decimals if there are draws
     if (ties > 0) {
       return `${adjustedWins.toFixed(1)}-${adjustedLosses.toFixed(1)}`;
@@ -74,7 +74,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
     try {
       const { error } = await supabase
         .from('tournament_players')
-        .update({ 
+        .update({
           status: newStatus,
           withdrawn_at: newStatus === 'withdrawn' ? new Date().toISOString() : null
         })
@@ -82,7 +82,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
         .eq('tournament_id', tournamentId);
 
       if (error) throw error;
-      
+
       toast.success(`Player status updated to ${newStatus}`);
       onPlayerUpdate(); // Trigger refresh
     } catch (error) {
@@ -99,7 +99,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
         return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">Disqualified</span>;
       case 'active':
       default:
-        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">Active</span>;
+        return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-foreground border border-border">Active</span>;
     }
   };
 
@@ -125,11 +125,11 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
             }
             return (
-              <motion.div 
-                key={player.id} 
+              <motion.div
+                key={player.id}
                 className={cn(
-                  "glass-card p-4 sm:p-5 flex flex-col gap-4 transition-all duration-200 touch-target",
-                  isComplete ? 'bg-success/5 border-success/30 shadow-success/10' : 'hover:shadow-md hover:border-border/20'
+                  "bg-card border border-border rounded-xl p-4 sm:p-5 flex flex-col gap-4 transition-all duration-200 touch-target shadow-sm",
+                  isComplete ? 'bg-secondary/10' : 'hover:shadow-md'
                 )}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -141,18 +141,18 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                   {/* Rank Badge */}
                   <div className={cn(
                     "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-mono font-bold text-lg transition-all duration-200",
-                    player.rank <= 3 
-                      ? "bg-primary/20 text-primary border-2 border-primary/30" 
-                      : "bg-muted/20 text-muted-foreground border border-border"
+                    player.rank <= 3
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-secondary text-foreground border border-border"
                   )}>
                     {player.rank}
                   </div>
-                  
+
                   {/* Player Name */}
                   <div className="flex-1 min-w-0">
-                    <a 
-                      href={`/players/${player.slug}`} 
-                      onClick={(e) => handlePlayerClick(e, player)} 
+                    <a
+                      href={`/players/${player.slug}`}
+                      onClick={(e) => handlePlayerClick(e, player)}
                       className="block font-semibold text-foreground hover:text-primary transition-colors duration-200 truncate text-base"
                     >
                       {player.name}
@@ -164,24 +164,24 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Stats Button */}
-                  <button 
-                    onClick={(e) => handleModalClick(e, player)} 
+                  <button
+                    onClick={(e) => handleModalClick(e, player)}
                     aria-label="View player stats"
                     className="touch-target p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all duration-200"
                   >
                     <Icon name="BarChartHorizontal" size={20} className="text-muted-foreground" />
                   </button>
                 </div>
-                
+
                 {/* Status Badge */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {getStatusBadge(player.status)}
                   </div>
                 </div>
-                
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {isBestOfLeague && (
@@ -221,13 +221,13 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
               </motion.div>
             );
           })}
-          
+
           {/* Enhanced Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 mt-6 p-4 bg-muted/10 rounded-xl">
-              <button 
-                onClick={() => setPage(p => Math.max(1, p - 1))} 
-                disabled={page === 1} 
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
                 aria-label="Previous page"
                 className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
@@ -238,9 +238,9 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 <span className="font-mono font-bold text-lg text-foreground">{page}</span>
                 <span className="text-sm font-medium text-muted-foreground">of {totalPages}</span>
               </div>
-              <button 
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
-                disabled={page === totalPages} 
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 aria-label="Next page"
                 className="touch-target px-4 py-3 rounded-lg bg-background border border-border hover:bg-muted/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
@@ -251,26 +251,30 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
         </div>
       );
     }
-    // Table layout for desktop
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+      <div className="overflow-hidden h-full flex flex-col">
+        <table className={cn("w-full text-sm", compact ? "table-fixed border-collapse" : "min-w-[640px]")}>
           <thead>
-            <tr className="border-b border-border">
-              <th className="p-4 w-[8%] text-left font-semibold text-foreground">Rank</th>
-              <th className="p-4 w-[35%] text-left font-semibold text-foreground">Player</th>
-              {isBestOfLeague && (
+            <tr className="border-b border-border bg-slate-900/40">
+              <th className={cn("text-left font-semibold text-foreground uppercase tracking-wider text-[10px]", compact ? "px-2 py-3 w-[15%]" : "p-4 w-[8%]")}>Rank</th>
+              <th className={cn("text-left font-semibold text-foreground uppercase tracking-wider text-[10px]", compact ? "px-2 py-3 w-[45%]" : "p-4 w-[35%]")}>Player</th>
+              {isBestOfLeague && !compact && (
                 <>
-                  <th className="p-4 w-[12%] text-center font-semibold text-foreground">Match Wins</th>
-                  <th className="p-4 w-[12%] text-center font-semibold text-foreground">Match Losses</th>
+                  <th className="p-4 w-[12%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">Match Wins</th>
+                  <th className="p-4 w-[12%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">Match Losses</th>
                 </>
               )}
-              <th className="p-4 w-[15%] text-center font-semibold text-foreground">
-                {isBestOfLeague ? 'Game Record' : 'Record'}
+              <th className={cn("text-center font-semibold text-foreground uppercase tracking-wider text-[10px]", compact ? "px-1 py-3 w-[20%]" : "p-4 w-[15%]")}>
+                {compact ? 'REC' : (isBestOfLeague && !compact ? 'Game Record' : 'Record')}
               </th>
-              <th className="p-4 w-[12%] text-center font-semibold text-foreground">Spread</th>
-              <th className="p-4 w-[10%] text-center font-semibold text-foreground">Status</th>
-              <th className="p-4 w-[8%] text-center font-semibold text-foreground">Actions</th>
+              {!compact && (
+                <>
+                  <th className="p-4 w-[12%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">Spread</th>
+                  <th className="p-4 w-[10%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">Status</th>
+                  <th className="p-4 w-[8%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">Actions</th>
+                </>
+              )}
+              {compact && <th className="px-2 py-3 w-[20%] text-center font-semibold text-foreground uppercase tracking-wider text-[10px]">SPR</th>}
             </tr>
           </thead>
           <tbody>
@@ -285,57 +289,55 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                 isComplete = (matchWins + matchLosses) >= totalMatches && totalMatches > 0;
               }
               return (
-                <tr key={player.id} className={`border-b border-border/50 hover:bg-muted/5 transition-colors group ${isComplete ? 'bg-success/10 border-success/60' : ''}`}
+                <tr key={player.id} className={cn(
+                  "border-b border-border/30 hover:bg-slate-800/20 transition-colors group cursor-pointer",
+                  isComplete && 'bg-emerald-500/10'
+                )}
+                  onClick={(e) => handleModalClick(e, player)}
                   aria-label={isComplete ? 'Player matches complete' : undefined}
                 >
-                  <td className="p-4 font-mono font-bold text-lg text-primary">
+                  <td className={cn("font-mono font-bold text-primary", compact ? "px-2 py-2 text-sm" : "p-4 text-lg")}>
                     {player.rank}
-                    {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={16} className="text-success ml-1" aria-label="All matches complete" />}
+                    {isBestOfLeague && isComplete && <Icon name="CheckCircle" size={compact ? 12 : 16} className="text-success ml-1" aria-label="All matches complete" />}
                   </td>
-                  <td className="p-4 font-medium text-foreground">
-                    <a href={`/players/${player.slug}`} onClick={(e) => handlePlayerClick(e, player)} className="hover:underline">
+                  <td className={cn("font-medium text-foreground", compact ? "px-2 py-2 text-[11px]" : "p-4 text-sm")}>
+                    <div className="truncate w-full" title={player.name}>
                       {player.name}
-                    </a>
+                    </div>
                   </td>
-                  {isBestOfLeague && (
+                  {isBestOfLeague && !compact && (
                     <>
                       <td className="p-4 text-center font-mono">{matchWins}</td>
                       <td className="p-4 text-center font-mono">{matchLosses}</td>
                     </>
                   )}
-                  <td className="p-4 text-center font-mono">{getRecordDisplay(player)}</td>
-                  <td className={`p-4 text-center font-mono font-semibold ${player.spread > 0 ? 'text-success' : player.spread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <td className={cn("text-center font-mono", compact ? "px-2 py-2 text-[11px]" : "p-4")}>{getRecordDisplay(player)}</td>
+                  <td className={cn(
+                    "text-center font-mono font-semibold",
+                    compact ? "px-2 py-2 text-[11px]" : "p-4",
+                    player.spread > 0 ? 'text-emerald-400' : player.spread < 0 ? 'text-rose-400' : 'text-muted-foreground'
+                  )}>
                     {player.spread > 0 ? '+' : ''}{player.spread || 0}
                   </td>
-                  <td className="p-4 text-center">
-                    {getStatusBadge(player.status)}
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={(e) => handleModalClick(e, player)}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors touch-target"
-                        title="View player details"
-                        aria-label={`View details for ${player.name}`}
-                      >
-                        <Icon name="Eye" size={16} />
-                      </button>
-                      {player.status === 'active' && (
-                        <div className="relative">
+                  {!compact && (
+                    <>
+                      <td className="p-4 text-center">
+                        {getStatusBadge(player.status)}
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Show status change dropdown
-                            }}
-                            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-                            title="Change player status"
+                            onClick={(e) => handleModalClick(e, player)}
+                            className="p-1 text-muted-foreground hover:text-foreground transition-colors touch-target"
+                            title="View player details"
+                            aria-label={`View details for ${player.name}`}
                           >
-                            <Icon name="MoreVertical" size={16} />
+                            <Icon name="Eye" size={16} />
                           </button>
                         </div>
-                      )}
-                    </div>
-                  </td>
+                      </td>
+                    </>
+                  )}
                 </tr>
               );
             })}
@@ -382,27 +384,28 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   );
 
   return (
-    <div className="glass-card h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center space-x-2 border-b-2 border-transparent">
-            {divisions.map(division => (
-                <button
-                    key={division}
-                    onClick={() => setActiveDivision(division)}
-                    className={cn(
-                        "px-3 py-1 text-sm font-medium rounded-md",
-                        activeDivision === division ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/50"
-                    )}
-                >
-                    {division}
-                </button>
-            ))}
+    <div className="bg-card border border-border rounded-xl shadow-sm h-full flex flex-col">
+      <div className={cn("flex items-center justify-between border-b border-border bg-slate-900/40", compact ? "px-2 py-1" : "p-4")}>
+        <div className="flex items-center space-x-1">
+          {divisions.map(division => (
+            <button
+              key={division}
+              onClick={() => setActiveDivision(division)}
+              className={cn(
+                "font-medium rounded-md transition-all",
+                compact ? "px-2 py-0.5 text-[10px] uppercase tracking-wider" : "px-3 py-1 text-sm",
+                activeDivision === division ? "bg-slate-700 text-white shadow-sm" : "text-muted-foreground hover:bg-slate-800"
+              )}
+            >
+              {division}
+            </button>
+          ))}
         </div>
         {tournamentType === 'team' && (
-            <div className="flex items-center space-x-1 bg-muted/20 rounded-lg p-1">
-                <Button variant={viewMode === 'individual' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('individual')}>Individual</Button>
-                <Button variant={viewMode === 'team' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('team')}>Team</Button>
-            </div>
+          <div className={cn("flex items-center space-x-1 bg-muted/20 rounded-lg p-1", compact && "scale-90")}>
+            <Button variant={viewMode === 'individual' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('individual')}>Individual</Button>
+            <Button variant={viewMode === 'team' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('team')}>Team</Button>
+          </div>
         )}
       </div>
       <div className="flex-1 overflow-y-auto">

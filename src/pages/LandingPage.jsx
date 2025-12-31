@@ -7,6 +7,9 @@ import Icon from '../components/AppIcon';
 import { MobileOptimizer } from '../components/ui/MobileOptimizer';
 import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
 import { cn } from '../utils/cn';
+import { BentoGrid, BentoGridItem } from '../components/landing/BentoGrid';
+import { ProductMockup } from '../components/landing/ProductMockup';
+import { StatsTicker } from '../components/landing/StatsTicker';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -15,10 +18,9 @@ const LandingPage = () => {
         <MobileOptimizer>
             <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
                 {/* Header - Mobile Optimized */}
-                <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gradient-to-r from-zinc-50/90 via-white/95 to-zinc-100/90 dark:from-zinc-950/90 dark:via-zinc-900/95 dark:to-zinc-950/90 border-b border-zinc-200/50 dark:border-zinc-700/50 shadow-lg shadow-purple-500/5 dark:shadow-purple-500/10">
-                    {/* Purple gradient background overlay - Simplified for mobile */}
-                    <div className="absolute inset-0 bg-purple-950/5 dark:bg-purple-950/10" />
-                    
+                {/* Header - Mobile Optimized */}
+                <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/95 border-b border-border shadow-sm">
+
                     <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center justify-between h-16 sm:h-16">
                             {/* Logo/Brand - Mobile Optimized */}
@@ -30,29 +32,26 @@ const LandingPage = () => {
                                 onClick={() => navigate('/')}
                                 aria-label="Direktor home"
                             >
-                                {/* Logo background with gradient - Simplified */}
-                                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-500 rounded-lg opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-                                
-                                {/* Logo text with gradient */}
-                                <span className="relative bg-gradient-to-r from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-500 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                                {/* Logo - Monochrome */}
+                                <span className="relative text-foreground font-bold tracking-tight group-hover:opacity-80 transition-opacity duration-300">
                                     Direktor
                                 </span>
                             </motion.button>
-                            
+
                             {/* Right side actions - Mobile Optimized */}
                             <motion.div
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 className="flex items-center gap-2 sm:gap-4"
                             >
-                                <Button 
-                                    variant="ghost" 
+                                <Button
+                                    variant="ghost"
                                     onClick={() => navigate('/login')}
                                     className="hover:text-primary min-h-[44px] px-3 sm:px-4 text-sm sm:text-base"
                                 >
                                     Login
                                 </Button>
-                                <Button 
+                                <Button
                                     onClick={() => navigate('/signup')}
                                     className="shadow-lg hover:shadow-xl transition-shadow min-h-[44px] px-3 sm:px-4 text-sm sm:text-base"
                                 >
@@ -64,53 +63,73 @@ const LandingPage = () => {
                 </header>
 
                 {/* Hero Section - Mobile Optimized */}
+                {/* Hero Section - Mobile Optimized */}
                 <HeroSection
-                    title="Run World-Class Scrabble Tournaments — with Direktor."
+                    title="Direktor"
                     subtitle={{
-                        regular: "Powerful. Professional. ",
-                        gradient: "Effortless."
+                        regular: "World-Class Scrabble.",
+                        gradient: "Simplifed."
                     }}
-                    description="Join tournament directors worldwide who trust Direktor for their competitive Scrabble events. Advanced algorithms, real-time updates, and professional-grade features — all in one platform."
-                    ctaText="Sign Up"
+                    description="The professional standard for tournament management. Advanced pairings, real-time standings, and automated reporting in one unified platform."
+                    ctaText="Start Now"
                     onCtaClick={() => navigate('/signup')}
                     gridOptions={{
                         angle: 65,
-                        opacity: 0.2, // Reduced opacity for mobile performance
-                        cellSize: 60, // Increased cell size for mobile
+                        opacity: 0.15,
+                        cellSize: 50,
                         lightLineColor: "#e5e7eb",
-                        darkLineColor: "#374151"
+                        darkLineColor: "#27272a"
                     }}
                     className="pt-16 sm:pt-20"
                 />
 
-                {/* Feature Highlights */}
-                <section className="py-16 sm:py-20">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                            {[
-                                { title: "AI-Powered Pairings", icon: "Network" },
-                                { title: "Live Standings", icon: "BarChart3" },
-                                { title: "Gibsonization", icon: "Settings" },
-                                { title: "Professional Results", icon: "FileText" }
-                            ].map((feature, index) => (
-                                <motion.div
-                                    key={index}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: index * 0.1 }}
-                                    className="text-center p-4 sm:p-6 bg-card/50 backdrop-blur-sm rounded-xl border border-border/20 hover:bg-card/80 transition-all duration-300 group"
-                                >
-                                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 group-hover:bg-primary/20 transition-colors">
-                                        <Icon name={feature.icon} size={24} className="text-primary" />
-                                    </div>
-                                    <h3 className="text-sm sm:text-base font-medium text-foreground group-hover:text-primary transition-colors">
-                                        {feature.title}
-                                    </h3>
-                                </motion.div>
-                            ))}
-                        </div>
+                {/* 3D Product Mockup */}
+                <section className="px-4 -mt-20 relative z-10 mb-24">
+                    <ProductMockup />
+                </section>
+
+                {/* Stats Ticker */}
+                <StatsTicker />
+
+                {/* Feature Highlights - Bento Grid */}
+                <section className="py-32 bg-background relative border-t border-border">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 text-center">
+                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6">Everything you need to run a tournament.</h2>
+                        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            Built by directors, for directors. Every feature is designed to save you time and reduce errors.
+                        </p>
                     </div>
+
+                    <BentoGrid>
+                        <BentoGridItem
+                            title="AI-Powered Pairings"
+                            description="Automatically generate balanced pairings using Swiss or Round Robin algorithms. Supports Gibsonization and class avoidance."
+                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center"><Icon name="Network" className="w-16 h-16 opacity-10" /></div>}
+                            icon={<Icon name="Network" className="h-4 w-4 text-neutral-500" />}
+                            className="md:col-span-2"
+                        />
+                        <BentoGridItem
+                            title="Real-Time Standings"
+                            description="Live leaderboards that update instantly as results are entered. Shareable links for players and spectators."
+                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center"><Icon name="BarChart3" className="w-16 h-16 opacity-10" /></div>}
+                            icon={<Icon name="BarChart3" className="h-4 w-4 text-neutral-500" />}
+                            className="md:col-span-1"
+                        />
+                        <BentoGridItem
+                            title="Player Management"
+                            description="Comprehensive profiles, rating history, and automated conflict detection. Import rosters via CSV or NASPA ID."
+                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center"><Icon name="Users" className="w-16 h-16 opacity-10" /></div>}
+                            icon={<Icon name="Users" className="h-4 w-4 text-neutral-500" />}
+                            className="md:col-span-1"
+                        />
+                        <BentoGridItem
+                            title="Automated Reporting"
+                            description="One-click submission to rating agencies. Detailed statistical breakdowns and prize distribution calculation."
+                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-50 dark:from-neutral-900 dark:to-neutral-800 flex items-center justify-center"><Icon name="FileText" className="w-16 h-16 opacity-10" /></div>}
+                            icon={<Icon name="FileText" className="h-4 w-4 text-neutral-500" />}
+                            className="md:col-span-2"
+                        />
+                    </BentoGrid>
                 </section>
 
                 {/* Footer - Mobile Optimized */}
@@ -124,15 +143,15 @@ const LandingPage = () => {
                                 viewport={{ once: true, margin: "-50px" }}
                                 className="mb-6 sm:mb-8"
                             >
-                                <div className="text-2xl sm:text-3xl font-heading font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-3 sm:mb-4">
+                                <div className="text-2xl sm:text-3xl font-heading font-bold text-foreground mb-3 sm:mb-4">
                                     Direktor
                                 </div>
-                                <p className="text-gray-300 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto px-4">
-                                    Professional tournament management software built specifically for the Scrabble community. 
+                                <p className="text-muted-foreground text-base sm:text-lg leading-relaxed max-w-2xl mx-auto px-4">
+                                    Professional tournament management software built specifically for the Scrabble community.
                                     Streamline your events with powerful automation tools.
                                 </p>
                             </motion.div>
-                            
+
                             {/* Quick links - Mobile Optimized */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -147,14 +166,14 @@ const LandingPage = () => {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true, margin: "-50px" }}
                                         transition={{ delay: index * 0.1 }}
-                                        className="text-gray-300 hover:text-white transition-colors duration-300 hover:scale-105 transform min-h-[44px] px-3 py-2 rounded-lg touch-target"
+                                        className="text-muted-foreground hover:text-foreground transition-colors duration-300 hover:scale-105 transform min-h-[44px] px-3 py-2 rounded-lg touch-target"
                                     >
                                         {link}
                                     </motion.button>
                                 ))}
                             </motion.div>
                         </div>
-                        
+
                         {/* Bottom section */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}

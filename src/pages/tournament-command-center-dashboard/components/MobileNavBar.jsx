@@ -15,28 +15,30 @@ const MobileNavBar = ({ tournamentInfo, ladderConfig }) => {
     const baseNavItems = [
         { label: 'Dashboard', path: `/tournament/${tournamentSlug}/dashboard`, icon: 'LayoutDashboard' },
         { label: 'Players', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
-        { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
+        { label: 'Matchups', path: `/tournament/${tournamentSlug}/matchups`, icon: 'Swords' },
+
         { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
         { label: 'Theme', action: toggleTheme, icon: isDark ? 'Sun' : 'Moon', isThemeToggle: true },
     ];
 
     // Add Wall Chart only for individual or team modes (not ladder system)
-    const shouldShowWallChart = tournamentInfo?.type === 'individual' || 
-                               tournamentInfo?.type === 'team';
-    
-    const navItems = shouldShowWallChart 
+    const shouldShowWallChart = tournamentInfo?.type === 'individual' ||
+        tournamentInfo?.type === 'team';
+
+    const navItems = shouldShowWallChart
         ? [
             ...baseNavItems.slice(0, 4), // Dashboard, Players, Pairings, Settings
-            { label: 'Wall Chart', path: `/tournament/${tournamentSlug}/wall-chart`, icon: 'Table' },
+            { label: 'Cross-Table', path: `/tournament/${tournamentSlug}/cross-table`, icon: 'Table' },
+
             baseNavItems[4] // Theme toggle
-          ]
+        ]
         : baseNavItems;
 
     return (
         <div className="fixed bottom-0 left-0 right-0 h-14 bg-background/95 backdrop-blur-xl border-t border-hero-purple/20 z-40 safe-area-inset-bottom">
             {/* Top border with subtle gradient */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-hero-purple/20 to-transparent" />
-            
+
             <div className="grid grid-cols-5 h-full px-3">
                 {navItems.map((item, index) => {
                     const isActive = !item.isThemeToggle && location.pathname === item.path;
@@ -46,8 +48,8 @@ const MobileNavBar = ({ tournamentInfo, ladderConfig }) => {
                             onClick={() => item.isThemeToggle ? item.action() : navigate(item.path)}
                             className={cn(
                                 "flex flex-col items-center justify-center space-y-1 text-xs font-medium transition-all duration-200 touch-target relative group",
-                                isActive 
-                                    ? "text-hero-primary" 
+                                isActive
+                                    ? "text-hero-primary"
                                     : "text-hero-secondary hover:text-hero-primary"
                             )}
                             whileTap={{ scale: 0.95 }}
@@ -62,24 +64,24 @@ const MobileNavBar = ({ tournamentInfo, ladderConfig }) => {
                                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                 />
                             )}
-                            
+
                             {/* Icon with enhanced visual feedback */}
                             <div className={cn(
                                 "relative p-2 rounded-xl transition-all duration-200",
-                                isActive 
-                                    ? "bg-hero-purple/20 text-hero-primary" 
+                                isActive
+                                    ? "bg-hero-purple/20 text-hero-primary"
                                     : "group-hover:bg-hero-purple/10"
                             )}>
-                                <Icon 
-                                    name={item.icon} 
-                                    size={22} 
+                                <Icon
+                                    name={item.icon}
+                                    size={22}
                                     className={cn(
                                         "transition-all duration-200",
                                         isActive ? "scale-110" : "group-hover:scale-105"
                                     )}
                                 />
                             </div>
-                            
+
                             {/* Label with better typography */}
                             <span className={cn(
                                 "text-xs font-medium transition-colors duration-200",
@@ -87,7 +89,7 @@ const MobileNavBar = ({ tournamentInfo, ladderConfig }) => {
                             )}>
                                 {item.label}
                             </span>
-                            
+
                             {/* Ripple effect on tap */}
                             <motion.div
                                 className="absolute inset-0 rounded-lg bg-hero-purple/20"
@@ -99,7 +101,7 @@ const MobileNavBar = ({ tournamentInfo, ladderConfig }) => {
                     );
                 })}
             </div>
-            
+
             {/* Bottom safe area for devices with home indicators */}
             <div className="h-1 bg-background/95" />
         </div>

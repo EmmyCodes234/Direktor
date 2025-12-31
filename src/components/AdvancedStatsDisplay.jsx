@@ -6,22 +6,22 @@ import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-s
 import { cn } from '../utils/cn';
 
 const StatItem = ({ icon, label, value, subtext, index }) => (
-    <motion.div 
+    <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1 }}
     >
-        <Card variant="glass" padding="md" className="touch-target hover:shadow-md transition-all duration-200">
-            <CardContent className="p-0">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 h-full">
+            <div className="p-0">
                 <div className={cn(
                     "flex flex-col sm:flex-row sm:items-center",
                     "space-y-3 sm:space-y-0 sm:space-x-3"
                 )}>
                     <div className={cn(
-                        "flex items-center justify-center w-12 h-12 rounded-xl bg-primary/20",
+                        "flex items-center justify-center w-12 h-12 rounded-xl bg-secondary border border-border/50",
                         "mx-auto sm:mx-0"
                     )}>
-                        <Icon name={icon} size={24} className="text-primary" />
+                        <Icon name={icon} size={24} className="text-foreground" />
                     </div>
                     <div className="text-center sm:text-left">
                         <p className={cn(
@@ -36,8 +36,8 @@ const StatItem = ({ icon, label, value, subtext, index }) => (
                         )}
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     </motion.div>
 );
 
@@ -65,11 +65,11 @@ const AdvancedStatsDisplay = ({ results, players }) => {
             const score2 = r.score2 !== undefined ? r.score2 : (r.player2_score || 0);
             const player1Name = r.player1_name || 'Player 1';
             const player2Name = r.player2_name || 'Player 2';
-            
+
             // Find players by ID for rating information
             const player1 = players.find(p => p.id === r.player1_id || p.player_id === r.player1_id);
             const player2 = players.find(p => p.id === r.player2_id || p.player_id === r.player2_id);
-            
+
             // Handle case where player IDs might be strings
             if (!player1 && typeof r.player1_id === 'string') {
                 const player1Alt = players.find(p => p.id === parseInt(r.player1_id) || p.player_id === parseInt(r.player1_id));
@@ -79,7 +79,7 @@ const AdvancedStatsDisplay = ({ results, players }) => {
                 const player2Alt = players.find(p => p.id === parseInt(r.player2_id) || p.player_id === parseInt(r.player2_id));
                 if (player2Alt) player2 = player2Alt;
             }
-            
+
             // High/Low Game
             if (score1 > highGame.value) highGame = { value: score1, player: player1Name, opponent: player2Name, score: `${score1}-${score2}` };
             if (score2 > highGame.value) highGame = { value: score2, player: player2Name, opponent: player1Name, score: `${score2}-${score1}` };
@@ -89,7 +89,7 @@ const AdvancedStatsDisplay = ({ results, players }) => {
             // High Combined Score
             const combined = score1 + score2;
             if (combined > highCombined.value) highCombined = { value: combined, player1: player1Name, player2: player2Name, score: `${score1}-${score2}` };
-            
+
             // Largest Blowout
             const spread = Math.abs(score1 - score2);
             if (spread > largestBlowout.value) {

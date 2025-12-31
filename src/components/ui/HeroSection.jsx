@@ -13,8 +13,8 @@ const RetroGrid = ({
         "--grid-angle": `${angle}deg`,
         "--cell-size": `${cellSize}px`,
         "--opacity": opacity,
-        "--light-line": lightLineColor,
-        "--dark-line": darkLineColor,
+        "--light-line": "#e5e7eb",
+        "--dark-line": "#27272a",
     };
 
     return (
@@ -58,47 +58,44 @@ const HeroSection = React.forwardRef(({
     return (
         <div className={cn("relative", className)} ref={ref} {...props}>
             {/* Simplified background for mobile performance */}
-            <div className="absolute top-0 z-[0] h-screen w-screen bg-hero-purple/5 dark:bg-hero-purple/10" />
+            <div className="absolute top-0 z-[0] h-screen w-screen bg-background border-b border-border/40" />
             <section className="relative max-w-full mx-auto z-1">
                 <RetroGrid {...gridOptions} />
-                <div className="max-w-screen-xl z-10 mx-auto px-4 py-20 sm:py-28 gap-8 sm:gap-12 md:px-8">
-                    <div className="space-y-4 sm:space-y-5 max-w-3xl leading-tight lg:leading-normal mx-auto text-center">
-                        <h1 className="text-xs sm:text-sm text-hero-secondary group font-geist mx-auto px-3 sm:px-5 py-2 bg-hero-bg-gradient border-[1px] sm:border-[2px] border-hero-light/5 dark:border-hero-dark/5 rounded-2xl sm:rounded-3xl w-fit">
-                            {title}
-                            <ChevronRight className="inline w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 group-hover:translate-x-1 duration-300" />
-                        </h1>
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tighter font-geist text-hero-primary mx-auto px-4">
+                <div className="max-w-screen-xl z-20 mx-auto px-4 py-28 sm:py-32 md:px-8">
+                    <div className="max-w-4xl mx-auto text-center space-y-8">
+                        {/* Title */}
+                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter text-foreground leading-[0.9] text-balance">
                             {subtitle.regular}
-                            <span className="text-hero-gradient">
+                            <span className="text-foreground/40 block mt-2">
                                 {subtitle.gradient}
                             </span>
-                        </h2>
-                        <p className="max-w-2xl mx-auto text-hero-secondary text-sm sm:text-base px-4">
+                        </h1>
+
+                        {/* Description */}
+                        <p className="max-w-2xl mx-auto text-muted-foreground text-lg sm:text-xl md:text-2xl leading-relaxed font-light">
                             {description}
                         </p>
-                        <div className="items-center justify-center gap-x-3 space-y-3 sm:flex sm:space-y-0 px-4">
-                            <span className="relative inline-block overflow-hidden rounded-full p-[1px] sm:p-[1.5px]">
-                                <span className="absolute inset-[-500%] sm:inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
-                                <div className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-white dark:bg-gray-950 text-xs font-medium backdrop-blur-3xl">
-                                    <button
-                                        onClick={onCtaClick}
-                                        className="hero-button-primary inline-flex rounded-full text-center group items-center w-full justify-center transition-all sm:w-auto py-3 sm:py-4 px-6 sm:px-10 min-h-[44px] text-sm sm:text-base"
-                                    >
-                                        {ctaText}
-                                    </button>
-                                </div>
-                            </span>
+
+                        {/* CTAs */}
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+                            <button
+                                onClick={onCtaClick}
+                                className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-foreground px-10 font-medium text-background transition-all duration-300 hover:w-full sm:hover:w-auto hover:scale-105 hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2"
+                            >
+                                <span className="mr-2 text-lg">{ctaText}</span>
+                                <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+                            </button>
+
                             {secondaryCtaText && onSecondaryCtaClick && (
                                 <button
                                     onClick={onSecondaryCtaClick}
-                                    className="hero-button-secondary inline-flex rounded-full text-center group items-center w-full justify-center transition-all sm:w-auto py-3 sm:py-4 px-6 sm:px-10 min-h-[44px] text-sm sm:text-base"
+                                    className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-transparent px-10 text-lg font-medium text-foreground transition-all duration-300 hover:bg-secondary/50"
                                 >
                                     {secondaryCtaText}
                                 </button>
                             )}
                         </div>
                     </div>
-
                 </div>
             </section>
         </div>

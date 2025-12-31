@@ -67,169 +67,99 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Custom gradient utilities */
-.gradient-primary {
-  background: linear-gradient(135deg, hsl(var(--gradient-from)), hsl(var(--gradient-via)), hsl(var(--gradient-to)));
-}
-
-.gradient-border {
-  background: linear-gradient(135deg, hsl(var(--gradient-from)), hsl(var(--gradient-via)), hsl(var(--gradient-to)));
-  padding: 1px;
-}
-
-.gradient-border>* {
-  background: hsl(var(--background));
-  border-radius: inherit;
-}
-
-/* Enhanced glass morphism effect */
-.glass-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.dark .glass-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Glowing text effect */
-.text-glow {
-  text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
-}
-
-/* Enhanced shadows with glow */
-.shadow-glow {
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-}
-
-.shadow-glow-lg {
-  box-shadow: 0 0 40px hsl(var(--primary) / 0.4);
-}
-
-.shadow-glow-xl {
-  box-shadow: 0 0 60px hsl(var(--primary) / 0.5);
-}
+/* Custom utilities */
 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    /* Pure White */
+    --foreground: 0 0% 0%;
+    /* Pure Black */
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    
-    /* Hero Section Extracted Colors - Primary Brand Colors */
-    --primary: 262.1 83.3% 57.8%; /* Purple-600 */
-    --primary-foreground: 210 20% 98%;
-    --primary-light: 270 95% 75%; /* Purple-300 */
-    --primary-dark: 262.1 83.3% 45%; /* Purple-700 */
-    
-    /* Hero Section Gradient Colors */
-    --gradient-purple: 262.1 83.3% 57.8%; /* Purple-600 */
-    --gradient-pink: 330 81% 60%; /* Pink-500 */
-    --gradient-orange: 25 95% 53%; /* Orange-400 */
-    
-    /* Hero Section Text Colors */
-    --text-primary: 224 71.4% 4.1%; /* Dark text */
-    --text-secondary: 220 8.9% 46.1%; /* Gray-600 */
-    --text-muted: 220 8.9% 46.1%; /* Gray-600 */
-    --text-light: 220 13% 91%; /* Gray-300 */
-    
-    /* Hero Section Background Colors */
-    --bg-zinc-light: 220 8.9% 46.1%; /* Zinc-400 */
-    --bg-gray-light: 220 8.9% 46.1%; /* Gray-400 */
-    --bg-purple-accent: 262.1 83.3% 57.8%; /* Purple-600 */
-    
-    /* Hero Section Border Colors */
-    --border-light: 0 0% 0%; /* Black */
-    --border-dark: 0 0% 100%; /* White */
-    --border-purple: 262.1 83.3% 57.8%; /* Purple-600 */
-    
-    /* Secondary Colors */
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Monochrome Primary */
+    --primary: 0 0% 0%;
+    /* Black */
+    --primary-foreground: 0 0% 100%;
+    /* White */
+    --primary-light: 0 0% 20%;
+    --primary-dark: 0 0% 0%;
+
+    /* Secondary & Accents */
+    --secondary: 0 0% 96%;
+    /* Very Light Gray */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
+
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 262.1 83.3% 57.8%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 90%;
+    /* Light Gray Border */
+    --input: 0 0% 90%;
+    --ring: 0 0% 0%;
+    /* Black Ring */
+
     --radius: 0.75rem;
 
-    /* Enhanced Gradient Colors */
-    --gradient-from: 262.1 83.3% 57.8%; /* Purple-600 */
-    --gradient-via: 330 81% 60%; /* Pink-500 */
-    --gradient-to: 25 95% 53%; /* Orange-400 */
-    
-    /* Hero Section Specific Gradients */
-    --hero-gradient-light: linear-gradient(to right, hsl(262.1 83.3% 57.8%), hsl(330 81% 60%));
-    --hero-gradient-dark: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-    --hero-bg-gradient: linear-gradient(135deg, hsl(220 8.9% 46.1% / 0.2), hsl(220 8.9% 46.1% / 0.1), transparent);
+    /* Removed Colorful Gradients */
+    --gradient-from: 0 0% 0%;
+    --gradient-via: 0 0% 20%;
+    --gradient-to: 0 0% 40%;
+
+    --hero-gradient-light: linear-gradient(to right, #000000, #333333);
+    --hero-gradient-dark: linear-gradient(to right, #ffffff, #cccccc);
+    --hero-bg-gradient: linear-gradient(135deg, rgba(0, 0, 0, 0.03), transparent);
   }
 
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    
-    /* Hero Section Extracted Colors - Dark Mode */
-    --primary: 270 95% 75%; /* Purple-300 */
-    --primary-foreground: 210 20% 98%;
-    --primary-light: 270 95% 85%; /* Purple-200 */
-    --primary-dark: 270 95% 65%; /* Purple-400 */
-    
-    /* Hero Section Gradient Colors - Dark Mode */
-    --gradient-purple: 270 95% 75%; /* Purple-300 */
-    --gradient-pink: 330 81% 60%; /* Pink-500 */
-    --gradient-orange: 25 95% 53%; /* Orange-400 */
-    
-    /* Hero Section Text Colors - Dark Mode */
-    --text-primary: 210 20% 98%; /* Light text */
-    --text-secondary: 217.9 10.6% 64.9%; /* Gray-400 */
-    --text-muted: 217.9 10.6% 64.9%; /* Gray-400 */
-    --text-light: 215 20.2% 65.1%; /* Gray-500 */
-    
-    /* Hero Section Background Colors - Dark Mode */
-    --bg-zinc-light: 217.9 10.6% 64.9%; /* Gray-400 */
-    --bg-gray-light: 217.9 10.6% 64.9%; /* Gray-400 */
-    --bg-purple-accent: 270 95% 75%; /* Purple-300 */
-    
-    /* Hero Section Border Colors - Dark Mode */
-    --border-light: 0 0% 100%; /* White */
-    --border-dark: 0 0% 0%; /* Black */
-    --border-purple: 270 95% 75%; /* Purple-300 */
-    
-    /* Secondary Colors - Dark Mode */
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
+    --background: 0 0% 0%;
+    /* Pure Black */
+    --foreground: 0 0% 100%;
+    /* Pure White */
+    --card: 0 0% 3%;
+    /* Very Dark Gray for Cards to distinguish from pure black bg */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Monochrome Primary - Dark Mode */
+    --primary: 0 0% 100%;
+    /* White */
+    --primary-foreground: 0 0% 0%;
+    /* Black */
+    --primary-light: 0 0% 90%;
+    --primary-dark: 0 0% 80%;
+
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 10%;
+    --accent-foreground: 0 0% 100%;
+
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 224.3 76.3% 94.1%;
-    
-    /* Enhanced Gradient Colors - Dark Mode */
-    --gradient-from: 270 95% 75%; /* Purple-300 */
-    --gradient-via: 330 81% 60%; /* Pink-500 */
-    --gradient-to: 25 95% 53%; /* Orange-400 */
-    
-    /* Hero Section Specific Gradients - Dark Mode */
-    --hero-gradient-light: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-    --hero-gradient-dark: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-    --hero-bg-gradient: linear-gradient(135deg, hsl(217.9 10.6% 64.9% / 0.2), hsl(217.9 10.6% 64.9% / 0.1), transparent);
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 15%;
+    /* Dark Gray Border */
+    --input: 0 0% 15%;
+    --ring: 0 0% 100%;
+    /* White Ring */
+
+    --gradient-from: 0 0% 100%;
+    --gradient-via: 0 0% 80%;
+    --gradient-to: 0 0% 60%;
+
+    --hero-gradient-light: linear-gradient(to right, #ffffff, #cccccc);
+    --hero-gradient-dark: linear-gradient(to right, #ffffff, #cccccc);
+    --hero-bg-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent);
   }
 
   :root {
@@ -488,50 +418,60 @@
       --animation-duration: 0.2s;
       --animation-timing: ease-out;
     }
-    
+
     /* Prevent mobile layout shifts */
     * {
       box-sizing: border-box;
     }
-    
+
     /* Optimize images for mobile */
     img {
       max-width: 100%;
       height: auto;
     }
-    
+
     /* Prevent mobile text wrapping issues */
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
       word-wrap: break-word;
       overflow-wrap: break-word;
     }
-    
+
     /* Mobile button optimizations */
-    button, [role="button"] {
+    button,
+    [role="button"] {
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    
+
     /* Mobile input optimizations */
-    input, textarea, select {
-      font-size: 16px; /* Prevent iOS zoom */
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+      /* Prevent iOS zoom */
       -webkit-appearance: none;
+      appearance: none;
       border-radius: 0;
     }
-    
+
     /* Mobile scroll optimizations */
     .mobile-scroll {
       -webkit-overflow-scrolling: touch;
       scroll-behavior: smooth;
       overscroll-behavior: contain;
     }
-    
+
     /* Mobile animation optimizations */
     .mobile-reduce-motion {
       animation: none !important;
       transition: none !important;
     }
-    
+
     /* Mobile layout stability */
     .mobile-stable {
       contain: layout style paint;
@@ -539,7 +479,9 @@
   }
 
   /* High DPI mobile optimizations */
-  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  @media (-webkit-min-device-pixel-ratio: 2),
+  (min-resolution: 192dpi) {
+
     /* Optimize for retina displays */
     .mobile-retina {
       image-rendering: -webkit-optimize-contrast;
@@ -552,17 +494,17 @@
     .mobile-portrait-only {
       display: block;
     }
-    
+
     .mobile-landscape-only {
       display: none;
     }
   }
-  
+
   @media (orientation: landscape) {
     .mobile-portrait-only {
       display: none;
     }
-    
+
     .mobile-landscape-only {
       display: block;
     }
@@ -907,1240 +849,1238 @@
   .text-hero-primary {
     color: hsl(var(--text-primary));
   }
-  
+
   .text-hero-secondary {
     color: hsl(var(--text-secondary));
   }
-  
+
   .text-hero-muted {
     color: hsl(var(--text-muted));
   }
-  
+
   .text-hero-light {
     color: hsl(var(--text-light));
   }
-  
+
   /* Hero Section Text Utilities with Opacity Variants */
   .text-hero-primary\/80 {
     color: hsl(var(--text-primary) / 0.8);
   }
-  
+
   .text-hero-secondary\/50 {
     color: hsl(var(--text-secondary) / 0.5);
   }
-  
+
   /* Hero Section Orange Text (for status badges) */
   .text-hero-orange {
     color: hsl(var(--gradient-orange));
   }
-  
+
   /* Hero Section Status Text Colors */
   .text-success {
     color: hsl(var(--success));
   }
-  
+
   .text-warning {
     color: hsl(var(--warning));
   }
-  
+
   .text-error {
     color: hsl(var(--error));
   }
-  
+
   /* Hero Section Muted Foreground Text */
   .text-muted-foreground {
     color: hsl(var(--muted-foreground));
   }
-  
+
   /* Hero Section Foreground Text */
   .text-foreground {
     color: hsl(var(--foreground));
   }
-  
+
   /* Hero Section Destructive Text */
   .text-destructive {
     color: hsl(var(--destructive));
   }
-  
+
   /* Hero Section White Text */
   .text-white {
     color: hsl(0 0% 100%);
   }
-  
+
   /* Hero Section Status Background Colors */
   .bg-success {
     background-color: hsl(var(--success));
   }
-  
+
   .bg-success\/20 {
     background-color: hsl(var(--success) / 0.2);
   }
-  
+
   .bg-warning {
     background-color: hsl(var(--warning));
   }
-  
+
   .bg-warning\/20 {
     background-color: hsl(var(--warning) / 0.2);
   }
-  
+
   .bg-error {
     background-color: hsl(var(--error));
   }
-  
+
   .bg-error\/20 {
     background-color: hsl(var(--error) / 0.2);
   }
-  
+
   /* Hero Section Status Border Colors */
   .border-success {
     border-color: hsl(var(--success));
   }
-  
+
   .border-success\/30 {
     border-color: hsl(var(--success) / 0.3);
   }
-  
+
   .border-warning {
     border-color: hsl(var(--warning));
   }
-  
+
   .border-warning\/30 {
     border-color: hsl(var(--warning) / 0.3);
   }
-  
+
   .border-error {
     border-color: hsl(var(--error));
   }
-  
+
   .border-error\/30 {
     border-color: hsl(var(--error) / 0.3);
   }
-  
+
   /* Hero Section Border Utilities */
   .border-border {
     border-color: hsl(var(--border));
   }
-  
+
   .border-border\/10 {
     border-color: hsl(var(--border) / 0.1);
   }
-  
+
   .border-border\/20 {
     border-color: hsl(var(--border) / 0.2);
   }
-  
+
   .border-border\/30 {
     border-color: hsl(var(--border) / 0.3);
   }
-  
+
   .border-border\/50 {
     border-color: hsl(var(--border) / 0.5);
   }
-  
+
   /* Hero Section Border Width Utilities */
   .border-0 {
     border-width: 0px;
   }
-  
+
   /* Hero Section Focus Ring Utilities */
   .focus\:ring-2:focus {
     --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
     --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
     box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   }
-  
+
   .focus\:ring-1:focus {
     --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-width);
     --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
     box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   }
-  
+
   /* Hero Section Focus Outline Utilities */
   .focus\:outline-none:focus {
     outline: 2px solid transparent;
     outline-offset: 2px;
   }
-  
+
   /* Hero Section Focus Ring Color Utilities */
   .focus\:ring-hero-purple\/20:focus {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.2);
   }
-  
+
   /* Hero Section Ring Utilities with Opacity Variants */
   .ring-hero-purple {
     --tw-ring-color: hsl(var(--bg-purple-accent));
   }
-  
+
   .ring-hero-purple\/10 {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.1);
   }
-  
+
   .ring-hero-purple\/20 {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.2);
   }
-  
+
   .ring-hero-purple\/30 {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.3);
   }
-  
+
   .ring-hero-purple\/40 {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.4);
   }
-  
+
   .ring-hero-purple\/50 {
     --tw-ring-color: hsl(var(--bg-purple-accent) / 0.5);
   }
-  
+
   /* Hero Section Focus Border Color Utilities */
   .focus\:border-hero-purple:focus {
     border-color: hsl(var(--bg-purple-accent));
   }
-  
+
   /* Hero Section Secondary Border Utilities with Opacity Variants */
   .border-hero-secondary {
     border-color: hsl(var(--text-secondary));
   }
-  
+
   .border-hero-secondary\/10 {
     border-color: hsl(var(--text-secondary) / 0.1);
   }
-  
+
   .border-hero-secondary\/20 {
     border-color: hsl(var(--text-secondary) / 0.2);
   }
-  
+
   .border-hero-secondary\/30 {
     border-color: hsl(var(--text-secondary) / 0.3);
   }
-  
+
   .border-hero-secondary\/40 {
     border-color: hsl(var(--text-secondary) / 0.4);
   }
-  
+
   .border-hero-secondary\/50 {
     border-color: hsl(var(--text-secondary) / 0.5);
   }
-  
+
   /* Hero Section Card Background */
   .bg-card {
     background-color: hsl(var(--card));
   }
-  
+
   .bg-card\/80 {
     background-color: hsl(var(--card) / 0.8);
   }
-  
+
   .bg-card\/90 {
     background-color: hsl(var(--card) / 0.9);
   }
-  
+
   .bg-card\/95 {
     background-color: hsl(var(--card) / 0.95);
   }
-  
+
   /* Hero Section Background */
   .bg-background {
     background-color: hsl(var(--background));
   }
-  
+
   .bg-background\/50 {
     background-color: hsl(var(--background) / 0.5);
   }
-  
+
   .bg-background\/95 {
     background-color: hsl(var(--background) / 0.95);
   }
-  
+
   /* Hero Section White Background */
   .bg-white {
     background-color: hsl(0 0% 100%);
   }
-  
+
   .bg-white\/95 {
     background-color: hsl(0 0% 100% / 0.95);
   }
-  
+
   /* Hero Section Transparent Background */
   .bg-transparent {
     background-color: transparent;
   }
-  
+
   /* Hero Section Muted Background */
   .bg-muted {
     background-color: hsl(var(--muted));
   }
-  
+
   .bg-muted\/5 {
     background-color: hsl(var(--muted) / 0.05);
   }
-  
+
   .bg-muted\/10 {
     background-color: hsl(var(--muted) / 0.1);
   }
-  
+
   .bg-muted\/20 {
     background-color: hsl(var(--muted) / 0.2);
   }
-  
+
   .bg-muted\/30 {
     background-color: hsl(var(--muted) / 0.3);
   }
-  
+
   .bg-muted\/40 {
     background-color: hsl(var(--muted) / 0.4);
   }
-  
+
   .bg-muted\/50 {
     background-color: hsl(var(--muted) / 0.5);
   }
-  
+
   .bg-muted\/60 {
     background-color: hsl(var(--muted) / 0.6);
   }
-  
+
   .bg-muted\/80 {
     background-color: hsl(var(--muted) / 0.8);
   }
-  
+
   /* Hero Section Zinc Backgrounds */
   .bg-zinc-50 {
     background-color: hsl(0 0% 98%);
   }
-  
+
   .bg-zinc-50\/90 {
     background-color: hsl(0 0% 98% / 0.9);
   }
-  
+
   .bg-zinc-50\/95 {
     background-color: hsl(0 0% 98% / 0.95);
   }
-  
+
   .bg-zinc-100 {
     background-color: hsl(0 0% 96%);
   }
-  
+
   .bg-zinc-100\/95 {
     background-color: hsl(0 0% 96% / 0.95);
   }
-  
+
   .bg-zinc-900 {
     background-color: hsl(0 0% 24%);
   }
-  
+
   .bg-zinc-900\/90 {
     background-color: hsl(0 0% 24% / 0.9);
   }
-  
+
   .bg-zinc-900\/95 {
     background-color: hsl(0 0% 24% / 0.95);
   }
-  
+
   .bg-zinc-950 {
     background-color: hsl(0 0% 9%);
   }
-  
+
   .bg-zinc-950\/90 {
     background-color: hsl(0 0% 9% / 0.9);
   }
-  
+
   .bg-zinc-950\/95 {
     background-color: hsl(0 0% 9% / 0.95);
   }
-  
+
   /* Hero Section Zinc 800 Background */
   .bg-zinc-800 {
     background-color: hsl(0 0% 39%);
   }
-  
+
   .bg-zinc-800\/95 {
     background-color: hsl(0 0% 39% / 0.95);
   }
-  
+
   /* Hero Section Zinc 700 Background */
   .bg-zinc-700 {
     background-color: hsl(0 0% 45%);
   }
-  
+
   .bg-zinc-700\/50 {
     background-color: hsl(0 0% 45% / 0.5);
   }
-  
+
   /* Hero Section Zinc 200 Background */
   .bg-zinc-200 {
     background-color: hsl(0 0% 84%);
   }
-  
+
   .bg-zinc-200\/50 {
     background-color: hsl(0 0% 84% / 0.5);
   }
-  
+
   /* Hero Section Zinc 300 Background */
   .bg-zinc-300 {
     background-color: hsl(0 0% 82%);
   }
-  
+
   .bg-zinc-300\/20 {
     background-color: hsl(0 0% 82% / 0.2);
   }
-  
+
   .bg-zinc-300\/30 {
     background-color: hsl(0 0% 82% / 0.3);
   }
-  
+
   /* Hero Section Zinc 400 Background */
   .bg-zinc-400 {
     background-color: hsl(0 0% 74%);
   }
-  
+
   .bg-zinc-400\/10 {
     background-color: hsl(0 0% 74% / 0.1);
   }
-  
+
   .bg-zinc-400\/20 {
     background-color: hsl(0 0% 74% / 0.2);
   }
-  
+
   /* Hero Section Zinc 600 Background */
   .bg-zinc-600 {
     background-color: hsl(0 0% 64%);
   }
-  
+
   .bg-zinc-600\/400 {
     background-color: hsl(0 0% 64% / 0.4);
   }
-  
+
   /* Hero Section Zinc 500 Background */
   .bg-zinc-500 {
     background-color: hsl(0 0% 69%);
   }
-  
+
   .bg-zinc-500\/10 {
     background-color: hsl(0 0% 69% / 0.1);
   }
-  
+
   .bg-zinc-500\/20 {
     background-color: hsl(0 0% 69% / 0.2);
   }
-  
+
   /* Hero Section Zinc 600 Background */
   .bg-zinc-600 {
     background-color: hsl(0 0% 64%);
   }
-  
+
   .bg-zinc-600\/10 {
     background-color: hsl(0 0% 64% / 0.1);
   }
-  
+
   .bg-zinc-600\/20 {
     background-color: hsl(0 0% 64% / 0.2);
   }
-  
+
   /* Hero Section Secondary Background */
   .bg-hero-secondary {
     background-color: hsl(var(--text-secondary));
   }
-  
+
   .bg-hero-secondary\/10 {
     background-color: hsl(var(--text-secondary) / 0.1);
   }
-  
+
   .bg-hero-secondary\/20 {
     background-color: hsl(var(--text-secondary) / 0.2);
   }
-  
+
   /* Hero Section Primary Background */
   .bg-hero-primary {
     background-color: hsl(var(--text-primary));
   }
-  
+
   .bg-hero-primary\/10 {
     background-color: hsl(var(--text-primary) / 0.1);
   }
-  
+
   .bg-hero-primary\/20 {
     background-color: hsl(var(--text-primary) / 0.2);
   }
-  
+
   /* Hero Section Muted Background */
   .bg-hero-muted {
     background-color: hsl(var(--text-muted));
   }
-  
+
   .bg-hero-muted\/10 {
     background-color: hsl(var(--text-muted) / 0.1);
   }
-  
+
   .bg-hero-muted\/20 {
     background-color: hsl(var(--text-muted) / 0.2);
   }
-  
+
   /* Hero Section Light Background */
   .bg-hero-light {
     background-color: hsl(var(--text-light));
   }
-  
+
   .bg-hero-light\/10 {
     background-color: hsl(var(--text-light) / 0.1);
   }
-  
+
   .bg-hero-light\/20 {
     background-color: hsl(var(--text-light) / 0.2);
   }
-  
+
   /* Hero Section Card Background */
   .bg-card {
     background-color: hsl(var(--card));
   }
-  
+
   /* Hero Section Orange Background (for status badges) */
   .bg-hero-orange {
     background-color: hsl(var(--gradient-orange));
   }
-  
+
   .bg-hero-orange\/20 {
     background-color: hsl(var(--gradient-orange) / 0.2);
   }
-  
+
   .bg-hero-orange\/30 {
     background-color: hsl(var(--gradient-orange) / 0.3);
   }
-  
+
   .bg-hero-zinc {
     background-color: hsl(var(--bg-zinc-light));
   }
-  
+
   .bg-hero-zinc\/20 {
     background-color: hsl(var(--bg-zinc-light) / 0.2);
   }
-  
+
   .bg-hero-zinc\/30 {
     background-color: hsl(var(--bg-zinc-light) / 0.3);
   }
-  
+
   .bg-hero-gray {
     background-color: hsl(var(--bg-gray-light));
   }
-  
+
   .bg-hero-gray\/20 {
     background-color: hsl(var(--bg-gray-light) / 0.2);
   }
-  
+
   .bg-hero-gray\/30 {
     background-color: hsl(var(--bg-gray-light) / 0.3);
   }
-  
+
   .bg-hero-purple {
-    background-color: hsl(var(--bg-purple-accent));
+    background-color: hsl(var(--secondary));
   }
-  
+
   /* Hero Section Background Utilities with Opacity Variants */
   .bg-hero-purple\/5 {
     background-color: hsl(var(--bg-purple-accent) / 0.05);
   }
-  
+
   .bg-hero-purple\/10 {
     background-color: hsl(var(--bg-purple-accent) / 0.1);
   }
-  
+
   .bg-hero-purple\/20 {
     background-color: hsl(var(--bg-purple-accent) / 0.2);
   }
-  
+
   .bg-hero-purple\/30 {
     background-color: hsl(var(--bg-purple-accent) / 0.3);
   }
-  
+
   .bg-hero-purple\/40 {
     background-color: hsl(var(--bg-purple-accent) / 0.4);
   }
-  
+
   .bg-hero-purple\/50 {
     background-color: hsl(var(--bg-purple-accent) / 0.5);
   }
-  
+
   .bg-hero-purple\/95 {
     background-color: hsl(var(--bg-purple-accent) / 0.95);
   }
-  
+
   /* Hero Section Shadow Utilities with Opacity Variants */
   .shadow-hero-purple\/5 {
     box-shadow: 0 1px 3px 0 hsl(var(--bg-purple-accent) / 0.05), 0 1px 2px 0 hsl(var(--bg-purple-accent) / 0.05);
   }
-  
+
   .shadow-hero-purple\/10 {
     box-shadow: 0 1px 3px 0 hsl(var(--bg-purple-accent) / 0.1), 0 1px 2px 0 hsl(var(--bg-purple-accent) / 0.1);
   }
-  
+
   .shadow-hero-purple\/20 {
     box-shadow: 0 1px 3px 0 hsl(var(--bg-purple-accent) / 0.2), 0 1px 2px 0 hsl(var(--bg-purple-accent) / 0.2);
   }
-  
+
   .shadow-hero-purple\/25 {
     box-shadow: 0 1px 3px 0 hsl(var(--bg-purple-accent) / 0.25), 0 1px 2px 0 hsl(var(--bg-purple-accent) / 0.25);
   }
-  
+
   /* Hero Section Glow Shadow Utilities */
   .shadow-glow {
     box-shadow: 0 0 20px 0 hsl(var(--primary) / 0.3);
   }
-  
+
   .shadow-glow-sm {
     box-shadow: 0 0 10px 0 hsl(var(--primary) / 0.2);
   }
-  
+
   .shadow-glow-md {
     box-shadow: 0 0 30px 0 hsl(var(--primary) / 0.4);
   }
-  
+
   .shadow-glow-lg {
     box-shadow: 0 0 40px 0 hsl(var(--primary) / 0.5);
   }
-  
+
   /* Hero Section Hover Shadow Utilities */
   .hover\:shadow-xl:hover {
     --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-  
+
   /* Hero Section Hover Text Color Utilities */
   .hover\:text-hero-purple:hover {
     color: hsl(var(--bg-purple-accent));
   }
-  
+
   /* Hero Section Hover Background Color Utilities */
   .hover\:bg-hero-secondary\/10:hover {
     background-color: hsl(var(--text-secondary) / 0.1);
   }
-  
+
   /* Hero Section Transition Utilities */
   .transition-all {
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
   }
-  
+
   .transition-colors {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
   }
-  
+
   /* Hero Section Shadow Utilities */
   .shadow-lg {
     --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-  
+
   .shadow-xl {
     --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
     box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
-  
+
   /* Hero Section Border Radius Utilities */
   .rounded-lg {
     border-radius: 0.5rem;
   }
-  
+
   .rounded-xl {
     border-radius: 0.75rem;
   }
-  
+
   .rounded-2xl {
     border-radius: 1rem;
   }
-  
+
   .rounded-3xl {
     border-radius: 1.5rem;
   }
-  
+
   .rounded-full {
     border-radius: 9999px;
   }
-  
+
   /* Hero Section Width Utilities */
   .w-full {
     width: 100%;
   }
-  
+
   .w-fit {
     width: fit-content;
   }
-  
+
   /* Hero Section Padding Utilities */
   .px-3 {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
   }
-  
+
   .py-2 {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
   }
-  
+
   /* Hero Section Text Size Utilities */
   .text-sm {
     font-size: 0.875rem;
     line-height: 1.25rem;
   }
-  
+
   /* Hero Section Placeholder Utilities */
   .placeholder\:text-hero-secondary::placeholder {
     color: hsl(var(--text-secondary));
   }
-  
+
   /* Hero Section Disabled Utilities */
   .disabled\:cursor-not-allowed:disabled {
     cursor: not-allowed;
   }
-  
+
   .disabled\:opacity-50:disabled {
     opacity: 0.5;
   }
-  
+
   /* Hero Section Flexbox Utilities */
   .flex {
     display: flex;
   }
-  
+
   .inline-flex {
     display: inline-flex;
   }
-  
+
   .items-center {
     align-items: center;
   }
-  
+
   .justify-center {
     justify-content: center;
   }
-  
+
   .justify-start {
     justify-content: flex-start;
   }
-  
+
   .justify-between {
     justify-content: space-between;
   }
-  
+
   /* Hero Section Button Base Utilities */
   .whitespace-nowrap {
     white-space: nowrap;
   }
-  
+
   .font-medium {
     font-weight: 500;
   }
-  
+
   .ease-out {
     transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
   }
-  
+
   .focus-visible\:outline-none:focus-visible {
     outline: 2px solid transparent;
     outline-offset: 2px;
   }
-  
+
   .focus-visible\:ring-2:focus-visible {
     --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-width);
     --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
     box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
   }
-  
+
   .focus-visible\:ring-primary\/50:focus-visible {
     --tw-ring-color: hsl(var(--primary) / 0.5);
   }
-  
+
   .focus-visible\:ring-offset-2:focus-visible {
     --tw-ring-offset-width: 2px;
   }
-  
+
   .focus-visible\:ring-offset-background:focus-visible {
     --tw-ring-offset-color: hsl(var(--background));
   }
-  
+
   .disabled\:pointer-events-none:disabled {
     pointer-events: none;
   }
-  
+
   .active\:scale-\[0\.98\]:active {
     transform: scale(0.98);
   }
-  
+
   .select-none {
     user-select: none;
   }
-  
+
   .touch-manipulation {
     touch-action: manipulation;
   }
-  
+
   /* Hero Section Text Decoration Utilities */
   .underline-offset-4 {
     text-underline-offset: 4px;
   }
-  
+
   .hover\:underline:hover {
     text-decoration: underline;
   }
-  
+
   /* Hero Section Glass Card Utility */
+  /* Hero Section Glass Card Utility - REDEFINED FOR MONOCHROME */
   .glass-card {
-    backdrop-filter: blur(16px);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    @apply bg-card border border-border shadow-sm;
   }
-  
+
   .dark .glass-card {
-    background: rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    @apply bg-card border border-border shadow-sm;
   }
-  
+
   /* Hero Section Cursor Utilities */
   .cursor-pointer {
     cursor: pointer;
   }
-  
+
   .cursor-default {
     cursor: default;
   }
-  
+
   /* Hero Section Spacing Utilities */
-  .space-y-1 > * + * {
+  .space-y-1>*+* {
     margin-top: 0.25rem;
   }
-  
-  .space-y-2 > * + * {
+
+  .space-y-2>*+* {
     margin-top: 0.5rem;
   }
-  
-  .space-y-3 > * + * {
+
+  .space-y-3>*+* {
     margin-top: 0.75rem;
   }
-  
-  .space-y-4 > * + * {
+
+  .space-y-4>*+* {
     margin-top: 1rem;
   }
-  
-  .space-x-2 > * + * {
+
+  .space-x-2>*+* {
     margin-left: 0.5rem;
   }
-  
-  .space-x-3 > * + * {
+
+  .space-x-3>*+* {
     margin-left: 0.75rem;
   }
-  
-  .space-x-4 > * + * {
+
+  .space-x-4>*+* {
     margin-left: 1rem;
   }
-  
+
   /* Hero Section Gap Utilities */
   .gap-2 {
     gap: 0.5rem;
   }
-  
+
   .gap-3 {
     gap: 0.75rem;
   }
-  
+
   .gap-4 {
     gap: 1rem;
   }
-  
+
   /* Hero Section Padding Utilities */
   .p-2 {
     padding: 0.5rem;
   }
-  
+
   .p-3 {
     padding: 0.75rem;
   }
-  
+
   .p-4 {
     padding: 1rem;
   }
-  
+
   .px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
   }
-  
+
   .px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
-  
+
   .px-8 {
     padding-left: 2rem;
     padding-right: 2rem;
   }
-  
+
   .py-3 {
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
   }
-  
+
   .py-4 {
     padding-top: 1rem;
     padding-bottom: 1rem;
   }
-  
+
   .py-6 {
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
   }
-  
+
   .py-8 {
     padding-top: 2rem;
     padding-bottom: 2rem;
   }
-  
+
   /* Hero Section Margin Utilities */
   .mb-4 {
     margin-bottom: 1rem;
   }
-  
+
   .mb-6 {
     margin-bottom: 1.5rem;
   }
-  
+
   .mt-2 {
     margin-top: 0.5rem;
   }
-  
+
   .mt-4 {
     margin-top: 1rem;
   }
-  
+
   .mt-6 {
     margin-top: 1.5rem;
   }
-  
+
   .mt-8 {
     margin-top: 2rem;
   }
-  
+
   .mt-12 {
     margin-top: 3rem;
   }
-  
+
   .mt-16 {
     margin-top: 4rem;
   }
-  
+
   .mt-20 {
     margin-top: 5rem;
   }
-  
+
   .mt-24 {
     margin-top: 6rem;
   }
-  
+
   .mt-32 {
     margin-top: 8rem;
   }
-  
+
   .mx-auto {
     margin-left: auto;
     margin-right: auto;
   }
-  
+
   /* Hero Section Max Width Utilities */
   .max-w-2xl {
     max-width: 42rem;
   }
-  
+
   .max-w-7xl {
     max-width: 80rem;
   }
-  
+
   /* Hero Section Text Size Utilities */
   .text-4xl {
     font-size: 2.25rem;
     line-height: 2.5rem;
   }
-  
+
   .text-6xl {
     font-size: 3.75rem;
     line-height: 1;
   }
-  
+
   .text-lg {
     font-size: 1.125rem;
     line-height: 1.75rem;
   }
-  
+
   .text-xl {
     font-size: 1.25rem;
     line-height: 1.75rem;
   }
-  
+
   .text-2xl {
     font-size: 1.5rem;
     line-height: 2rem;
   }
-  
+
   /* Hero Section Font Weight Utilities */
   .font-semibold {
     font-weight: 600;
   }
-  
+
   .font-bold {
     font-weight: 700;
   }
-  
+
   /* Hero Section Letter Spacing Utilities */
   .tracking-tighter {
     letter-spacing: -0.05em;
   }
-  
+
   /* Hero Section Background Clip Utilities */
   .bg-clip-text {
     background-clip: text;
   }
-  
+
   .text-transparent {
     color: transparent;
   }
-  
+
   /* Hero Section Group Utilities */
   .group {
     /* This class is used for group hover effects */
   }
-  
+
   .group-hover\:text-hero-gradient:hover {
     color: var(--hero-gradient-light);
   }
-  
+
   .dark .group-hover\:text-hero-gradient:hover {
     color: var(--hero-gradient-dark);
   }
-  
+
   .group-hover\:opacity-10:hover {
     opacity: 0.1;
   }
-  
+
   .group-hover\:from-purple-600:hover {
     --tw-gradient-from: #9333ea;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(147, 51, 234, 0));
   }
-  
+
   .group-hover\:to-pink-500:hover {
     --tw-gradient-to: #ec4899;
   }
-  
+
   .group-hover\:bg-clip-text:hover {
     background-clip: text;
   }
-  
+
   .group-hover\:text-transparent:hover {
     color: transparent;
   }
-  
+
   .group-hover\:shadow-glow:hover {
     box-shadow: 0 0 20px 0 hsl(var(--primary) / 0.3);
   }
-  
+
   .group-hover\:shadow-glow-lg:hover {
     box-shadow: 0 0 40px 0 hsl(var(--primary) / 0.5);
   }
-  
+
   .group-hover\:shadow-glow-sm:hover {
     box-shadow: 0 0 10px 0 hsl(var(--primary) / 0.2);
   }
-  
+
   .group-hover\:bg-white\/95:hover {
     background-color: hsl(0 0% 100% / 0.95);
   }
-  
+
   /* Hero Section Additional Utilities */
   .text-center {
     text-align: center;
   }
-  
+
   .text-left {
     text-align: left;
   }
-  
+
   .text-right {
     text-align: right;
   }
-  
+
   .truncate {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  
+
   .overflow-hidden {
     overflow: hidden;
   }
-  
+
   .overflow-auto {
     overflow: auto;
   }
-  
+
   .overflow-y-auto {
     overflow-y: auto;
   }
-  
+
   .overflow-x-auto {
     overflow-x: auto;
   }
-  
+
   /* Hero Section Glow Animation */
   @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 20px 0 hsl(var(--primary) / 0.3);
     }
+
     50% {
       box-shadow: 0 0 30px 0 hsl(var(--primary) / 0.5);
     }
   }
-  
+
   .animate-pulse-glow {
     animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  
+
   /* Hero Section Mobile Shadow Utilities */
   .shadow-mobile {
     box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.1), 0 1px 2px 0 hsl(var(--foreground) / 0.06);
   }
-  
+
   .shadow-mobile-lg {
     box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.1), 0 4px 6px -2px hsl(var(--foreground) / 0.05);
   }
-  
+
   .border-hero-light {
     border-color: hsl(var(--border-light));
   }
-  
+
   .border-hero-dark {
     border-color: hsl(var(--border-dark));
   }
-  
+
   .border-hero-purple {
     border-color: hsl(var(--border-purple));
   }
-  
+
   /* Hero Section Border Utilities with Opacity Variants */
   .border-hero-light\/5 {
     border-color: hsl(var(--border-light) / 0.05);
   }
-  
+
   .border-hero-light\/10 {
     border-color: hsl(var(--border-light) / 0.1);
   }
-  
+
   .border-hero-light\/20 {
     border-color: hsl(var(--border-light) / 0.2);
   }
-  
+
   .border-hero-light\/30 {
     border-color: hsl(var(--border-light) / 0.3);
   }
-  
+
   .border-hero-dark\/5 {
     border-color: hsl(var(--border-dark) / 0.05);
   }
-  
+
   .border-hero-dark\/10 {
     border-color: hsl(var(--border-dark) / 0.1);
   }
-  
+
   .border-hero-dark\/20 {
     border-color: hsl(var(--border-dark) / 0.2);
   }
-  
+
   .border-hero-dark\/30 {
     border-color: hsl(var(--border-dark) / 0.3);
   }
-  
+
   .border-hero-purple\/5 {
-    border-color: hsl(var(--border-purple) / 0.05);
+    border-color: hsl(var(--border) / 0.5);
   }
-  
+
   .border-hero-purple\/10 {
     border-color: hsl(var(--border-purple) / 0.1);
   }
-  
+
   .border-hero-purple\/20 {
     border-color: hsl(var(--border-purple) / 0.2);
   }
-  
+
   .border-hero-purple\/30 {
     border-color: hsl(var(--border-purple) / 0.3);
   }
-  
+
   .border-hero-purple\/40 {
     border-color: hsl(var(--border-purple) / 0.4);
   }
-  
+
   .border-hero-purple\/50 {
     border-color: hsl(var(--border-purple) / 0.5);
   }
-  
+
   /* Hero Section Orange Border (for status badges) */
   .border-hero-orange {
     border-color: hsl(var(--gradient-orange));
   }
-  
+
   .border-hero-orange\/20 {
     border-color: hsl(var(--gradient-orange) / 0.2);
   }
-  
+
   .border-hero-orange\/30 {
     border-color: hsl(var(--gradient-orange) / 0.3);
   }
-  
+
   /* Hero Section Gradient Utilities */
   .bg-hero-gradient {
     background: var(--hero-gradient-light);
   }
-  
+
   .dark .bg-hero-gradient {
     background: var(--hero-gradient-dark);
   }
-  
+
   /* Hero Section Background Gradient with Opacity */
   .bg-hero-gradient\/20 {
     background: linear-gradient(to right, hsl(var(--gradient-purple) / 0.2), hsl(var(--gradient-pink) / 0.2));
   }
-  
+
   .bg-hero-gradient\/30 {
     background: linear-gradient(to right, hsl(var(--gradient-purple) / 0.3), hsl(var(--gradient-pink) / 0.3));
   }
-  
+
   .bg-hero-bg-gradient {
     background: var(--hero-bg-gradient);
   }
-  
+
   /* Hero Section Background Gradient with Opacity */
   .bg-hero-bg-gradient\/20 {
     background: linear-gradient(135deg, hsl(var(--bg-gray-light) / 0.2), hsl(var(--bg-gray-light) / 0.1), transparent);
   }
-  
+
   .bg-hero-bg-gradient\/30 {
     background: linear-gradient(135deg, hsl(var(--bg-gray-light) / 0.3), hsl(var(--bg-gray-light) / 0.2), transparent);
   }
-  
+
   .text-hero-gradient {
-    background: var(--hero-gradient-light);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: hsl(var(--foreground));
   }
-  
+
   .dark .text-hero-gradient {
     background: var(--hero-gradient-dark);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
   /* Hero Section Text Gradient with Opacity */
   .text-hero-gradient\/80 {
     background: linear-gradient(to right, hsl(var(--gradient-purple) / 0.8), hsl(var(--gradient-pink) / 0.8));
@@ -2409,28 +2349,28 @@
       @apply block;
     }
   }
-  
+
   /* Hero Section Color Combinations */
   .hero-card {
     @apply bg-card border border-hero-purple/20 shadow-lg;
   }
-  
+
   .hero-button-primary {
     @apply bg-hero-gradient text-white border-0 shadow-lg hover:shadow-xl transition-all;
   }
-  
+
   .hero-button-secondary {
     @apply bg-transparent text-hero-secondary border border-hero-secondary/30 hover:bg-hero-secondary/10 transition-all;
   }
-  
+
   .hero-input {
     @apply bg-background border border-hero-purple/30 focus:border-hero-purple focus:ring-2 focus:ring-hero-purple/20;
   }
-  
+
   .hero-link {
     @apply text-hero-primary hover:text-hero-purple transition-colors;
   }
-  
+
   .hero-badge {
     @apply bg-hero-purple/10 text-hero-purple border border-hero-purple/20;
   }

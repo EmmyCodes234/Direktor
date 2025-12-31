@@ -1,265 +1,478 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import Button from 'components/ui/Button';
-import ShareButton from 'components/ui/ShareButton';
-import AdvancedStatsDisplay from '../components/AdvancedStatsDisplay';
-import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import ThemeToggle from 'components/ui/ThemeToggle';
+import PublicTournamentBanner from 'components/public/PublicTournamentBanner';
+import ReportFooter from 'components/public/ReportFooter';
+import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
 
 const PublicTournamentStats = () => {
     const { tournamentSlug } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
-    const [tournament, setTournament] = useState(null);
-    const [players, setPlayers] = useState([]);
-    const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    
-    // Extract round from query parameters
+    const [tournament, setTournament] = useState(null);
+    const [statsData, setStatsData] = useState({ players: [], matches: [] });
+
+    // 1. Determine Report Type
     const searchParams = new URLSearchParams(location.search);
-    const roundParam = searchParams.get('round');
-    const selectedRound = roundParam ? parseInt(roundParam) : null;
+    const view = searchParams.get('view') || 'general'; // Default to 'general'
 
-    const fetchTournamentData = useCallback(async () => {
-        if (!tournamentSlug) return;
-
-        try {
+    // 2. Fetch Data
+    useEffect(() => {
+        const fetchAllData = async () => {
             setLoading(true);
-            setError(null);
+            try {
+                const { data: tourney } = await supabase.from('tournaments')
+                    .select('*').eq('slug', tournamentSlug).single();
 
-            // Fetch tournament data
-            const { data: tournamentData, error: tournamentError } = await supabase
-                .from('tournaments')
-                .select('*')
-                .eq('slug', tournamentSlug)
-                .single();
+                if (!tourney) throw new Error("Tournament not found");
+                setTournament(tourney);
 
-            if (tournamentError) throw tournamentError;
-            if (tournamentData.status === 'draft') throw new Error("Tournament not found");
-            setTournament(tournamentData);
+                // Fetch Players
+                const { data: players } = await supabase.from('tournament_players')
+                    .select('*, players(id, name, rating, photo_url)').eq('tournament_id', tourney.id);
 
-            // Fetch players
-            const { data: playersData, error: playersError } = await supabase
-                .from('tournament_players')
-                .select('*, players (*)')
-                .eq('tournament_id', tournamentData.id);
+                // Fetch Results (The definitive scores)
+                const { data: resultsData } = await supabase.from('results')
+                    .select('*')
+                    .eq('tournament_id', tourney.id);
 
-            if (playersError) throw playersError;
-            
-            const enrichedPlayers = playersData.map(tp => ({
-                ...tp.players,
-                player_id: tp.players.id,
-                seed: tp.seed,
-                team_id: tp.team_id,
-                status: tp.status,
-                // Include photo URL if available
-                photo_url: tp.players.photo_url || null
-            }));
-            setPlayers(enrichedPlayers);
+                setStatsData({ players: players || [], matches: resultsData || [] });
 
-            // Fetch results
-            const { data: resultsData, error: resultsError } = await supabase
-                .from('results')
-                .select('*')
-                .eq('tournament_id', tournamentData.id)
-                .order('created_at', { ascending: false });
-
-            if (resultsError) throw resultsError;
-            setResults(resultsData);
-
-        } catch (err) {
-            console.error('Error fetching tournament data:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllData();
     }, [tournamentSlug]);
 
-    useEffect(() => {
-        fetchTournamentData();
-    }, [fetchTournamentData]);
+    // 3. Compute Report Data
+    const report = useMemo(() => {
+        if (!statsData.players.length) return null;
 
-    const formattedDate = tournament?.type === 'best_of_league' 
-        ? `${format(new Date(tournament.start_date), "MMM do")} - ${format(new Date(tournament.end_date), "MMM do, yyyy")}`
-        : tournament?.date ? format(new Date(tournament.date), "MMMM do, yyyy") : "Date not set";
+        const { players, matches } = statsData;
 
-    // Filter results based on selected round
-    const filteredResults = React.useMemo(() => {
-        if (!selectedRound) return results;
-        return results.filter(result => result.round === selectedRound);
-    }, [results, selectedRound]);
+        // Helper: Calculate aggregates per player
+        const playerStats = players.map(p => {
+            const myMatches = matches.filter(m => String(m.player1_id) === String(p.player_id) || String(m.player2_id) === String(p.player_id));
+            const games = myMatches.length;
+            let wins = 0;
+            let losses = 0;
+            let ties = 0;
+            let totalScore = 0;
+            let totalSpread = 0;
+            let totalOppScore = 0;
+
+            myMatches.forEach(m => {
+                const isP1 = String(m.player1_id) === String(p.player_id);
+                const myScore = isP1 ? m.score1 : m.score2;
+                const oppScore = isP1 ? m.score2 : m.score1;
+
+                totalScore += myScore;
+                totalOppScore += oppScore;
+
+                if (myScore > oppScore) wins++;
+                else if (myScore < oppScore) losses++;
+                else ties++;
+
+                totalSpread += (myScore - oppScore);
+            });
+
+            return {
+                name: p.players?.name || 'Unknown',
+                rating: p.players?.rating || 0,
+                games,
+                wins,
+                losses,
+                ties,
+                totalScore,
+                totalOppScore,
+                totalSpread,
+                avgScore: games ? (totalScore / games).toFixed(1) : 0,
+                avgOppScore: games ? (totalOppScore / games).toFixed(1) : 0
+            };
+        });
+
+        const generalStats = () => {
+            const registeredPlayers = players.length;
+            const scoredPlayers = playerStats.filter(p => p.games > 0).length; // Players who have played
+            const activePlayers = players.filter(p => p.status === 'active').length; // Or logic based on recent games if status not reliable
+
+            // Ratings
+            const ratedPlayers = players.filter(p => p.players?.rating > 0);
+            const ratings = ratedPlayers.map(p => p.players.rating);
+            const minRating = ratings.length ? Math.min(...ratings) : 0;
+            const maxRating = ratings.length ? Math.max(...ratings) : 0;
+            const meanRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'NaN';
+            const sortedRatings = [...ratings].sort((a, b) => a - b);
+            const medianRating = sortedRatings.length ? (
+                sortedRatings.length % 2 !== 0 ? sortedRatings[Math.floor(sortedRatings.length / 2)] :
+                    ((sortedRatings[sortedRatings.length / 2 - 1] + sortedRatings[sortedRatings.length / 2]) / 2).toFixed(1)
+            ) : 0;
+            const unratedPlayers = players.length - ratedPlayers.length;
+
+            // Games
+            const totalGames = matches.length;
+            const gamesTied = matches.filter(m => m.score1 === m.score2).length;
+
+            // Scoring
+            const totalPoints = matches.reduce((acc, m) => acc + (m.score1 || 0) + (m.score2 || 0), 0);
+            const meanPointsScored = totalGames ? (totalPoints / totalGames).toFixed(1) : 0; // Combined score per game
+            const meanSpread = totalGames ? (matches.reduce((acc, m) => acc + Math.abs((m.score1 || 0) - (m.score2 || 0)), 0) / totalGames).toFixed(1) : 0;
+
+            // Win Rates
+            let higherRatedWins = 0;
+            let ratedMatches = 0;
+            let p1Wins = 0;
+            let p1TotalScore = 0;
+            let p2TotalScore = 0;
+
+            matches.forEach(m => {
+                const p1 = players.find(p => String(p.player_id) === String(m.player1_id))?.players;
+                const p2 = players.find(p => String(p.player_id) === String(m.player2_id))?.players;
+
+                // Higher Rated Win %
+                if (p1?.rating && p2?.rating && p1.rating !== p2.rating && m.score1 !== m.score2) {
+                    ratedMatches++;
+                    const winnerId = m.score1 > m.score2 ? m.player1_id : m.player2_id;
+                    const higherRatedId = p1.rating > p2.rating ? m.player1_id : m.player2_id;
+                    if (String(winnerId) === String(higherRatedId)) higherRatedWins++;
+                }
+
+                // First Player Stats (Assuming Player 1 is "First" / Starting)
+                if (m.score1 > m.score2) p1Wins++;
+                p1TotalScore += (m.score1 || 0);
+                p2TotalScore += (m.score2 || 0);
+            });
+
+            const higherRatedWinPct = ratedMatches ? ((higherRatedWins / ratedMatches) * 100).toFixed(1) : 'NaN';
+            const firstPlayerWinPct = totalGames ? ((p1Wins / totalGames) * 100).toFixed(1) : 0; // Excludes ties?
+            const firstPlayerAvgScore = totalGames ? (p1TotalScore / totalGames).toFixed(1) : 0;
+            const secondPlayerAvgScore = totalGames ? (p2TotalScore / totalGames).toFixed(1) : 0;
+            const firstPlayerAdvantage = (firstPlayerAvgScore - secondPlayerAvgScore).toFixed(1);
+
+            return {
+                title: 'Tournament Data',
+                isGeneral: true,
+                data: [
+                    { label: 'Registered Players', value: registeredPlayers },
+                    { label: 'Scored Players', value: scoredPlayers },
+                    { label: 'Active Players', value: activePlayers },
+                    { label: 'Minimum Rating', value: minRating },
+                    { label: 'Mean Rating', value: meanRating },
+                    { label: 'Median Rating', value: medianRating },
+                    { label: 'Maximum Rating', value: maxRating },
+                    { label: 'Unrated Players', value: unratedPlayers },
+                    { type: 'spacer' },
+                    { label: 'Total Games Played', value: totalGames },
+                    { label: 'Games Tied', value: gamesTied },
+                    { label: 'Total Points Scored', value: totalPoints },
+                    { label: 'Mean Points Scored', value: meanPointsScored },
+                    { label: 'Mean Spread', value: meanSpread },
+                    { label: 'Higher Rated Win %', value: `${higherRatedWinPct}%` },
+                    { type: 'spacer' },
+                    { label: 'First Player Win %', value: `${firstPlayerWinPct}%` },
+                    { label: 'First Player Score', value: firstPlayerAvgScore },
+                    { label: 'Second Player Score', value: secondPlayerAvgScore },
+                    { label: 'First Player Advantage', value: firstPlayerAdvantage },
+                ]
+            };
+        };
+
+
+        switch (view) {
+            case 'general':
+                return generalStats();
+            // --- Player Aggregates ---
+            case 'peak_score':
+                return {
+                    title: 'Peak Score',
+                    headers: ['Rank', 'Player', 'Wins', 'Record'],
+                    data: playerStats.sort((a, b) => b.wins - a.wins).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.wins, extra: `${p.wins}-${p.losses}-${p.ties}`
+                    }))
+                };
+
+            case 'high_spread':
+                return {
+                    title: 'High Spreads',
+                    headers: ['Rank', 'Player', 'Spread', 'Avg Spread'],
+                    data: playerStats.sort((a, b) => b.totalSpread - a.totalSpread).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.totalSpread > 0 ? `+${p.totalSpread}` : p.totalSpread,
+                        extra: p.games ? (p.totalSpread / p.games).toFixed(1) : '0'
+                    }))
+                };
+
+            case 'tough_break':
+                return {
+                    title: 'Tough Break',
+                    headers: ['Rank', 'Player', 'Losses', 'Record'],
+                    data: playerStats.sort((a, b) => b.losses - a.losses).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.losses, extra: `${p.wins}-${p.losses}-${p.ties}`
+                    }))
+                };
+
+            case 'low_wins':
+                return {
+                    title: 'Low Wins',
+                    headers: ['Rank', 'Player', 'Wins', 'Record'],
+                    data: playerStats.sort((a, b) => a.wins - b.wins).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.wins, extra: `${p.wins}-${p.losses}-${p.ties}`
+                    }))
+                };
+            case 'low_losses':
+                return {
+                    title: 'Low Losses',
+                    headers: ['Rank', 'Player', 'Losses', 'Record'],
+                    data: playerStats.sort((a, b) => a.losses - b.losses).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.losses, extra: `${p.wins}-${p.losses}-${p.ties}`
+                    }))
+                };
+            case 'avg_score':
+                return {
+                    title: 'Average Scores',
+                    headers: ['Rank', 'Player', 'Avg Score', 'Total Score'],
+                    data: playerStats.sort((a, b) => b.avgScore - a.avgScore).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.avgScore, extra: p.totalScore
+                    }))
+                };
+            case 'avg_opp_score':
+                return {
+                    title: 'Average Opponent Scores',
+                    headers: ['Rank', 'Player', 'Avg Opp Score', 'Total Opp Score'],
+                    data: playerStats.sort((a, b) => b.avgOppScore - a.avgOppScore).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.avgOppScore, extra: p.totalOppScore
+                    }))
+                };
+            case 'high_total_score':
+                return {
+                    title: 'High Total Scores',
+                    headers: ['Rank', 'Player', 'Total Score', 'Avg Score'],
+                    data: playerStats.sort((a, b) => b.totalScore - a.totalScore).map((p, i) => ({
+                        rank: i + 1, name: p.name, value: p.totalScore, extra: p.avgScore
+                    }))
+                };
+
+            // --- Match Records ---
+            case 'shootouts':
+                return {
+                    title: 'Shootouts',
+                    headers: ['Rank', 'Match', 'Combined', 'Round'],
+                    data: matches
+                        .map(m => ({ ...m, combined: m.player1_score + m.player2_score }))
+                        .sort((a, b) => b.combined - a.combined)
+                        .slice(0, 50)
+                        .map((m, i) => ({
+                            rank: i + 1,
+                            name: `${m.player1_name} (${m.player1_score}) vs ${m.player2_name} (${m.player2_score})`,
+                            value: m.combined,
+                            extra: `Rd ${m.round}`
+                        }))
+                };
+
+            case 'giant_killers':
+                return {
+                    title: 'Giant Killers',
+                    headers: ['Rank', 'Winner', 'Rating Diff', 'Matchup'],
+                    data: matches
+                        .filter(m => {
+                            const p1 = players.find(p => String(p.player_id) === String(m.player1_id))?.players;
+                            const p2 = players.find(p => String(p.player_id) === String(m.player2_id))?.players;
+                            if (!p1?.rating || !p2?.rating || m.score1 === m.score2) return false;
+
+                            const winner = m.score1 > m.score2 ? p1 : p2;
+                            const loser = m.score1 > m.score2 ? p2 : p1;
+                            return winner.rating < loser.rating;
+                        })
+                        .map(m => {
+                            const p1 = players.find(p => String(p.player_id) === String(m.player1_id))?.players;
+                            const p2 = players.find(p => String(p.player_id) === String(m.player2_id))?.players;
+                            const winner = m.score1 > m.score2 ? p1 : p2;
+                            const loser = m.score1 > m.score2 ? p2 : p1;
+                            return {
+                                ...m,
+                                winnerName: winner.name,
+                                diff: loser.rating - winner.rating,
+                                scores: `${m.score1}-${m.score2} vs ${loser.name}`
+                            };
+                        })
+                        .sort((a, b) => b.diff - a.diff)
+                        .slice(0, 50)
+                        .map((m, i) => ({
+                            rank: i + 1,
+                            name: m.winnerName,
+                            value: `+${m.diff}`,
+                            extra: m.scores
+                        }))
+                };
+
+            case 'clutch_win':
+                return {
+                    title: 'Clutch Win',
+                    headers: ['Rank', 'Winner', 'Margin', 'Opponent'],
+                    data: matches
+                        .filter(m => Math.abs(m.score1 - m.score2) <= 5 && m.score1 !== m.score2)
+                        .map(m => {
+                            const p1 = players.find(p => String(p.player_id) === String(m.player1_id))?.players;
+                            const p2 = players.find(p => String(p.player_id) === String(m.player2_id))?.players;
+                            const winner = m.score1 > m.score2 ? p1 : p2;
+                            const loser = m.score1 > m.score2 ? p2 : p1;
+                            const margin = Math.abs(m.score1 - m.score2);
+                            return {
+                                ...m,
+                                winnerName: winner?.name || 'Unknown',
+                                margin: margin,
+                                extra: `vs ${loser?.name || 'Unknown'} (${m.score1}-${m.score2})`
+                            };
+                        })
+                        .sort((a, b) => a.margin - b.margin) // Smallest margin is "more clutch"? Or just list them. "Games won by 5 points or fewer".
+                        .slice(0, 50)
+                        .map((m, i) => ({
+                            rank: i + 1,
+                            name: m.winnerName,
+                            value: m.margin,
+                            extra: m.extra
+                        }))
+                };
+
+            case 'close_defeats':
+                return {
+                    title: 'Close Defeats',
+                    headers: ['Rank', 'Loser', 'Margin', 'Opponent'],
+                    data: matches
+                        .filter(m => Math.abs(m.score1 - m.score2) <= 5 && m.score1 !== m.score2)
+                        .map(m => {
+                            const p1 = players.find(p => String(p.player_id) === String(m.player1_id))?.players;
+                            const p2 = players.find(p => String(p.player_id) === String(m.player2_id))?.players;
+                            const loser = m.score1 > m.score2 ? p2 : p1;
+                            const winner = m.score1 > m.score2 ? p1 : p2;
+                            const margin = Math.abs(m.score1 - m.score2);
+                            return {
+                                ...m,
+                                loserName: loser?.name || 'Unknown',
+                                margin: margin,
+                                extra: `vs ${winner?.name || 'Unknown'} (${m.score1}-${m.score2})`
+                            };
+                        })
+                        .sort((a, b) => a.margin - b.margin)
+                        .slice(0, 50)
+                        .map((m, i) => ({
+                            rank: i + 1,
+                            name: m.loserName,
+                            value: m.margin,
+                            extra: m.extra
+                        }))
+                };
+
+            default:
+                return { title: 'Stats Menu', isMenu: true };
+        }
+    }, [statsData, view]);
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="Loader" className="animate-spin text-primary" size={48} />
-                    </div>
-                    <p className="text-base text-muted-foreground font-medium">Loading statistics...</p>
-                </motion.div>
-            </div>
-        );
+        return <PublicLoadingScreen />;
     }
 
-    if (error || !tournament) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="AlertCircle" className="text-destructive" size={48} />
-                    </div>
-                    <h2 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h2>
-                    <p className="text-muted-foreground">The tournament you're looking for doesn't exist or has been removed.</p>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                        className="mt-4"
-                    >
-                        <Icon name="ArrowLeft" className="mr-2" size={16} />
-                        Back to Tournament
-                    </Button>
-                </motion.div>
-            </div>
-        );
-    }
+    const renderMenu = () => (
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+            <StatMenuLink slug={tournamentSlug} view="peak_score" label="Peak Score" active={view === 'peak_score'} />
+            <StatMenuLink slug={tournamentSlug} view="tough_break" label="Tough Break" active={view === 'tough_break'} />
+            <StatMenuLink slug={tournamentSlug} view="shootouts" label="Shootouts" active={view === 'shootouts'} />
+            <StatMenuLink slug={tournamentSlug} view="giant_killers" label="Giant Killers" active={view === 'giant_killers'} />
+            <StatMenuLink slug={tournamentSlug} view="clutch_win" label="Clutch Win" active={view === 'clutch_win'} />
+            <StatMenuLink slug={tournamentSlug} view="close_defeats" label="Close Defeats" active={view === 'close_defeats'} />
+            <StatMenuLink slug={tournamentSlug} view="high_spread" label="High Spreads" active={view === 'high_spread'} />
+            <StatMenuLink slug={tournamentSlug} view="low_wins" label="Low Wins" active={view === 'low_wins'} />
+            <StatMenuLink slug={tournamentSlug} view="avg_score" label="Average Scores" active={view === 'avg_score'} />
+
+            {/* Add more links as needed or a dropdown for less common stats */}
+        </div>
+
+    );
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
-            {/* Header */}
-            <motion.header 
-                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                                className="touch-target hover:bg-muted/20"
-                            >
-                                <Icon name="ArrowLeft" size={20} />
-                            </Button>
-                            <div>
-                                <motion.h1 
-                                    className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.2, duration: 0.6 }}
-                                >
-                                    {tournament.name}
-                                </motion.h1>
-                            </div>
-                        </div>
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4, duration: 0.6 }}
-                        >
-                            <ShareButton
-                                variant="ghost"
-                                size="sm"
-                                shareData={{
-                                    type: 'statistics',
-                                    data: { tournament: tournament.name },
-                                    url: window.location.href
-                                }}
-                                platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
-                                position="bottom-right"
-                                className="touch-target"
-                            />
-                        </motion.div>
+        <div className="min-h-screen bg-white text-black font-serif">
+            <PublicTournamentBanner tournament={tournament} />
+            <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+
+                <h1 className="text-2xl font-bold mb-6">{report?.title || 'Tournament Data'}</h1>
+
+                {report?.isGeneral && (
+                    <div className="inline-block text-left mb-8">
+                        <div className="font-bold mb-2 text-center text-lg">Division A</div>
+                        <table className="border-collapse text-left w-full min-w-[300px]">
+                            <tbody>
+                                {report.data.map((item, idx) => {
+                                    if (item.type === 'spacer') {
+                                        return <tr key={idx}><td className="h-4"></td><td></td></tr>;
+                                    }
+                                    return (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                            <td className="pr-8 py-1">{item.label}</td>
+                                            <td className="font-mono text-gray-800">{item.value}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
+                )}
+
+
+                {!report?.isGeneral && !report?.isMenu && (
+                    <div className="border rounded-lg overflow-hidden shadow-sm inline-block text-left w-full">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-gray-100 border-b">
+                                <tr>
+                                    {report.headers.map((h, i) => (
+                                        <th key={i} className="p-3 font-bold text-sm uppercase tracking-wider text-gray-600">{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {report.data.map((row, i) => (
+                                    <tr key={i} className="hover:bg-gray-50">
+                                        <td className="p-3 font-mono text-gray-500 w-16">{row.rank}</td>
+                                        <td className="p-3 font-medium">{row.name}</td>
+                                        <td className="p-3 font-bold">{row.value}</td>
+                                        <td className="p-3 text-gray-600 text-sm">{row.extra}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {/* Always show menu at bottom or top */}
+                <div className="border-t mt-12 pt-8">
+                    <h3 className="text-gray-500 text-sm uppercase tracking-wider mb-4">Detailed Reports</h3>
+                    {renderMenu()}
                 </div>
-            </motion.header>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <motion.div 
-                    className="space-y-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.6 }}
-                >
-                    {/* Page Header */}
-                    <div className="text-center space-y-3">
-                        <div className="flex items-center justify-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <Icon name="BarChart2" size={20} className="text-primary" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-foreground">
-                                {selectedRound ? `Round ${selectedRound} Statistics` : 'Statistics'}
-                            </h2>
-                        </div>
-                        <p className="text-base text-muted-foreground max-w-xl mx-auto">
-                            {selectedRound 
-                                ? `Advanced analytics for round ${selectedRound}` 
-                                : 'Advanced tournament analytics and insights'}
-                        </p>
-                    </div>
+                <div className="mt-8">
+                    <Button variant="ghost" className="text-gray-500 hover:text-black" onClick={() => navigate(`/tournament/${tournamentSlug}`)}>
+                        <Icon name="ArrowLeft" size={16} /> Returns to Index
+                    </Button>
+                </div>
 
-                    {/* Tournament Info Card */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6, duration: 0.6 }}
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{players.length}</div>
-                                <div className="text-xs text-muted-foreground">Total Players</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{filteredResults.length}</div>
-                                <div className="text-xs text-muted-foreground">
-                                    {selectedRound ? `Round ${selectedRound} Games` : 'Games Played'}
-                                </div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{tournament.type}</div>
-                                <div className="text-xs text-muted-foreground">Tournament Type</div>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Statistics Display */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl shadow-lg overflow-hidden"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7, duration: 0.6 }}
-                    >
-                        <div className="p-5 border-b border-border/10">
-                            <h3 className="text-lg font-semibold text-foreground">
-                                {selectedRound ? `Round ${selectedRound} Analytics` : 'Tournament Analytics'}
-                            </h3>
-                        </div>
-                        <div className="p-5">
-                            <AdvancedStatsDisplay results={filteredResults} players={players} />
-                        </div>
-                    </motion.div>
-                </motion.div>
-            </main>
+                <ReportFooter />
+            </div>
         </div>
     );
 };
+
+const StatMenuLink = ({ slug, view, label, active }) => (
+    <a
+        href={`/tournament/${slug}/stats?view=${view}`}
+        className={`px-3 py-1.5 text-sm border rounded transition-colors ${active ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+    >
+        {label}
+    </a>
+)
 
 export default PublicTournamentStats;

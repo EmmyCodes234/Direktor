@@ -9,7 +9,7 @@ import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, 
 
 const DocSection = ({ title, id, children }) => (
     <section id={id} className="mb-16 scroll-mt-24">
-        <h2 className="text-3xl font-heading font-bold text-primary mb-6 pb-2 border-b border-border/30">{title}</h2>
+        <h2 className="text-3xl font-heading font-bold text-foreground mb-6 pb-2 border-b border-border">{title}</h2>
         <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
             {children}
         </div>
@@ -26,10 +26,10 @@ const DocSubSection = ({ title, children }) => (
 );
 
 const FeatureCard = ({ icon, title, description, className = "" }) => (
-    <div className={`glass-card p-6 rounded-xl ${className}`}>
+    <div className={`bg-card border border-border rounded-xl p-6 shadow-sm ${className}`}>
         <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Icon name={icon} size={24} className="text-primary" />
+            <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 border border-border">
+                <Icon name={icon} size={24} className="text-foreground" />
             </div>
             <div>
                 <h4 className="font-semibold text-foreground mb-2">{title}</h4>
@@ -63,18 +63,17 @@ const DocumentationPage = () => {
             <Header />
             <div className="flex pt-20">
                 {/* Sidebar Navigation */}
-                <aside className="w-64 fixed left-0 top-20 h-screen overflow-y-auto border-r border-hero-purple/20 bg-background/50 backdrop-blur-sm">
+                <aside className="w-64 fixed left-0 top-20 h-screen overflow-y-auto border-r border-border bg-background/50 backdrop-blur-sm">
                     <nav className="p-4">
                         <div className="space-y-2">
                             {navigationItems.map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => setActiveSection(item.id)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                                        activeSection === item.id
-                                            ? 'bg-hero-purple/20 text-hero-primary border border-hero-purple/30'
-                                            : 'text-hero-secondary hover:text-hero-primary hover:bg-hero-purple/10'
-                                    }`}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeSection === item.id
+                                            ? 'bg-secondary text-foreground font-medium shadow-sm'
+                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                        }`}
                                 >
                                     <Icon name={item.icon} size={16} />
                                     <span className="text-sm font-medium">{item.label}</span>
@@ -89,7 +88,7 @@ const DocumentationPage = () => {
                     <div className="max-w-4xl mx-auto px-8 lg:px-12 py-8 lg:py-12">
                         {/* Mobile Navigation */}
                         <div className="lg:hidden mb-8">
-                            <ExpandableTabsJS 
+                            <ExpandableTabsJS
                                 tabs={[
                                     { title: "Overview", icon: Home },
                                     { title: "Getting Started", icon: Play },
@@ -105,8 +104,8 @@ const DocumentationPage = () => {
                                     { title: "Troubleshooting", icon: HelpCircle },
                                     { title: "API Reference", icon: Code },
                                 ]}
-                                activeColor="text-purple-500"
-                                className="border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50/50 to-pink-950/50"
+                                activeColor="text-foreground"
+                                className="border-border bg-background"
                                 onChange={(index) => {
                                     const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'];
                                     setActiveSection(sections[index]);
@@ -122,7 +121,7 @@ const DocumentationPage = () => {
                                 transition={{ duration: 0.5 }}
                             >
                                 <div className="text-center mb-16">
-                                    <Icon name="BookOpenCheck" size={64} className="mx-auto text-primary mb-6" />
+                                    <Icon name="BookOpenCheck" size={64} className="mx-auto text-foreground mb-6" />
                                     <h1 className="text-5xl font-heading font-bold text-foreground mb-4">Direktor Documentation</h1>
                                     <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                                         Your complete guide to running world-class Scrabble tournaments with the most advanced tournament management platform.
@@ -131,11 +130,11 @@ const DocumentationPage = () => {
 
                                 <DocSection title="What is Direktor?" id="what-is-direktor">
                                     <p className="text-lg">
-                                        Direktor is a next-generation, web-based platform designed to revolutionize Scrabble tournament management. 
-                                        Built on the core principle of <strong>Guided Workflow</strong>, it transforms the director's role from a 
+                                        Direktor is a next-generation, web-based platform designed to revolutionize Scrabble tournament management.
+                                        Built on the core principle of <strong>Guided Workflow</strong>, it transforms the director's role from a
                                         technical operator into a true manager by providing context-aware assistance throughout the tournament lifecycle.
                                     </p>
-                                    
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                                         <FeatureCard
                                             icon="Zap"
@@ -190,15 +189,15 @@ const DocumentationPage = () => {
                                         Direktor is built with modern, scalable technologies to ensure reliability and performance:
                                     </p>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
                                             <h4 className="font-semibold text-foreground mb-2">Frontend</h4>
                                             <p className="text-sm text-muted-foreground">React Native, Framer Motion, Tailwind CSS</p>
                                         </div>
-                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
                                             <h4 className="font-semibold text-foreground mb-2">Backend</h4>
                                             <p className="text-sm text-muted-foreground">Supabase, PostgreSQL, Row Level Security</p>
                                         </div>
-                                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
                                             <h4 className="font-semibold text-foreground mb-2">Storage</h4>
                                             <p className="text-sm text-muted-foreground">Supabase Storage, Image optimization, CDN</p>
                                         </div>
@@ -252,7 +251,7 @@ const DocumentationPage = () => {
                                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mt-8">
                                         <h4 className="font-semibold text-foreground mb-3">💡 Pro Tip</h4>
                                         <p className="text-sm text-muted-foreground">
-                                            Take advantage of the guided workflow system. Direktor will suggest the next logical step 
+                                            Take advantage of the guided workflow system. Direktor will suggest the next logical step
                                             based on your current tournament state, making it impossible to miss critical steps.
                                         </p>
                                     </div>
@@ -305,49 +304,49 @@ const DocumentationPage = () => {
                         )}
 
                         {/* Player Management Section */}
-                                {activeSection === 'player-management' && (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <DocSection title="Player Management" id="player-management">
-                    <p className="text-lg mb-6">
-                        Manage tournament participants efficiently with our comprehensive player management system.
-                    </p>
+                        {activeSection === 'player-management' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                            >
+                                <DocSection title="Player Management" id="player-management">
+                                    <p className="text-lg mb-6">
+                                        Manage tournament participants efficiently with our comprehensive player management system.
+                                    </p>
 
-                    <DocSubSection title="Adding Players">
-                        <p>Multiple ways to add players to your tournament:</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li><strong>Master Library:</strong> Search and add players from the central database</li>
-                            <li><strong>Bulk Import:</strong> Upload CSV files with multiple players</li>
-                            <li><strong>Manual Entry:</strong> Add individual players with custom information</li>
-                            <li><strong>Quick Add:</strong> Fast entry for last-minute registrations</li>
-                        </ul>
-                    </DocSubSection>
+                                    <DocSubSection title="Adding Players">
+                                        <p>Multiple ways to add players to your tournament:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Master Library:</strong> Search and add players from the central database</li>
+                                            <li><strong>Bulk Import:</strong> Upload CSV files with multiple players</li>
+                                            <li><strong>Manual Entry:</strong> Add individual players with custom information</li>
+                                            <li><strong>Quick Add:</strong> Fast entry for last-minute registrations</li>
+                                        </ul>
+                                    </DocSubSection>
 
-                    <DocSubSection title="Player Information">
-                        <p>Comprehensive player profiles with essential details:</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li><strong>Basic Details:</strong> Name, email, phone, and emergency contact</li>
-                            <li><strong>Rating Information:</strong> Current rating, rating history, and rating system</li>
-                            <li><strong>Tournament History:</strong> Previous tournaments, results, and statistics</li>
-                            <li><strong>Preferences:</strong> Pairing preferences, bye preferences, and special needs</li>
-                        </ul>
-                    </DocSubSection>
+                                    <DocSubSection title="Player Information">
+                                        <p>Comprehensive player profiles with essential details:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Basic Details:</strong> Name, email, phone, and emergency contact</li>
+                                            <li><strong>Rating Information:</strong> Current rating, rating history, and rating system</li>
+                                            <li><strong>Tournament History:</strong> Previous tournaments, results, and statistics</li>
+                                            <li><strong>Preferences:</strong> Pairing preferences, bye preferences, and special needs</li>
+                                        </ul>
+                                    </DocSubSection>
 
-                    <DocSubSection title="Player Organization">
-                        <p>Organize players effectively for smooth tournament operation:</p>
-                        <ul className="list-disc pl-5 space-y-2">
-                            <li><strong>Divisions:</strong> Group players by skill level or rating</li>
-                            <li><strong>Seeding:</strong> Automatic or manual seeding based on ratings</li>
-                            <li><strong>Status Tracking:</strong> Monitor player registration and participation</li>
-                            <li><strong>Communication:</strong> Send announcements and updates to players</li>
-                        </ul>
-                    </DocSubSection>
-                </DocSection>
-            </motion.div>
-        )}
+                                    <DocSubSection title="Player Organization">
+                                        <p>Organize players effectively for smooth tournament operation:</p>
+                                        <ul className="list-disc pl-5 space-y-2">
+                                            <li><strong>Divisions:</strong> Group players by skill level or rating</li>
+                                            <li><strong>Seeding:</strong> Automatic or manual seeding based on ratings</li>
+                                            <li><strong>Status Tracking:</strong> Monitor player registration and participation</li>
+                                            <li><strong>Communication:</strong> Send announcements and updates to players</li>
+                                        </ul>
+                                    </DocSubSection>
+                                </DocSection>
+                            </motion.div>
+                        )}
 
 
 
@@ -360,7 +359,7 @@ const DocumentationPage = () => {
                             >
                                 <DocSection title="Photo Management System" id="photo-system">
                                     <p className="text-lg mb-6">
-                                        The Photo Management System allows tournament directors to upload, manage, and display player photos 
+                                        The Photo Management System allows tournament directors to upload, manage, and display player photos
                                         for easy identification during tournaments.
                                     </p>
 
@@ -440,7 +439,7 @@ const DocumentationPage = () => {
                                         </ol>
                                         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-4">
                                             <p className="text-sm text-muted-foreground">
-                                                <strong>Note:</strong> If automatic matching fails, you can manually assign photos to players 
+                                                <strong>Note:</strong> If automatic matching fails, you can manually assign photos to players
                                                 using the manual matching interface.
                                             </p>
                                         </div>
@@ -771,7 +770,7 @@ const DocumentationPage = () => {
                                         <div className="bg-muted/20 rounded-lg p-4">
                                             <h5 className="font-semibold text-foreground mb-2">PhotoDatabaseManager Props</h5>
                                             <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
-{`interface PhotoDatabaseManagerProps {
+                                                {`interface PhotoDatabaseManagerProps {
   isOpen: boolean;                    // Modal open state
   onClose: () => void;               // Close handler
   players: Player[];                  // Tournament players
@@ -787,7 +786,7 @@ const DocumentationPage = () => {
                                         <div className="bg-muted/20 rounded-lg p-4">
                                             <h5 className="font-semibold text-foreground mb-2">Player Photos Table</h5>
                                             <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
-{`CREATE TABLE player_photos (
+                                                {`CREATE TABLE player_photos (
     id BIGSERIAL PRIMARY KEY,
     tournament_id BIGINT NOT NULL REFERENCES tournaments(id),
     player_id BIGINT NOT NULL REFERENCES players(id),
@@ -816,7 +815,7 @@ const DocumentationPage = () => {
                                 <Icon name="Construction" size={64} className="mx-auto text-muted-foreground mb-4" />
                                 <h2 className="text-2xl font-heading font-bold text-foreground mb-2">Section Under Development</h2>
                                 <p className="text-muted-foreground">
-                                    This documentation section is being expanded with comprehensive details. 
+                                    This documentation section is being expanded with comprehensive details.
                                     Check back soon for complete coverage of {activeSection.replace('-', ' ')}.
                                 </p>
                             </motion.div>

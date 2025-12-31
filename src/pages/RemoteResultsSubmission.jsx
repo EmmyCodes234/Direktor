@@ -73,7 +73,7 @@ const RemoteResultsSubmission = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!player1 || !player2 || !score1 || !score2 || !round) {
       setError('Please fill in all fields');
       return;
@@ -140,7 +140,7 @@ const RemoteResultsSubmission = () => {
         <Icon name="AlertCircle" size={48} className="text-destructive opacity-50 mb-4" />
         <h1 className="text-xl font-bold text-foreground mb-2">Access Denied</h1>
         <p className="text-muted-foreground max-w-md">{error}</p>
-        <Button 
+        <Button
           onClick={() => navigate(`/tournament/${tournamentSlug}`)}
           className="mt-4"
         >
@@ -184,20 +184,20 @@ const RemoteResultsSubmission = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg"
+                  className="mb-6 p-4 bg-card border border-border rounded-lg shadow-sm"
                 >
                   <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle" size={20} className="text-green-500" />
-                    <span className="text-green-500 font-medium">Result submitted successfully!</span>
+                    <Icon name="CheckCircle" size={20} className="text-foreground" />
+                    <span className="text-foreground font-medium">Result submitted successfully!</span>
                   </div>
                 </motion.div>
               )}
 
               {error && (
-                <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <div className="mb-6 p-4 bg-card border border-border rounded-lg shadow-sm">
                   <div className="flex items-center space-x-2">
-                    <Icon name="AlertCircle" size={20} className="text-destructive" />
-                    <span className="text-destructive font-medium">{error}</span>
+                    <Icon name="AlertCircle" size={20} className="text-muted-foreground" />
+                    <span className="text-muted-foreground font-medium">{error}</span>
                   </div>
                 </div>
               )}

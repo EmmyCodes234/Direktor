@@ -4,9 +4,13 @@ import Icon from 'components/AppIcon';
 import { supabase } from 'supabaseClient';
 import Button from 'components/ui/Button';
 import ShareButton from 'components/ui/ShareButton';
-import PlayerCard from '../components/PlayerCard';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import PublicTournamentBanner from 'components/public/PublicTournamentBanner';
+import ReportFooter from 'components/public/ReportFooter';
+import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
+import { Avatar, AvatarImage, AvatarFallback } from 'components/ui/Avatar';
+import { User } from 'lucide-react';
 
 const PublicTournamentRoster = () => {
     const { tournamentSlug } = useParams();
@@ -43,18 +47,16 @@ const PublicTournamentRoster = () => {
                 .order('seed', { ascending: true });
 
             if (pError) throw pError;
-            
+
             // If no players found, try to find the correct tournament ID
             let finalPlayersData = playersData;
-            
+
             if (!playersData || playersData.length === 0) {
-                console.log('No players found for tournament ID', tournamentData.id, 'searching for correct ID...');
-                
                 const { data: allTournaments, error: tournamentsError } = await supabase
                     .from('tournaments')
                     .select('id, name, slug')
                     .eq('slug', tournamentData.slug);
-                
+
                 if (!tournamentsError && allTournaments) {
                     for (const tournament of allTournaments) {
                         if (tournament.id !== tournamentData.id) {
@@ -63,14 +65,14 @@ const PublicTournamentRoster = () => {
                                 .select(`*, players (*)`)
                                 .eq('tournament_id', tournament.id)
                                 .limit(1);
-                            
+
                             if (!testError && testPlayers && testPlayers.length > 0) {
                                 const { data: correctPlayers, error: correctError } = await supabase
                                     .from('tournament_players')
                                     .select(`*, players (*)`)
                                     .eq('tournament_id', tournament.id)
                                     .order('seed', { ascending: true });
-                                
+
                                 if (!correctError) {
                                     finalPlayersData = correctPlayers;
                                     break;
@@ -80,7 +82,7 @@ const PublicTournamentRoster = () => {
                     }
                 }
             }
-            
+
             const enrichedPlayers = finalPlayersData.map(tp => ({
                 ...tp.players,
                 player_id: tp.players.id,
@@ -117,18 +119,18 @@ const PublicTournamentRoster = () => {
     // Add real-time updates for player roster
     useEffect(() => {
         if (!tournament) return;
-        
+
         const channel = supabase
             .channel(`public-tournament-roster-${tournament.id}`)
-            .on('postgres_changes', { 
-                event: '*', 
-                schema: 'public', 
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
                 table: 'tournament_players',
                 filter: `tournament_id=eq.${tournament.id}`
             }, fetchPublicData)
-            .on('postgres_changes', { 
-                event: '*', 
-                schema: 'public', 
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
                 table: 'tournaments',
                 filter: `id=eq.${tournament.id}`
             }, fetchPublicData)
@@ -139,26 +141,19 @@ const PublicTournamentRoster = () => {
         };
     }, [tournament, fetchPublicData]);
 
-    const handlePlayerClick = (e, player) => {
-        e.preventDefault();
-        if (player?.slug) {
-            window.open(`/players/${player.slug}`, '_blank');
-        }
-    };
-
     const teamMap = React.useMemo(() => new Map(teams.map(team => [team.id, team.name])), [teams]);
-    
+
     const filteredAndSortedPlayers = React.useMemo(() => {
         let filtered = players;
-        
+
         // Filter by search term
         if (searchTerm) {
-            filtered = players.filter(player => 
+            filtered = players.filter(player =>
                 player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (player.team_id && teamMap.get(player.team_id)?.toLowerCase().includes(searchTerm.toLowerCase()))
             );
         }
-        
+
         // Sort by selected criteria
         return filtered.sort((a, b) => {
             switch (sortBy) {
@@ -173,240 +168,128 @@ const PublicTournamentRoster = () => {
         });
     }, [players, searchTerm, sortBy, teamMap]);
 
+    const formatName = (name) => {
+        if (!name) return "";
+        const parts = name.trim().split(" ");
+        if (parts.length < 2) return name;
+        const lastName = parts.pop();
+        const firstName = parts.join(" ");
+        return `${lastName}, ${firstName}`;
+    };
+
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="Loader" className="animate-spin text-primary" size={48} />
-                    </div>
-                    <p className="text-base text-muted-foreground font-medium">Loading roster...</p>
-                </motion.div>
-            </div>
-        );
+        return <PublicLoadingScreen />;
     }
 
     if (!tournament) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="AlertCircle" className="text-destructive" size={48} />
-                    </div>
-                    <h2 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h2>
-                    <p className="text-muted-foreground">The tournament you're looking for doesn't exist or has been removed.</p>
-                </motion.div>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <h2 className="text-xl font-heading font-bold text-foreground mb-2">Tournament Not Found</h2>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
+        <div className="min-h-screen bg-white text-black font-serif">
             {/* Header */}
-            <motion.header 
-                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
+            <motion.header
+                className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm py-2 print:hidden"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                                className="touch-target hover:bg-muted/20"
-                            >
-                                <Icon name="ArrowLeft" size={20} />
-                            </Button>
-                            <div>
-                                <motion.h1 
-                                    className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.2, duration: 0.6 }}
-                                >
-                                    {tournament.name}
-                                </motion.h1>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+                            className="hover:bg-gray-100 text-gray-600 hover:text-black"
+                        >
+                            <Icon name="ArrowLeft" size={20} />
+                            <span className="ml-2">Back to Tournament</span>
+                        </Button>
+
+                        <div className="flex gap-2">
+                            {/* Simple minimal search input in header to keep clean */}
+                            <div className="relative">
+                                <Icon name="Search" className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                                <input
+                                    type="text"
+                                    placeholder="Search..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-8 pr-3 py-1 bg-gray-50 border border-gray-200 rounded text-sm w-32 focus:w-48 transition-all focus:outline-none focus:border-blue-500"
+                                />
                             </div>
                         </div>
-                        <motion.div
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.4, duration: 0.6 }}
-                        >
-                            <ShareButton
-                                variant="ghost"
-                                size="sm"
-                                shareData={{
-                                    type: 'roster',
-                                    data: { tournament: tournament.name, players: players.length },
-                                    url: window.location.href
-                                }}
-                                platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
-                                position="bottom-right"
-                                className="touch-target"
-                            />
-                        </motion.div>
                     </div>
                 </div>
             </motion.header>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <motion.div 
-                    className="space-y-6"
-                    initial={{ opacity: 0, y: 20 }}
+            <PublicTournamentBanner tournament={tournament} />
+
+            <main className="w-full px-4 sm:px-6 lg:px-8 py-8 text-center">
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5, duration: 0.6 }}
+                    transition={{ delay: 0.1 }}
+                    className="inline-block text-left"
                 >
-                    {/* Page Header */}
-                    <div className="text-center space-y-3">
-                        <div className="flex items-center justify-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <Icon name="Users" size={20} className="text-primary" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-foreground">Player Roster</h2>
-                        </div>
-                        <p className="text-base text-muted-foreground max-w-xl mx-auto">
-                            Complete list of tournament participants
-                        </p>
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold mb-1">Player Rosters</h2>
+                        <div className="text-xl font-medium text-gray-800">Division A</div>
                     </div>
 
-                    {/* Tournament Info Card */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6, duration: 0.6 }}
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{players.length}</div>
-                                <div className="text-xs text-muted-foreground">Total Players</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{tournament.type}</div>
-                                <div className="text-xs text-muted-foreground">Tournament Type</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{teams.length}</div>
-                                <div className="text-xs text-muted-foreground">Teams</div>
-                            </div>
+                    <div className="overflow-visible">
+                        <table className="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                                <tr>
+                                    <th className="py-2 px-2 font-bold text-gray-900 w-10 text-center">#</th>
+                                    <th className="py-2 px-2 font-bold text-gray-900 w-16 text-right">Rating</th>
+                                    <th className="py-2 px-2 font-bold text-gray-900 w-16 text-center">Photo</th>
+                                    <th className="py-2 px-4 font-bold text-gray-900 text-left">Player</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredAndSortedPlayers.map((player, index) => (
+                                    <tr key={player.id} className="hover:bg-gray-50">
+                                        <td className="py-2 px-2 text-center text-gray-700">{player.seed || index + 1}</td>
+                                        <td className="py-2 px-2 text-right text-gray-700 font-mono">{player.rating || 0}</td>
+                                        <td className="py-2 px-2 text-center">
+                                            <div className="flex justify-center">
+                                                <Avatar size="md" className="h-10 w-10 bg-black rounded-none">
+                                                    {player?.photo_url ? (
+                                                        <AvatarImage
+                                                            src={player.photo_url}
+                                                            alt={player.name}
+                                                            className="object-cover rounded-none"
+                                                        />
+                                                    ) : null}
+                                                    <AvatarFallback className="bg-black text-white rounded-none">
+                                                        <User size={20} />
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                            </div>
+                                        </td>
+                                        <td className="py-2 px-4 whitespace-nowrap text-lg text-gray-900">
+                                            {formatName(player.name)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {filteredAndSortedPlayers.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                            No players found matching your search.
                         </div>
-                    </motion.div>
-
-                    {/* Search and Filter Controls */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.7, duration: 0.6 }}
-                    >
-                        <div className="flex flex-col sm:flex-row gap-3">
-                            {/* Search Input */}
-                            <div className="flex-1">
-                                <div className="relative">
-                                    <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search players or teams..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 bg-background/50 border border-border/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm"
-                                    />
-                                </div>
-                            </div>
-                            
-                            {/* Sort Dropdown */}
-                            <div className="sm:w-40">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="w-full px-3 py-2.5 bg-background/50 border border-border/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200 text-sm"
-                                >
-                                    <option value="seed">Sort by Seed</option>
-                                    <option value="name">Sort by Name</option>
-                                    <option value="rating">Sort by Rating</option>
-                                </select>
-                            </div>
-                        </div>
-                    </motion.div>
-
-                    {/* Players Grid */}
-                    <motion.div 
-                        className="space-y-5"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8, duration: 0.6 }}
-                    >
-                        {filteredAndSortedPlayers.length > 0 ? (
-                            <>
-                                {/* Results Summary */}
-                                <div className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-3 shadow-lg">
-                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                        <span>Showing {filteredAndSortedPlayers.length} of {players.length} players</span>
-                                        <span>Sorted by {sortBy === 'seed' ? 'Seed' : sortBy === 'name' ? 'Name' : 'Rating'}</span>
-                                    </div>
-                                </div>
-
-                                {/* Players Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {filteredAndSortedPlayers.map((player, index) => (
-                                        <motion.div 
-                                            key={player.id}
-                                            onClick={(e) => handlePlayerClick(e, player)}
-                                            className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02] hover:shadow-lg"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            whileHover={{ y: -2 }}
-                                        >
-                                            <PlayerCard
-                                                player={player}
-                                                index={index}
-                                                tournamentType={tournament.type}
-                                            />
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </>
-                        ) : (
-                            <motion.div 
-                                className="text-center py-12"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.9, duration: 0.6 }}
-                            >
-                                <div className="w-16 h-16 mx-auto mb-4 bg-muted/20 rounded-full flex items-center justify-center">
-                                    <Icon name="SearchX" className="text-muted-foreground" size={32} />
-                                </div>
-                                <h3 className="text-lg font-bold text-foreground mb-2">No players found</h3>
-                                <p className="text-muted-foreground mb-4">Try adjusting your search criteria or filters</p>
-                                <Button 
-                                    variant="outline" 
-                                    onClick={() => {
-                                        setSearchTerm('');
-                                        setSortBy('seed');
-                                    }}
-                                >
-                                    Clear Filters
-                                </Button>
-                            </motion.div>
-                        )}
-                    </motion.div>
+                    )}
                 </motion.div>
+
+                <ReportFooter />
             </main>
         </div>
     );

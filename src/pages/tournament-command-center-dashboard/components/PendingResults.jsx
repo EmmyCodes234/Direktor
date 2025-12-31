@@ -2,99 +2,95 @@ import React from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 import { motion } from 'framer-motion';
+import { cn } from '../../../utils/cn';
 
-const PendingResults = ({ pending, onApprove, onReject }) => {
-  return (
-    <div className="glass-card">
-        <div className="p-4 sm:p-5 lg:p-6 border-b border-border/10 flex justify-between items-center">
-             <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
-                <Icon name="Mail" size={18} className="text-primary" />
-                <span className="text-base sm:text-lg">Pending Results</span>
-            </h3>
-            {pending.length > 0 && (
-                <motion.span 
-                  className="bg-primary text-primary-foreground text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                >
-                    {pending.length}
-                </motion.span>
-            )}
-        </div>
-        <div className="p-4 sm:p-5 lg:p-6 space-y-4 max-h-96 overflow-y-auto">
-            {pending.length === 0 ? (
-                <div className="text-center py-8">
-                    <Icon name="CheckCircle" size={48} className="text-muted-foreground mx-auto mb-4" />
-                    <p className="text-sm text-muted-foreground">No pending results to review.</p>
+const PendingResults = ({ pending, onApprove, onReject, compact = false }) => {
+    return (
+        <div className={cn("flex flex-col", compact ? "bg-transparent border-0" : "bg-card border border-border rounded-xl shadow-sm")}>
+            {!compact && (
+                <div className="p-4 sm:p-5 lg:p-6 border-b border-border flex justify-between items-center">
+                    <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
+                        <Icon name="Mail" size={18} className="text-foreground" />
+                        <span className="text-base sm:text-lg">Pending Results</span>
+                    </h3>
+                    {pending.length > 0 && (
+                        <motion.span
+                            className="bg-primary text-primary-foreground text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        >
+                            {pending.length}
+                        </motion.span>
+                    )}
                 </div>
-            ) : (
-                pending.map((p, index) => (
-                    <motion.div 
-                      key={p.id} 
-                      className="bg-muted/10 p-4 sm:p-5 lg:p-6 rounded-xl border border-border/10 touch-target"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                        <div className="space-y-3 sm:space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <p className="font-medium text-foreground text-sm sm:text-base">
-                                        {p.player1_name} vs {p.player2_name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Round {p.round} • Submitted by {p.submitted_by_name}
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="bg-background/50 p-3 sm:p-4 rounded-lg">
-                                <div className="flex items-center justify-center space-x-3 sm:space-x-4">
-                                    <div className="text-center">
-                                        <span className="font-medium text-foreground text-sm sm:text-base">{p.player1_name}</span>
-                                        <div className="font-mono font-bold text-xl sm:text-2xl text-primary">
-                                            {p.score1}
-                                        </div>
-                                    </div>
-                                    <div className="text-muted-foreground">
-                                        <Icon name="Minus" size={18} className="sm:w-5 sm:h-5" />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="font-medium text-foreground text-sm sm:text-base">{p.player2_name}</span>
-                                        <div className="font-mono font-bold text-xl sm:text-2xl text-primary">
-                                            {p.score2}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex gap-2 sm:gap-3">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  onClick={() => onReject(p.id)}
-                                  className="touch-target flex-1"
-                                >
-                                    <Icon name="X" size={16} className="mr-2" />
-                                    Reject
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  onClick={() => onApprove(p)}
-                                  className="touch-target flex-1"
-                                >
-                                    <Icon name="Check" size={16} className="mr-2" />
-                                    Approve
-                                </Button>
-                            </div>
-                        </div>
-                    </motion.div>
-                ))
             )}
+            <div className={cn("space-y-3 overflow-y-auto", compact ? "px-0" : "p-4 sm:p-5 lg:p-6 max-h-96")}>
+                {pending.length === 0 ? (
+                    <div className="text-center py-8">
+                        <Icon name="CheckCircle" size={compact ? 32 : 48} className="text-slate-700 mx-auto mb-3" />
+                        <p className="text-sm text-slate-500">All caught up.</p>
+                    </div>
+                ) : (
+                    pending.map((p, index) => (
+                        <motion.div
+                            key={p.id}
+                            className={cn(
+                                "rounded-xl border transition-all duration-200",
+                                compact
+                                    ? "bg-slate-950/40 p-3 border-slate-800/50"
+                                    : "bg-secondary/30 p-4 border-border"
+                            )}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                        >
+                            <div className="space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <p className={cn("font-bold text-slate-100 uppercase tracking-wide", compact ? "text-[10px]" : "text-sm sm:text-base")}>
+                                            {p.player1_name} <span className="text-slate-600 px-1">VS</span> {p.player2_name}
+                                        </p>
+                                        <div className="flex items-center space-x-2 mt-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                                            <span>Round {p.round}</span>
+                                            <span>•</span>
+                                            <span className="truncate max-w-[100px]">From {p.submitted_by_name?.split(' ')[0]}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2 ml-2">
+                                        <div className="text-center min-w-[30px]">
+                                            <div className="text-xs font-mono font-black text-emerald-400">{p.score1}</div>
+                                        </div>
+                                        <div className="w-1.5 h-[1px] bg-slate-700" />
+                                        <div className="text-center min-w-[30px]">
+                                            <div className="text-xs font-mono font-black text-emerald-400">{p.score2}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => onReject(p.id)}
+                                        className="h-7 flex-1 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-rose-400 hover:bg-rose-400/10 hover:border-rose-400/20 text-[10px] uppercase font-bold tracking-wider transition-all"
+                                    >
+                                        <Icon name="X" size={12} className="mr-1.5" />
+                                        Reject
+                                    </button>
+                                    <button
+                                        onClick={() => onApprove(p)}
+                                        className="h-7 flex-1 flex items-center justify-center rounded-lg bg-emerald-600/10 border border-emerald-500/20 text-emerald-500 hover:bg-emerald-600 hover:text-white hover:border-emerald-500 transition-all text-[10px] uppercase font-bold tracking-wider"
+                                    >
+                                        <Icon name="Check" size={12} className="mr-1.5" />
+                                        Approve
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))
+                )}
+            </div>
         </div>
-    </div>
-  );
+    );
 };
 
 export default PendingResults;

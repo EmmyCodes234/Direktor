@@ -17,17 +17,18 @@ export const buttonVariants = cva(
         // Primary actions
         default: "bg-hero-gradient text-white hover:shadow-glow-md rounded-lg shadow-sm",
         primary: "bg-hero-gradient text-white hover:shadow-glow-md rounded-lg shadow-sm",
-        
+
         // Secondary actions
         secondary: "bg-hero-zinc/20 text-hero-primary hover:bg-hero-zinc/30 dark:bg-hero-zinc/20 dark:text-hero-primary dark:hover:bg-hero-zinc/30 rounded-lg shadow-sm",
         outline: "border border-hero-purple/30 bg-white text-hero-primary hover:bg-hero-purple/10 dark:border-hero-purple/30 dark:bg-background dark:text-hero-primary dark:hover:bg-hero-purple/10 rounded-lg",
-        
+
         // Semantic actions
-        success: "bg-success-500 text-white hover:bg-success-600 rounded-lg shadow-sm",
-        warning: "bg-warning-500 text-white hover:bg-warning-600 rounded-lg shadow-sm",
-        error: "bg-error-500 text-white hover:bg-error-600 rounded-lg shadow-sm",
-        destructive: "bg-error-500 text-white hover:bg-error-600 rounded-lg shadow-sm",
-        
+        // Semantic actions
+        success: "bg-success text-success-foreground hover:bg-success/90 rounded-lg shadow-sm",
+        warning: "bg-warning text-warning-foreground hover:bg-warning/90 rounded-lg shadow-sm",
+        error: "bg-error text-error-foreground hover:bg-error/90 rounded-lg shadow-sm",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-lg shadow-sm",
+
         // Special styles
         ghost: "hover:bg-hero-purple/10 hover:text-hero-primary dark:hover:bg-hero-purple/20 dark:hover:text-hero-primary rounded-lg",
         link: "text-hero-primary underline-offset-4 hover:underline hover:text-hero-purple/80 rounded-sm",
@@ -41,7 +42,7 @@ export const buttonVariants = cva(
         lg: "h-10 px-6 text-base",
         xl: "h-11 px-8 text-lg",
         "2xl": "h-12 px-10 text-xl",
-        
+
         // Icon-only sizes
         "icon-xs": "h-7 w-7 p-0",
         "icon-sm": "h-8 w-8 p-0",
@@ -224,7 +225,7 @@ export const animationPatterns = {
     exit: { opacity: 0, y: -20 },
     transition: { duration: 0.3, ease: "easeOut" },
   },
-  
+
   // Card animations
   cardEnter: {
     initial: { opacity: 0, y: 20, scale: 0.95 },
@@ -232,7 +233,7 @@ export const animationPatterns = {
     exit: { opacity: 0, y: -20, scale: 0.95 },
     transition: { duration: 0.2, ease: "easeOut" },
   },
-  
+
   // Staggered animations
   staggerContainer: {
     animate: {
@@ -242,19 +243,19 @@ export const animationPatterns = {
       },
     },
   },
-  
+
   // Hover effects
   hoverLift: {
     whileHover: { y: -4, scale: 1.02 },
     transition: { type: "spring", stiffness: 300, damping: 20 },
   },
-  
+
   // Focus effects
   focusRing: {
     whileFocus: { scale: 1.02 },
     transition: { duration: 0.1 },
   },
-  
+
   // Loading states
   loadingPulse: {
     animate: { opacity: [1, 0.5, 1] },
@@ -273,7 +274,7 @@ export const layoutPatterns = {
     "2xl": "max-w-7xl mx-auto px-4 sm:px-6",
     full: "w-full px-4 sm:px-6",
   },
-  
+
   // Grid layouts
   grid: {
     "1": "grid grid-cols-1 gap-4",
@@ -282,7 +283,7 @@ export const layoutPatterns = {
     "4": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
     "auto-fit": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
   },
-  
+
   // Flexbox layouts
   flex: {
     center: "flex items-center justify-center",
@@ -292,7 +293,7 @@ export const layoutPatterns = {
     col: "flex flex-col",
     row: "flex flex-row",
   },
-  
+
   // Spacing patterns
   spacing: {
     section: "py-8 sm:py-12 lg:py-16",
@@ -312,13 +313,13 @@ export const formPatterns = {
     horizontal: "grid grid-cols-1 md:grid-cols-3 gap-4 items-center",
     inline: "flex items-center space-x-4",
   },
-  
+
   // Form groups
   group: "space-y-2",
-  
+
   // Form sections
   section: "space-y-6 border-b border-neutral-200 dark:border-neutral-700 pb-6",
-  
+
   // Form actions
   actions: "flex items-center justify-end space-x-3 pt-6",
 };

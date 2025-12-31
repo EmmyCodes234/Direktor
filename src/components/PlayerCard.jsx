@@ -10,7 +10,7 @@ import { cn } from '../utils/cn';
 const PlayerCard = ({ player, index, tournamentType }) => {
   const getPlayerStats = () => {
     if (!player) return { wins: 0, losses: 0, ties: 0, points: 0, gamesPlayed: 0 };
-    
+
     return {
       wins: player.wins || 0,
       losses: player.losses || 0,
@@ -43,11 +43,11 @@ const PlayerCard = ({ player, index, tournamentType }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className={cn(
-        "glass-card hover:border-border/20 transition-all duration-200 group",
+        "bg-card border border-border rounded-xl shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 group overflow-hidden",
         LAYOUT_TEMPLATES.spacing.contentSm
       )}
     >
-      <Card variant="glass" padding="md" className="h-full">
+      <div className="h-full p-4">
         <CardContent className="p-0">
           <div className={cn("flex items-start justify-between", LAYOUT_TEMPLATES.spacing.contentSm)}>
             {/* Player Info */}
@@ -55,8 +55,8 @@ const PlayerCard = ({ player, index, tournamentType }) => {
               {/* Avatar */}
               <Avatar size="xl" variant="primary" className="ring-2 ring-primary/20">
                 {player?.photo_url || player?.avatar_url ? (
-                  <AvatarImage 
-                    src={player.photo_url || player.avatar_url} 
+                  <AvatarImage
+                    src={player.photo_url || player.avatar_url}
                     alt={player.name}
                     onError={(e) => {
                       console.log(`Failed to load image for ${player.name}: ${player.photo_url || player.avatar_url}`);
@@ -89,7 +89,7 @@ const PlayerCard = ({ player, index, tournamentType }) => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="space-y-1">
                   {player?.team && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -97,14 +97,14 @@ const PlayerCard = ({ player, index, tournamentType }) => {
                       <span className="truncate">{player.team}</span>
                     </div>
                   )}
-                  
+
                   {player?.rating && (
                     <div className="flex items-center gap-1 text-sm text-primary/80">
                       <Star className="w-3 h-3" />
                       <span>Rating: {player.rating}</span>
                     </div>
                   )}
-                  
+
                   {player?.seed && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Trophy className="w-3 h-3" />
@@ -135,50 +135,50 @@ const PlayerCard = ({ player, index, tournamentType }) => {
             LAYOUT_TEMPLATES.spacing.contentSm
           )}>
             <div className={cn(
-              "bg-green-500/10 border border-green-500/20 rounded-xl",
+              "bg-secondary/50 border border-border rounded-xl",
               "p-3 sm:p-2"
             )}>
               <div className={cn(
-                "font-bold text-green-600",
+                "font-bold text-foreground",
                 "text-xl sm:text-lg"
               )}>
                 {stats.wins}
               </div>
-              <div className="text-xs text-green-600/80 font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 Wins
               </div>
             </div>
-            
+
             <div className={cn(
-              "bg-red-500/10 border border-red-500/20 rounded-xl",
+              "bg-secondary/50 border border-border rounded-xl",
               "p-3 sm:p-2"
             )}>
               <div className={cn(
-                "font-bold text-red-600",
+                "font-bold text-foreground",
                 "text-xl sm:text-lg"
               )}>
                 {stats.losses}
               </div>
-              <div className="text-xs text-red-600/80 font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 Losses
               </div>
             </div>
-            
+
             <div className={cn(
-              "bg-blue-500/10 border border-blue-500/20 rounded-xl",
+              "bg-secondary/50 border border-border rounded-xl",
               "p-3 sm:p-2"
             )}>
               <div className={cn(
-                "font-bold text-blue-600",
+                "font-bold text-foreground",
                 "text-xl sm:text-lg"
               )}>
                 {stats.ties}
               </div>
-              <div className="text-xs text-blue-600/80 font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 Ties
               </div>
             </div>
-            
+
             <div className={cn(
               "bg-primary/10 border border-primary/20 rounded-xl",
               "p-3 sm:p-2"
@@ -189,7 +189,7 @@ const PlayerCard = ({ player, index, tournamentType }) => {
               )}>
                 {winRate}%
               </div>
-              <div className="text-xs text-primary/80 font-medium">
+              <div className="text-xs text-muted-foreground font-medium">
                 Win Rate
               </div>
             </div>
@@ -209,7 +209,7 @@ const PlayerCard = ({ player, index, tournamentType }) => {
                   Games Played
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="font-bold text-primary text-lg">
                   {tournamentType === 'best-of-league' ? stats.wins : stats.points}
@@ -242,8 +242,8 @@ const PlayerCard = ({ player, index, tournamentType }) => {
             </div>
           )}
         </CardContent>
-      </Card>
-    </motion.div>
+      </div>
+    </motion.div >
   );
 };
 

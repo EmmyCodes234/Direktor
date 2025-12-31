@@ -1,137 +1,88 @@
-/* Hero Section Color System - Extracted from Landing Page */
+/* Monochrome Color System - "Gemini 3" Redesign */
 
 /* 
-  This file contains the color system extracted from the hero section
-  of the landing page. All colors are now available as CSS variables
-  and utility classes for consistent use throughout the app.
+  This file contains the new minimal, high-contrast monochrome system.
+  It replaces the previous purple-blue gradient theme.
 */
 
-/* Color Variables Documentation */
 :root {
   /* 
-    Primary Brand Colors (Purple-based)
-    Extracted from hero section gradient: from-purple-600 to-pink-500
+    Primary Brand Colors (Monochrome)
+    Pure Black for Light Mode
   */
-  --primary: 262.1 83.3% 57.8%;           /* Purple-600 */
-  --primary-light: 270 95% 75%;            /* Purple-300 */
-  --primary-dark: 262.1 83.3% 45%;        /* Purple-700 */
-  
-  /* 
-    Gradient Colors
-    Extracted from hero section text gradients
-  */
-  --gradient-purple: 262.1 83.3% 57.8%;   /* Purple-600 */
-  --gradient-pink: 330 81% 60%;            /* Pink-500 */
-  --gradient-orange: 25 95% 53%;           /* Orange-400 */
+  --primary: 0 0% 0%;             /* Black */
+  --primary-light: 0 0% 20%;      /* Dark Gray */
+  --primary-dark: 0 0% 0%;        /* Black */
   
   /* 
     Text Colors
-    Extracted from hero section text elements
   */
-  --text-primary: 224 71.4% 4.1%;         /* Dark text for light mode */
-  --text-secondary: 220 8.9% 46.1%;       /* Gray-600 for secondary text */
-  --text-muted: 220 8.9% 46.1%;           /* Gray-600 for muted text */
-  --text-light: 220 13% 91%;               /* Gray-300 for light text */
+  --text-primary: 0 0% 0%;        /* Black */
+  --text-secondary: 0 0% 40%;     /* Gray-600 */
+  --text-muted: 0 0% 60%;         /* Gray-400 */
+  --text-light: 0 0% 80%;         /* Gray-200 */
   
   /* 
     Background Colors
-    Extracted from hero section backgrounds
   */
-  --bg-zinc-light: 220 8.9% 46.1%;        /* Zinc-400 */
-  --bg-gray-light: 220 8.9% 46.1%;        /* Gray-400 */
-  --bg-purple-accent: 262.1 83.3% 57.8%; /* Purple-600 */
+  --bg-zinc-light: 0 0% 98%;      /* Off-White */
+  --bg-gray-light: 0 0% 95%;      /* Light Gray */
+  --bg-purple-accent: 0 0% 0%;    /* Black (formerly purple) */
   
   /* 
     Border Colors
-    Extracted from hero section borders
   */
-  --border-light: 0 0% 0%;                 /* Black for light mode */
-  --border-dark: 0 0% 100%;                /* White for dark mode */
-  --border-purple: 262.1 83.3% 57.8%;     /* Purple-600 */
+  --border-light: 0 0% 90%;       /* Light Gray */
+  --border-dark: 0 0% 10%;        /* Dark Gray */
+  --border-purple: 0 0% 0%;       /* Black (formerly purple) */
   
   /* 
-    Pre-built Gradients
-    Ready-to-use gradient combinations
+    Gradients (Subtle Gray Scales)
   */
-  --hero-gradient-light: linear-gradient(to right, hsl(262.1 83.3% 57.8%), hsl(330 81% 60%));
-  --hero-gradient-dark: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-  --hero-bg-gradient: linear-gradient(135deg, hsl(220 8.9% 46.1% / 0.2), hsl(220 8.9% 46.1% / 0.1), transparent);
+  --hero-gradient-light: linear-gradient(to right, #000000, #333333);
+  --hero-gradient-dark: linear-gradient(to right, #ffffff, #cccccc);
+  --hero-bg-gradient: linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0) 100%);
 }
 
 /* Dark Mode Overrides */
 .dark {
-  --primary: 270 95% 75%;                  /* Purple-300 */
-  --primary-light: 270 95% 85%;            /* Purple-200 */
-  --primary-dark: 270 95% 65%;             /* Purple-400 */
+  /* 
+    Primary Brand Colors (Monochrome)
+    Pure White for Dark Mode
+  */
+  --primary: 0 0% 100%;           /* White */
+  --primary-light: 0 0% 90%;      /* Off-White */
+  --primary-dark: 0 0% 80%;       /* Light Gray */
   
-  --gradient-purple: 270 95% 75%;          /* Purple-300 */
-  --gradient-pink: 330 81% 60%;            /* Pink-500 */
-  --gradient-orange: 25 95% 53%;           /* Orange-400 */
+  /* 
+    Text Colors
+  */
+  --text-primary: 0 0% 100%;      /* White */
+  --text-secondary: 0 0% 70%;     /* Gray-400 */
+  --text-muted: 0 0% 50%;         /* Gray-500 */
+  --text-light: 0 0% 30%;         /* Gray-700 */
   
-  --text-primary: 210 20% 98%;             /* Light text for dark mode */
-  --text-secondary: 217.9 10.6% 64.9%;    /* Gray-400 for secondary text */
-  --text-muted: 217.9 10.6% 64.9%;        /* Gray-400 for muted text */
-  --text-light: 215 20.2% 65.1%;          /* Gray-500 for light text */
+  /* 
+    Background Colors
+  */
+  --bg-zinc-light: 0 0% 10%;      /* Dark Gray */
+  --bg-gray-light: 0 0% 5%;       /* Very Dark Gray */
+  --bg-purple-accent: 0 0% 100%;  /* White (formerly purple) */
   
-  --bg-zinc-light: 217.9 10.6% 64.9%;     /* Gray-400 */
-  --bg-gray-light: 217.9 10.6% 64.9%;     /* Gray-400 */
-  --bg-purple-accent: 270 95% 75%;        /* Purple-300 */
+  /* 
+    Border Colors
+  */
+  --border-light: 0 0% 20%;       /* Dark Gray */
+  --border-dark: 0 0% 80%;        /* Light Gray */
+  --border-purple: 0 0% 100%;     /* White (formerly purple) */
   
-  --border-light: 0 0% 100%;               /* White for dark mode */
-  --border-dark: 0 0% 0%;                  /* Black for dark mode */
-  --border-purple: 270 95% 75%;            /* Purple-300 */
-  
-  --hero-gradient-light: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-  --hero-gradient-dark: linear-gradient(to right, hsl(270 95% 75%), hsl(25 95% 53%));
-  --hero-bg-gradient: linear-gradient(135deg, hsl(217.9 10.6% 64.9% / 0.2), hsl(217.9 10.6% 64.9% / 0.1), transparent);
+  /* 
+    Gradients
+  */
+  --hero-bg-gradient: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%);
 }
 
-/* Usage Examples */
-
-/* 
-  Text Colors:
-  - .text-hero-primary     -> Main text color
-  - .text-hero-secondary   -> Secondary text color  
-  - .text-hero-muted       -> Muted text color
-  - .text-hero-light       -> Light text color
-  - .text-hero-gradient    -> Gradient text effect
-*/
-
-/* 
-  Background Colors:
-  - .bg-hero-zinc          -> Zinc background
-  - .bg-hero-gray          -> Gray background
-  - .bg-hero-purple        -> Purple accent background
-  - .bg-hero-gradient      -> Purple to pink gradient
-  - .bg-hero-bg-gradient   -> Subtle background gradient
-*/
-
-/* 
-  Border Colors:
-  - .border-hero-light     -> Light border (black/white)
-  - .border-hero-dark      -> Dark border (white/black)
-  - .border-hero-purple    -> Purple border
-*/
-
-/* 
-  Component Classes:
-  - .hero-card             -> Card with hero styling
-  - .hero-button-primary   -> Primary button with gradient
-  - .hero-button-secondary -> Secondary button
-  - .hero-input            -> Input with hero focus states
-  - .hero-link             -> Link with hero hover states
-  - .hero-badge            -> Badge with hero colors
-*/
-
-/* 
-  Example Usage:
-  
-  <div class="hero-card">
-    <h2 class="text-hero-primary">Title</h2>
-    <p class="text-hero-secondary">Description</p>
-    <button class="hero-button-primary">Action</button>
-  </div>
-  
-  <span class="text-hero-gradient">Gradient Text</span>
-  <div class="bg-hero-gradient">Gradient Background</div>
-*/
+/* Utility Classes for Compatibility */
+.bg-hero-purple { background-color: hsl(var(--primary)); }
+.text-hero-purple { color: hsl(var(--primary)); }
+.border-hero-purple { border-color: hsl(var(--primary)); }

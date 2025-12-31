@@ -4,14 +4,16 @@ import { supabase } from '../../../supabaseClient';
 import { toast } from 'sonner';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../../utils/cn';
 
-const AnnouncementsManager = () => {
+const AnnouncementsManager = ({ compact = false }) => {
   const { tournamentSlug } = useParams();
   const [announcements, setAnnouncements] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [tournamentId, setTournamentId] = useState(null);
+  const [isOpen, setIsOpen] = useState(false); // For compact modal
 
   useEffect(() => {
     if (!tournamentSlug) return;
@@ -90,66 +92,79 @@ const AnnouncementsManager = () => {
     if (error) {
       toast.error(`Failed to delete announcement: ${error.message}`);
     } else {
-        toast.success('Announcement deleted.');
+      toast.success('Announcement deleted.');
     }
   };
 
-  return (
-    <div className="bg-card/90 backdrop-blur-sm border border-border/10 rounded-xl">
-      <div className="p-4 sm:p-5 lg:p-6 border-b border-border/10">
-        <h3 className="font-heading font-semibold text-foreground flex items-center space-x-2">
-          <Icon name="Megaphone" size={18} className="text-primary" />
-          <span className="text-base sm:text-lg">Director's Announcements</span>
+  const Content = () => (
+    <div className="bg-slate-900 border-0 sm:border border-slate-800 h-full flex flex-col">
+      <div className="p-4 sm:p-5 border-b border-slate-800 bg-slate-950/50 flex justify-between items-center">
+        <h3 className="font-heading font-semibold text-slate-100 flex items-center space-x-2">
+          <Icon name="Megaphone" size={18} className="text-emerald-500" />
+          <span className="text-base sm:text-lg uppercase tracking-wider">Director's Announcements</span>
         </h3>
+        {compact && (
+          <button onClick={() => setIsOpen(false)} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+            <Icon name="X" size={20} />
+          </button>
+        )}
       </div>
-      <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5 lg:space-y-6">
-        <form onSubmit={handlePostAnnouncement} className="space-y-3 sm:space-y-4">
+      <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto scrollbar-hide">
+        <form onSubmit={handlePostAnnouncement} className="space-y-4">
           <textarea
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your announcement here..."
-            className="w-full h-24 p-4 bg-input border border-border/10 rounded-xl resize-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 touch-target"
+            placeholder="Broadcast a message to all players..."
+            className="w-full h-28 p-4 bg-slate-950 border border-slate-800 rounded-xl resize-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all duration-200 text-sm text-slate-300 placeholder:text-slate-600"
             disabled={loading}
           />
-          <Button 
-            type="submit" 
-            loading={loading} 
-            className="w-full touch-target"
+          <Button
+            type="submit"
+            loading={loading}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20"
+            variant="primary"
             size="lg"
           >
             <Icon name="Send" size={16} className="mr-2" />
             Post Announcement
           </Button>
         </form>
-        
-        <div className="space-y-3 sm:space-y-4 max-h-64 overflow-y-auto">
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <div className="h-[1px] flex-1 bg-slate-800" />
+            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-500">Recent Logs</span>
+            <div className="h-[1px] flex-1 bg-slate-800" />
+          </div>
+
           {announcements.length === 0 ? (
-            <div className="text-center py-8">
-              <Icon name="Megaphone" size={48} className="text-muted-foreground mx-auto mb-4" />
-              <p className="text-sm text-muted-foreground">No announcements yet.</p>
+            <div className="text-center py-12">
+              <Icon name="Megaphone" size={40} className="text-slate-700 mx-auto mb-3" />
+              <p className="text-sm text-slate-500">No active broadcasts.</p>
             </div>
           ) : (
             announcements.map((ann, index) => (
-              <motion.div 
-                key={ann.id} 
-                className="bg-muted/10 p-4 sm:p-5 rounded-xl border border-border/10 group touch-target"
-                initial={{ opacity: 0, y: 20 }}
+              <motion.div
+                key={ann.id}
+                className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 group hover:border-slate-700 transition-colors"
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.05 }}
               >
-                <div className="flex justify-between items-start gap-3">
+                <div className="flex justify-between items-start gap-4">
                   <div className="flex-1 space-y-2">
-                    <p className="text-sm sm:text-base text-foreground leading-relaxed">{ann.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(ann.created_at).toLocaleString()}
-                    </p>
+                    <p className="text-sm text-slate-300 leading-relaxed font-sans">{ann.message}</p>
+                    <div className="flex items-center space-x-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      <Icon name="Clock" size={10} />
+                      <span>{new Date(ann.created_at).toLocaleString()}</span>
+                    </div>
                   </div>
                   <button
                     onClick={() => handleDelete(ann.id)}
-                    className="touch-target p-2 sm:p-3 rounded-lg hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1.5 rounded-md text-slate-600 hover:text-rose-400 hover:bg-rose-400/10 transition-all opacity-0 group-hover:opacity-100"
                     aria-label="Delete announcement"
                   >
-                    <Icon name="Trash2" size={16} className="text-destructive" />
+                    <Icon name="Trash2" size={14} />
                   </button>
                 </div>
               </motion.div>
@@ -159,6 +174,33 @@ const AnnouncementsManager = () => {
       </div>
     </div>
   );
+
+  if (compact) {
+    return (
+      <>
+        <Button variant="outline" size="sm" onClick={() => setIsOpen(true)} icon="Megaphone">
+          Announcements
+        </Button>
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-md" onClick={() => setIsOpen(false)}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[85vh] flex flex-col bg-slate-900 border-0 sm:border border-slate-800 shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Content />
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  return <Content />;
 };
 
 export default AnnouncementsManager;

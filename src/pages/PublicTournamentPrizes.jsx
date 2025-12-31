@@ -7,6 +7,9 @@ import ShareButton from 'components/ui/ShareButton';
 import PrizeDisplay from '../components/PrizeDisplay';
 import { format } from 'date-fns';
 import { motion } from 'framer-motion';
+import PublicTournamentBanner from 'components/public/PublicTournamentBanner';
+import ReportFooter from 'components/public/ReportFooter';
+import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
 
 const PublicTournamentPrizes = () => {
     const { tournamentSlug } = useParams();
@@ -42,7 +45,7 @@ const PublicTournamentPrizes = () => {
                 .eq('tournament_id', tournamentData.id);
 
             if (playersError) throw playersError;
-            
+
             const enrichedPlayers = playersData.map(tp => ({
                 ...tp.players,
                 player_id: tp.players.id,
@@ -74,44 +77,30 @@ const PublicTournamentPrizes = () => {
         fetchTournamentData();
     }, [fetchTournamentData]);
 
-    const formattedDate = tournament?.type === 'best_of_league' 
+    const formattedDate = tournament?.type === 'best_of_league'
         ? `${format(new Date(tournament.start_date), "MMM do")} - ${format(new Date(tournament.end_date), "MMM do, yyyy")}`
         : tournament?.date ? format(new Date(tournament.date), "MMMM do, yyyy") : "Date not set";
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
-                    className="text-center"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
-                    <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="Loader" className="animate-spin text-primary" size={48} />
-                    </div>
-                    <p className="text-base text-muted-foreground font-medium">Loading prizes...</p>
-                </motion.div>
-            </div>
-        );
+        return <PublicLoadingScreen />;
     }
 
     if (error || !tournament) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex items-center justify-center">
-                <motion.div 
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <motion.div
                     className="text-center"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                 >
                     <div className="w-12 h-12 mx-auto mb-4">
-                        <Icon name="AlertCircle" className="text-destructive" size={48} />
+                        <Icon name="AlertTriangle" className="text-muted-foreground" size={48} />
                     </div>
-                    <h2 className="text-xl font-bold text-foreground mb-2">Tournament Not Found</h2>
+                    <h2 className="text-xl font-heading font-bold text-foreground mb-2">Tournament Not Found</h2>
                     <p className="text-muted-foreground">The tournament you're looking for doesn't exist or has been removed.</p>
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         onClick={() => navigate(`/tournament/${tournamentSlug}`)}
                         className="mt-4"
                     >
@@ -124,10 +113,10 @@ const PublicTournamentPrizes = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 text-foreground">
+        <div className="min-h-screen bg-background text-foreground tracking-normal">
             {/* Header */}
-            <motion.header 
-                className="sticky top-0 z-50 border-b border-border/10 bg-background/95 backdrop-blur-xl py-4"
+            <motion.header
+                className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md py-3"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
@@ -135,17 +124,17 @@ const PublicTournamentPrizes = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                                className="touch-target hover:bg-muted/20"
+                                className="hover:bg-secondary text-muted-foreground hover:text-foreground"
                             >
                                 <Icon name="ArrowLeft" size={20} />
                             </Button>
                             <div>
-                                <motion.h1 
-                                    className="text-xl font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
+                                <motion.h1
+                                    className="text-lg font-heading font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2, duration: 0.6 }}
@@ -169,17 +158,19 @@ const PublicTournamentPrizes = () => {
                                 }}
                                 platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
                                 position="bottom-right"
-                                className="touch-target"
                             />
                         </motion.div>
                     </div>
                 </div>
             </motion.header>
 
+            {/* Banner */}
+            <PublicTournamentBanner tournament={tournament} />
+
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <motion.div 
-                    className="space-y-6"
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <motion.div
+                    className="space-y-8"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
@@ -187,10 +178,10 @@ const PublicTournamentPrizes = () => {
                     {/* Page Header */}
                     <div className="text-center space-y-3">
                         <div className="flex items-center justify-center space-x-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                <Icon name="Gift" size={20} className="text-primary" />
+                            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center border border-border/50">
+                                <Icon name="Gift" size={24} className="text-foreground" />
                             </div>
-                            <h2 className="text-2xl font-bold text-foreground">Prizes</h2>
+                            <h2 className="text-3xl font-heading font-bold text-foreground tracking-tight">Prizes</h2>
                         </div>
                         <p className="text-base text-muted-foreground max-w-xl mx-auto">
                             Prize distribution and award details
@@ -198,43 +189,45 @@ const PublicTournamentPrizes = () => {
                     </div>
 
                     {/* Tournament Info Card */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl p-5 shadow-lg"
+                    <motion.div
+                        className="bg-card border border-border rounded-xl p-6 shadow-sm"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6, duration: 0.6 }}
                     >
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{players.length}</div>
-                                <div className="text-xs text-muted-foreground">Total Players</div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="text-center p-2 rounded-lg hover:bg-secondary/20 transition-colors">
+                                <div className="text-2xl font-mono font-bold text-foreground tracking-tight">{players.length}</div>
+                                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mt-1">Total Players</div>
                             </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{prizes.length}</div>
-                                <div className="text-xs text-muted-foreground">Prize Categories</div>
+                            <div className="text-center p-2 rounded-lg hover:bg-secondary/20 transition-colors">
+                                <div className="text-2xl font-mono font-bold text-foreground tracking-tight">{prizes.length}</div>
+                                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mt-1">Prize Categories</div>
                             </div>
-                            <div className="text-center">
-                                <div className="text-xl font-bold text-foreground">{tournament.type}</div>
-                                <div className="text-xs text-muted-foreground">Tournament Type</div>
+                            <div className="text-center p-2 rounded-lg hover:bg-secondary/20 transition-colors">
+                                <div className="text-2xl font-mono font-bold text-foreground tracking-tight capitalize">{tournament.type.replace(/_/g, ' ')}</div>
+                                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mt-1">Format</div>
                             </div>
                         </div>
                     </motion.div>
 
                     {/* Prizes Display */}
-                    <motion.div 
-                        className="bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl border border-border/10 rounded-xl shadow-lg overflow-hidden"
+                    <motion.div
+                        className="bg-card border border-border rounded-xl shadow-sm overflow-hidden"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.7, duration: 0.6 }}
                     >
-                        <div className="p-5 border-b border-border/10">
-                            <h3 className="text-lg font-semibold text-foreground">Prize Distribution</h3>
+                        <div className="p-5 border-b border-border">
+                            <h3 className="text-lg font-heading font-semibold text-foreground">Prize Distribution</h3>
                         </div>
                         <div className="p-5">
                             <PrizeDisplay prizes={prizes} players={players} tournament={tournament} />
                         </div>
                     </motion.div>
                 </motion.div>
+
+                <ReportFooter />
             </main>
         </div>
     );

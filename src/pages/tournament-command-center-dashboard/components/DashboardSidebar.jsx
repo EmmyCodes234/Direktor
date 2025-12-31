@@ -12,60 +12,78 @@ const DashboardSidebar = ({ tournamentInfo, ladderConfig }) => {
   // Base navigation items
   const baseNavItems = [
     { label: 'Dashboard', path: `/tournament/${tournamentSlug}/dashboard`, icon: 'LayoutDashboard' },
-    { label: 'Player Roster', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
-    { label: 'Pairings', path: `/tournament/${tournamentSlug}/pairings`, icon: 'Swords' },
+    { label: 'Field', path: `/tournament/${tournamentSlug}/players`, icon: 'Users' },
+    { label: 'Matchups', path: `/tournament/${tournamentSlug}/matchups`, icon: 'Swords' },
+
     { label: 'Settings', path: `/tournament/${tournamentSlug}/settings`, icon: 'Settings' },
     { label: 'Reports', path: `/tournament/${tournamentSlug}/reports`, icon: 'FileText' },
   ];
 
   // Add Wall Chart only for individual or team modes (not ladder system)
-  const shouldShowWallChart = tournamentInfo?.type === 'individual' || 
-                             tournamentInfo?.type === 'team';
-  
-  const navItems = shouldShowWallChart 
-    ? [...baseNavItems, { label: 'Wall Chart', path: `/tournament/${tournamentSlug}/wall-chart`, icon: 'Table' }]
+  const shouldShowWallChart = tournamentInfo?.type === 'individual' ||
+    tournamentInfo?.type === 'team';
+
+  const navItems = shouldShowWallChart
+    ? [...baseNavItems, { label: 'Cross-Table', path: `/tournament/${tournamentSlug}/cross-table`, icon: 'Table' }]
+
     : baseNavItems;
 
   return (
-    <aside className="md:col-span-1 md:sticky top-24 self-start">
-      <div className="hero-card bg-hero-purple/95 backdrop-blur-sm border border-hero-purple/30 rounded-xl p-4 shadow-xl">
-        <h3 className="font-semibold text-hero-primary text-sm mb-4 px-1">Manage Tournament</h3>
-        
-        <div className="space-y-2">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              className={cn(
-                "w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium transition-all duration-200 touch-target",
-                location.pathname === item.path 
-                  ? "bg-hero-gradient text-white shadow-lg shadow-hero-purple/25" 
-                  : "text-hero-primary hover:bg-hero-purple/20 dark:hover:bg-hero-purple/30"
-              )}
-              onClick={() => navigate(item.path)}
-            >
-              <Icon 
-                name={item.icon} 
-                className={cn(
-                  "mr-3 transition-colors duration-200",
-                  location.pathname === item.path ? "text-white" : "text-hero-primary"
-                )}
-              />
-              {item.label}
-            </button>
-          ))}
-        </div>
-        
-        <div className="border-t border-hero-purple/30 mt-4 pt-4">
-          <button 
-            className="w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium text-hero-primary hover:bg-hero-purple/20 dark:hover:bg-hero-purple/30 transition-all duration-200 touch-target" 
-            onClick={() => navigate('/lobby')}
-          >
-            <Icon name="Home" className="mr-3 text-hero-primary"/>
-            Lobby
-          </button>
+    <div className="flex flex-col h-full bg-card">
+      {/* Brand Area */}
+      <div className="h-16 flex items-center px-6 border-b border-border">
+        <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
+          <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center text-background">
+            <Icon name="Command" size={16} />
+          </div>
+          <span>DIREKTOR</span>
         </div>
       </div>
-    </aside>
+
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+        <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Menu
+        </div>
+        {navItems.map((item) => (
+          <button
+            key={item.label}
+            className={cn(
+              "w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
+              location.pathname === item.path
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+            )}
+            onClick={() => navigate(item.path)}
+          >
+            <Icon
+              name={item.icon}
+              size={18}
+              className={cn(
+                "mr-3 transition-colors duration-200",
+                location.pathname === item.path ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+              )}
+            />
+            {item.label}
+
+            {location.pathname === item.path && (
+              <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-background/50" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Footer / User Profile */}
+      <div className="p-4 border-t border-border">
+        <button
+          className="w-full flex items-center px-3 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-all duration-200"
+          onClick={() => navigate('/lobby')}
+        >
+          <Icon name="LogOut" size={18} className="mr-3" />
+          Exit Dashboard
+        </button>
+      </div>
+    </div>
   );
 };
 
