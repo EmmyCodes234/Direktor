@@ -4,7 +4,7 @@ import TournamentStats from './TournamentStats';
 import StandingsTable from './StandingsTable';
 import PendingResults from './PendingResults';
 
-const LiveContextPanel = ({ tournamentInfo, players, results, pendingResults, matches, onSelectPlayer, onApproveResult, onRejectResult }) => {
+const LiveContextPanel = ({ tournamentInfo, players, results, pendingResults, matches, onSelectPlayer, onApproveResult, onRejectResult, teamStandings }) => {
     return (
         <div className="flex flex-col h-full space-y-3 overflow-hidden">
             {/* Top Stats - High Density */}
@@ -45,6 +45,7 @@ const LiveContextPanel = ({ tournamentInfo, players, results, pendingResults, ma
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
                     <StandingsTable
                         players={players}
+                        teamStandings={teamStandings}
                         recentResults={results}
                         onSelectPlayer={onSelectPlayer}
                         tournamentType={tournamentInfo?.type}

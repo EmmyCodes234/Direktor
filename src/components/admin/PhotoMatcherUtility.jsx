@@ -176,17 +176,17 @@ const PhotoMatcherUtility = ({ tournamentId, players, onComplete }) => {
     };
 
     return (
-        <Card className="bg-card border border-border shadow-sm">
-            <CardHeader className="pb-4 border-b border-border">
-                <h3 className="font-semibold flex items-center gap-2">
-                    <Icon name="Camera" size={18} /> Bulk Photo Matcher
+        <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
+            <CardHeader className="pb-4 border-b border-slate-800">
+                <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                    <Icon name="Camera" size={18} className="text-emerald-500" /> Bulk Photo Matcher
                 </h3>
             </CardHeader>
             <CardContent className="pt-6">
 
                 {/* Upload Area */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium mb-2">Upload Zip of Photos</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload Zip of Photos</label>
                     <div className="flex items-center gap-4">
                         <input
                             type="file"
@@ -196,11 +196,12 @@ const PhotoMatcherUtility = ({ tournamentId, players, onComplete }) => {
                             className="block w-full text-sm text-slate-500
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
-                                file:text-sm file:font-semibold
-                                file:bg-primary/10 file:text-primary
-                                hover:file:bg-primary/20"
+                                file:text-xs file:font-semibold
+                                file:bg-emerald-500/10 file:text-emerald-500
+                                hover:file:bg-emerald-500/20
+                                cursor-pointer"
                         />
-                        {processing && <span className="text-sm text-muted-foreground">Processing... {progress}%</span>}
+                        {processing && <span className="text-sm text-slate-400">Processing... {progress}%</span>}
                     </div>
                 </div>
 
@@ -208,30 +209,30 @@ const PhotoMatcherUtility = ({ tournamentId, players, onComplete }) => {
                 {matches.length > 0 && (
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <h4 className="font-medium text-sm text-muted-foreground">{matches.length} Files Found</h4>
+                            <h4 className="font-bold text-sm text-slate-400">{matches.length} Files Found</h4>
                             <div className="space-x-2">
-                                <Button variant="outline" size="sm" onClick={handleConfirmAll}>Confirm All Assigned</Button>
-                                <Button size="sm" onClick={handleSave} loading={uploading} disabled={uploading}>Save Confirmed ({matches.filter(m => m.confirmed).length})</Button>
+                                <Button variant="outline" size="sm" onClick={handleConfirmAll} className="border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white">Confirm All Assigned</Button>
+                                <Button size="sm" onClick={handleSave} loading={uploading} disabled={uploading} className="bg-emerald-600 hover:bg-emerald-500 text-white border-0">Save Confirmed ({matches.filter(m => m.confirmed).length})</Button>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto p-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto p-1 pr-2 custom-scrollbar">
                             {matches.map(match => (
-                                <div key={match.id} className={`flex items-start gap-3 p-3 rounded-lg border ${match.confirmed ? 'border-primary/50 bg-primary/5' : 'border-border bg-card'}`}>
-                                    <div className="relative">
-                                        <img src={match.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded bg-muted" />
+                                <div key={match.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${match.confirmed ? 'border-emerald-500/30 bg-emerald-900/10' : 'border-slate-800 bg-slate-950/50'}`}>
+                                    <div className="relative shrink-0">
+                                        <img src={match.previewUrl} alt="preview" className="w-16 h-16 object-cover rounded bg-slate-900" />
                                         {/* Status Dot */}
-                                        <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border border-white ${match.matchType === 'EXACT_ID' ? 'bg-green-500' :
-                                                match.matchType === 'EXACT_NAME' ? 'bg-blue-500' :
-                                                    match.matchType === 'FUZZY' ? 'bg-yellow-500' : 'bg-red-500'
+                                        <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border border-slate-900 ${match.matchType === 'EXACT_ID' ? 'bg-emerald-500' :
+                                            match.matchType === 'EXACT_NAME' ? 'bg-blue-500' :
+                                                match.matchType === 'FUZZY' ? 'bg-amber-500' : 'bg-red-500'
                                             }`} title={match.matchType || 'No Match'}></div>
                                     </div>
 
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-xs text-muted-foreground truncate mb-1" title={match.filename}>{match.filename}</div>
+                                        <div className="text-xs text-slate-400 truncate mb-1.5 font-mono" title={match.filename}>{match.filename}</div>
 
                                         <select
-                                            className="w-full text-sm rounded border border-input bg-background px-2 py-1 h-8"
+                                            className="w-full text-xs rounded border border-slate-800 bg-slate-900 text-slate-200 px-2 py-1.5 h-8 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                                             value={match.suggestedPlayerId}
                                             onChange={(e) => handlePlayerChange(match.id, e.target.value)}
                                         >
@@ -244,12 +245,12 @@ const PhotoMatcherUtility = ({ tournamentId, players, onComplete }) => {
                                         </select>
                                     </div>
 
-                                    <div className="pt-5">
+                                    <div className="pt-6">
                                         <input
                                             type="checkbox"
                                             checked={match.confirmed}
                                             onChange={() => handleConfirmToggle(match.id)}
-                                            className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary"
+                                            className="h-5 w-5 rounded border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500/20 focus:ring-offset-0"
                                         />
                                     </div>
                                 </div>

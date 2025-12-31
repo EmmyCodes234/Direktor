@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from 'supabaseClient';
 import Icon from 'components/AppIcon';
 import ThemeToggle from 'components/ui/ThemeToggle';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
 
 const PublicEnhancedScoreboard = () => {
@@ -169,12 +169,14 @@ const PublicEnhancedScoreboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-900 text-white font-sans p-4">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold">{tournament.name}</h1>
-                    <p className="text-gray-400">Enhanced Scoreboard <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded textxs font-medium bg-green-900 text-green-200 animate-pulse">● LIVE</span></p>
+            <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                    <div>
+                        <h1 className="text-2xl font-bold">{tournament.name}</h1>
+                        <p className="text-gray-400">Enhanced Scoreboard <span className="inline-flex items-center ml-2 px-2 py-0.5 rounded textxs font-medium bg-green-900 text-green-200 animate-pulse">● LIVE</span></p>
+                    </div>
+                    <ThemeToggle variant="simple" />
                 </div>
-                <ThemeToggle variant="simple" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

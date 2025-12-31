@@ -311,7 +311,7 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
                       <td className="p-4 text-center font-mono">{matchLosses}</td>
                     </>
                   )}
-                  <td className={cn("text-center font-mono", compact ? "px-2 py-2 text-[11px]" : "p-4")}>{getRecordDisplay(player)}</td>
+                  <td className={cn("text-center font-mono font-bold text-foreground", compact ? "px-2 py-2 text-[11px]" : "p-4")}>{getRecordDisplay(player)}</td>
                   <td className={cn(
                     "text-center font-mono font-semibold",
                     compact ? "px-2 py-2 text-[11px]" : "p-4",
@@ -355,25 +355,25 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
   };
 
   const TeamStandings = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+    <div className="w-full overflow-hidden">
+      <table className="w-full text-sm table-fixed">
         <thead>
           <tr className="border-b border-border">
-            <th className="p-4 w-[10%] text-left font-semibold text-foreground">Rank</th>
-            <th className="p-4 w-[40%] text-left font-semibold text-foreground">Team</th>
-            <th className="p-4 w-[20%] text-center font-semibold text-foreground">Team Record (W-L)</th>
-            <th className="p-4 w-[15%] text-center font-semibold text-foreground">Indiv. Wins</th>
-            <th className="p-4 w-[15%] text-center font-semibold text-foreground">Total Spread</th>
+            <th className="p-2 sm:p-4 w-[15%] text-left font-semibold text-foreground">Rank</th>
+            <th className="p-2 sm:p-4 w-[35%] text-left font-semibold text-foreground">Team</th>
+            <th className="p-2 sm:p-4 w-[20%] text-center font-semibold text-foreground">Rec <span className="hidden sm:inline">(W-L)</span></th>
+            <th className="p-2 sm:p-4 w-[15%] text-center font-semibold text-foreground">Wins</th>
+            <th className="p-2 sm:p-4 w-[15%] text-center font-semibold text-foreground">Sprd</th>
           </tr>
         </thead>
         <tbody>
           {teamStandings.map((team) => (
             <tr key={team.id} className="border-b border-border/50 hover:bg-muted/5 transition-colors group">
-              <td className="p-4 font-mono font-bold text-lg text-primary">{team.rank}</td>
-              <td className="p-4 font-medium text-foreground">{team.name}</td>
-              <td className="p-4 text-center font-mono">{team.teamWins} - {team.teamLosses}</td>
-              <td className="p-4 text-center font-mono">{team.individualWins}</td>
-              <td className={`p-4 text-center font-mono font-semibold ${team.totalSpread > 0 ? 'text-success' : team.totalSpread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              <td className="p-2 sm:p-4 font-mono font-bold text-base sm:text-lg text-primary">{team.rank}</td>
+              <td className="p-2 sm:p-4 font-medium text-foreground truncate">{team.name}</td>
+              <td className="p-2 sm:p-4 text-center font-mono">{team.teamWins}-{team.teamLosses}</td>
+              <td className="p-2 sm:p-4 text-center font-mono">{team.individualWins}</td>
+              <td className={`p-2 sm:p-4 text-center font-mono font-semibold ${team.totalSpread > 0 ? 'text-success' : team.totalSpread < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
                 {team.totalSpread > 0 ? '+' : ''}{team.totalSpread || 0}
               </td>
             </tr>
@@ -401,12 +401,12 @@ const StandingsTable = ({ players, onSelectPlayer, tournamentType, teamStandings
             </button>
           ))}
         </div>
-        {tournamentType === 'team' && (
+        {/* {tournamentType === 'team' && (
           <div className={cn("flex items-center space-x-1 bg-muted/20 rounded-lg p-1", compact && "scale-90")}>
             <Button variant={viewMode === 'individual' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('individual')}>Individual</Button>
             <Button variant={viewMode === 'team' ? 'default' : 'ghost'} size="xs" onClick={() => setViewMode('team')}>Team</Button>
           </div>
-        )}
+        )} */}
       </div>
       <div className="flex-1 overflow-y-auto">
         {players.length === 0 ? (

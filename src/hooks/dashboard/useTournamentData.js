@@ -156,27 +156,38 @@ const useTournamentData = (tournamentSlug) => {
                 const { table, eventType, new: newRecord, old: oldRecord } = payload;
                 if (!isMounted.current) return;
 
+                console.log('RT Update:', table, eventType, newRecord);
+
                 switch (table) {
+
                     case 'results':
-                        setResults(prev => {
-                            if (eventType === 'INSERT') {
-                                if (prev.some(r => r.id === newRecord.id)) return prev;
-                                return [newRecord, ...prev];
-                            }
-                            if (eventType === 'UPDATE') return prev.map(r => r.id === newRecord.id ? newRecord : r);
-                            if (eventType === 'DELETE') return prev.filter(r => r.id !== oldRecord.id);
-                            return prev;
-                        });
+                        if (newRecord?.tournament_id == tournamentInfo.id || oldRecord?.tournament_id == tournamentInfo.id) {
+                            setResults(prev => {
+                                if (eventType === 'INSERT') {
+                                    if (prev.some(r => r.id === newRecord.id)) return prev;
+                                    return [newRecord, ...prev];
+                                }
+                                if (eventType === 'UPDATE') return prev.map(r => r.id === newRecord.id ? newRecord : r);
+                                if (eventType === 'DELETE') return prev.filter(r => r.id !== oldRecord.id);
+                                return prev;
+                            });
+                        }
                         break;
                     case 'pending_results':
-                        setPendingResults(prev => {
-                            if (eventType === 'INSERT') {
-                                if (prev.some(r => r.id === newRecord.id)) return prev;
-                                return [...prev, newRecord];
-                            }
-                            if (eventType === 'DELETE') return prev.filter(r => r.id !== oldRecord.id);
-                            return prev;
-                        });
+                        if (newRecord?.tournament_id == tournamentInfo.id || oldRecord?.tournament_id == tournamentInfo.id) {
+                            setPendingResults(prev => {
+                                if (eventType === 'INSERT') {
+                                    console.log('Adding pending result:', newRecord);
+                                    if (prev.some(r => r.id === newRecord.id)) return prev;
+                                    return [...prev, newRecord];
+                                }
+                                if (eventType === 'UPDATE') {
+                                    return prev.map(r => r.id === newRecord.id ? newRecord : r);
+                                }
+                                if (eventType === 'DELETE') return prev.filter(r => r.id !== oldRecord.id);
+                                return prev;
+                            });
+                        }
                         break;
                     case 'tournaments':
                         if (newRecord.id === tournamentInfo.id) {
@@ -184,22 +195,27 @@ const useTournamentData = (tournamentSlug) => {
                         }
                         break;
                     case 'tournament_players':
-                        if (eventType === 'UPDATE') {
-                            setPlayers(prev => prev.map(p =>
-                                p.player_id === newRecord.player_id ? { ...p, ...newRecord } : p
-                            ));
+                        if (newRecord?.tournament_id === tournamentInfo.id) {
+                            if (eventType === 'UPDATE') {
+                                setPlayers(prev => prev.map(p =>
+                                    p.player_id === newRecord.player_id ? { ...p, ...newRecord } : p
+                                ));
+                            }
                         }
                         break;
                     case 'matches':
-                        setMatches(prev => {
-                            if (eventType === 'INSERT') return [...prev, newRecord];
-                            if (eventType === 'UPDATE') return prev.map(m => m.id === newRecord.id ? newRecord : m);
-                            return prev;
-                        });
+                        if (newRecord?.tournament_id === tournamentInfo.id || oldRecord?.tournament_id === tournamentInfo.id) {
+                            setMatches(prev => {
+                                if (eventType === 'INSERT') return [...prev, newRecord];
+                                if (eventType === 'UPDATE') return prev.map(m => m.id === newRecord.id ? newRecord : m);
+                                return prev;
+                            });
+                        }
                         break;
                     default:
                         break;
                 }
+
             })
             .subscribe();
 

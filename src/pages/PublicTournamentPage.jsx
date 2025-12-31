@@ -720,15 +720,15 @@ const PublicTournamentPage = () => {
                             <h1 className="text-lg font-heading font-bold text-foreground leading-tight truncate">{tournament.name}</h1>
                             <p className="text-xs text-muted-foreground leading-relaxed truncate mt-0.5 font-medium">{tournament.venue} • {formattedDate}</p>
                         </div>
-                        <div className="flex-1 flex justify-end">
-                            <ThemeToggle variant="simple" />
+                        <div className="absolute top-4 right-4 z-50 print:hidden hidden">
+                            {/* <ThemeToggle variant="simple" /> */}
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Mobile Bottom Navigation - Monochrome */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-lg border-t border-border pb-safe">
+            < nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-lg border-t border-border pb-safe" >
                 <div className="px-2 py-2">
                     <div className={`grid gap-1 ${tournament.is_remote_submission_enabled ? 'grid-cols-6' : 'grid-cols-5'}`}>
                         <button
@@ -776,15 +776,15 @@ const PublicTournamentPage = () => {
                         </button>
                     </div>
                 </div>
-            </nav>
+            </nav >
 
             {/* Ticker */}
-            <div className="fixed top-[57px] left-0 right-0 z-[40] bg-muted/30 border-b border-border">
+            < div className="fixed top-[57px] left-0 right-0 z-[40] bg-muted/30 border-b border-border" >
                 <TournamentTicker messages={tickerMessages} />
-            </div>
+            </div >
 
             {/* Main Content */}
-            <main className="pt-32 pb-24 lg:pt-36 lg:pb-12 bg-background min-h-screen">
+            < main className="pt-32 pb-24 lg:pt-36 lg:pb-12 bg-background min-h-screen" >
                 <PublicTournamentBanner tournament={tournament} />
                 <div className="w-full px-4 lg:px-8 max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
@@ -1330,8 +1330,8 @@ const PublicTournamentPage = () => {
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 

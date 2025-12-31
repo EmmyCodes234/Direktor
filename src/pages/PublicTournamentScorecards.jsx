@@ -38,10 +38,11 @@ const PublicTournamentScorecards = () => {
                 .order('seed', { ascending: true });
             if (pError) throw pError;
 
-            const enrichedPlayers = pData.map(tp => ({
+            const enrichedPlayers = pData.map((tp, index) => ({
                 ...tp.players,
                 player_id: tp.players.id,
-                seed: tp.seed,
+                seed: tp.seed || tp.initial_seed || (index + 1),
+                initial_seed: tp.initial_seed || tp.seed || (index + 1),
                 status: tp.status
             }));
             setPlayers(enrichedPlayers);

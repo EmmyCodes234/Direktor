@@ -31,6 +31,20 @@ import WallChartPage from "pages/WallChartPage";
 import PublicTournamentPageNew from "pages/PublicTournamentPageNew";
 import TestDataDisplay from "pages/TestDataDisplay";
 import PublicEnhancedScoreboard from "pages/PublicEnhancedScoreboard";
+import PublicRoundInsights from "pages/PublicRoundInsights";
+import PublicCrossTable from "pages/PublicCrossTable";
+import PublicAverageOpponentScores from "pages/PublicAverageOpponentScores";
+import PublicAverageScores from "pages/PublicAverageScores";
+import PublicHighCombinedScore from "pages/PublicHighCombinedScore";
+import PublicToughBreak from "pages/PublicToughBreak";
+import PublicBlowouts from "pages/PublicBlowouts";
+import PublicPeakScores from "pages/PublicPeakScores";
+import PublicLowScores from "pages/PublicLowScores";
+import PublicLowLosses from "pages/PublicLowLosses";
+import PublicLowSpreads from "pages/PublicLowSpreads";
+import PublicGiantKillers from "pages/PublicGiantKillers";
+import PublicRoundScores from "pages/PublicRoundScores";
+import RemoteResultsSubmission from "pages/RemoteResultsSubmission";
 
 const Routes = () => {
   return (
@@ -56,6 +70,7 @@ const Routes = () => {
           <Route path="/tournament/:tournamentSlug" element={<PublicTournamentIndex />} />
           <Route path="/tournament/:tournamentSlug/public" element={<PublicTournamentPage />} />
           <Route path="/tournament/:tournamentSlug/test" element={<TestDataDisplay />} />
+          <Route path="/tournament/:tournamentSlug/submit-result" element={<RemoteResultsSubmission />} />
           <Route path="/tournament/:tournamentSlug/leaderboard" element={<PublicTournamentStandings />} />
           <Route path="/tournament/:tournamentSlug/field" element={<PublicTournamentRoster />} />
           <Route path="/tournament/:tournamentSlug/matchups" element={<PublicTournamentPairings />} />
@@ -63,6 +78,7 @@ const Routes = () => {
           <Route path="/tournament/:tournamentSlug/stats" element={<PublicTournamentStats />} />
           <Route path="/tournament/:tournamentSlug/match-log" element={<PublicTournamentScorecards />} />
           <Route path="/tournament/:tournamentSlug/live-streamboard" element={<PublicEnhancedScoreboard />} />
+          <Route path="/tournament/:tournamentSlug/insights" element={<PublicRoundInsights />} />
 
           {/* Admin/Dashboard Routes */}
           <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />
@@ -70,7 +86,19 @@ const Routes = () => {
           <Route path="/tournament/:tournamentSlug/settings" element={<TournamentSettingsAdministration />} />
           <Route path="/tournament/:tournamentSlug/reports" element={<ReportsPage />} />
           <Route path="/tournament/:tournamentSlug/matchups" element={<PairingManagementPage />} />
-          <Route path="/tournament/:tournamentSlug/cross-table" element={<WallChartPage />} />
+          <Route path="/tournament/:tournamentSlug/matchups" element={<PairingManagementPage />} />
+          <Route path="/tournament/:tournamentSlug/cross-table" element={<PublicCrossTable />} />
+          <Route path="/tournament/:tournamentSlug/avg-scores" element={<PublicAverageOpponentScores />} />
+          <Route path="/tournament/:tournamentSlug/player-avg-scores" element={<PublicAverageScores />} />
+          <Route path="/tournament/:tournamentSlug/high-combined" element={<PublicHighCombinedScore />} />
+          <Route path="/tournament/:tournamentSlug/tough-break" element={<PublicToughBreak />} />
+          <Route path="/tournament/:tournamentSlug/blowouts" element={<PublicBlowouts />} />
+          <Route path="/tournament/:tournamentSlug/peak-scores" element={<PublicPeakScores />} />
+          <Route path="/tournament/:tournamentSlug/low-scores" element={<PublicLowScores />} />
+          <Route path="/tournament/:tournamentSlug/low-losses" element={<PublicLowLosses />} />
+          <Route path="/tournament/:tournamentSlug/low-spreads" element={<PublicLowSpreads />} />
+          <Route path="/tournament/:tournamentSlug/giant-killers" element={<PublicGiantKillers />} />
+          <Route path="/tournament/:tournamentSlug/scores" element={<PublicRoundScores />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

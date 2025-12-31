@@ -9,9 +9,8 @@ import { Separator } from '../components/ui/Separator';
 
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ConfirmationModal';
-import TournamentRecoveryModal from '../components/TournamentRecoveryModal';
 import TournamentCard from '../components/tournaments/TournamentCard';
-import TournamentFilters from '../components/tournaments/TournamentFilters';
+
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
@@ -33,9 +32,7 @@ const TournamentLobby = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tournamentToDelete, setTournamentToDelete] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
-  const [currentFilter, setCurrentFilter] = useState('all');
-  const [currentView, setCurrentView] = useState('grid');
+
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
@@ -76,13 +73,7 @@ const TournamentLobby = () => {
     return () => { mounted = false; };
   }, [dispatch]); // Run once on mount
 
-  const handleFilterChange = (filter) => {
-    setCurrentFilter(filter);
-  };
 
-  const handleViewChange = (view) => {
-    setCurrentView(view);
-  };
 
   const handleLogout = async () => {
     setUserMenuOpen(false);
@@ -129,59 +120,54 @@ const TournamentLobby = () => {
     }
   };
 
-  const handleTournamentRecovered = (tournament) => {
-    // Refresh the tournament list
-    if (user?.id) {
-      dispatch(fetchUserTournaments(user.id));
-    }
-  };
+
 
   if (loading || isInitializing) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="dark min-h-screen bg-[#020617]">
         <Header />
         <main className={cn("relative safe-area-inset-bottom", LAYOUT_TEMPLATES.page.withHeader)}>
           <div className={LAYOUT_TEMPLATES.container['2xl']}>
             <div className={cn(LAYOUT_TEMPLATES.spacing.sectionLg)}>
 
               {/* LobbyHero Skeleton */}
-              <div className="w-full h-80 rounded-3xl border border-border bg-card shadow-sm p-8 md:p-12 mb-12 flex flex-col justify-center space-y-6">
-                <div className="h-6 w-32 bg-secondary rounded animate-pulse" />
+              <div className="w-full h-80 rounded-3xl border border-slate-800 bg-slate-900/50 shadow-sm p-8 md:p-12 mb-12 flex flex-col justify-center space-y-6">
+                <div className="h-6 w-32 bg-slate-800 rounded animate-pulse" />
                 <div className="space-y-2">
-                  <div className="h-12 w-2/3 bg-secondary rounded animate-pulse" />
-                  <div className="h-12 w-1/2 bg-secondary rounded animate-pulse" />
+                  <div className="h-12 w-2/3 bg-slate-800 rounded animate-pulse" />
+                  <div className="h-12 w-1/2 bg-slate-800 rounded animate-pulse" />
                 </div>
                 <div className="flex gap-4 pt-4">
-                  <div className="h-12 w-40 bg-secondary rounded animate-pulse" />
-                  <div className="h-12 w-32 bg-secondary/50 rounded animate-pulse" />
+                  <div className="h-12 w-40 bg-slate-800 rounded animate-pulse" />
+                  <div className="h-12 w-32 bg-slate-800/50 rounded animate-pulse" />
                 </div>
               </div>
 
               {/* LobbyStats Skeleton */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 rounded-2xl border border-border bg-card shadow-sm p-6 flex flex-col justify-between">
+                  <div key={i} className="h-32 rounded-2xl border border-slate-800 bg-slate-900/50 shadow-sm p-6 flex flex-col justify-between">
                     <div className="flex justify-between items-center">
-                      <div className="h-4 w-24 bg-secondary rounded animate-pulse" />
-                      <div className="h-8 w-8 bg-secondary rounded animate-pulse" />
+                      <div className="h-4 w-24 bg-slate-800 rounded animate-pulse" />
+                      <div className="h-8 w-8 bg-slate-800 rounded animate-pulse" />
                     </div>
-                    <div className="h-8 w-16 bg-secondary rounded animate-pulse" />
+                    <div className="h-8 w-16 bg-slate-800 rounded animate-pulse" />
                   </div>
                 ))}
               </div>
 
               {/* Tournament List Skeleton */}
               <div className="space-y-4">
-                <div className="h-8 w-48 bg-secondary rounded animate-pulse mb-6" />
+                <div className="h-8 w-48 bg-slate-800 rounded animate-pulse mb-6" />
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-64 rounded-xl border border-border bg-card shadow-sm p-6 space-y-4">
-                      <div className="h-6 w-3/4 bg-secondary rounded animate-pulse" />
-                      <div className="h-4 w-full bg-secondary/50 rounded animate-pulse" />
-                      <div className="h-4 w-2/3 bg-secondary/50 rounded animate-pulse" />
+                    <div key={i} className="h-64 rounded-xl border border-slate-800 bg-slate-900/50 shadow-sm p-6 space-y-4">
+                      <div className="h-6 w-3/4 bg-slate-800 rounded animate-pulse" />
+                      <div className="h-4 w-full bg-slate-800/50 rounded animate-pulse" />
+                      <div className="h-4 w-2/3 bg-slate-800/50 rounded animate-pulse" />
                       <div className="pt-4 flex gap-2">
-                        <div className="h-8 w-20 bg-secondary/30 rounded animate-pulse" />
-                        <div className="h-8 w-20 bg-secondary/30 rounded animate-pulse" />
+                        <div className="h-8 w-20 bg-slate-800/30 rounded animate-pulse" />
+                        <div className="h-8 w-20 bg-slate-800/30 rounded animate-pulse" />
                       </div>
                     </div>
                   ))}
@@ -210,12 +196,12 @@ const TournamentLobby = () => {
         confirmText="Delete Tournament"
       />
 
-      <div className={cn("min-h-screen", LAYOUT_TEMPLATES.page.withHeader)}>
+      <div className={cn("dark min-h-screen bg-[#020617]", LAYOUT_TEMPLATES.page.withHeader)}>
         <Toaster position="top-center" richColors />
         <Header />
 
         {/* Hero Background - Monochrome */}
-        <div className="absolute top-0 left-0 right-0 h-96 bg-background dark:bg-background border-b border-border/10" />
+        <div className="absolute top-0 left-0 right-0 h-96 bg-[#020617] border-b border-border/10" />
 
         <main className={cn("relative safe-area-inset-bottom", LAYOUT_TEMPLATES.page.withHeader)}>
           <div className={LAYOUT_TEMPLATES.container['2xl']}>
@@ -227,8 +213,8 @@ const TournamentLobby = () => {
             >
               <LobbyHero
                 userName={userName}
+                tournaments={tournaments}
                 onCreateClick={() => navigate('/tournament-setup-configuration')}
-                onRecoverClick={() => setShowRecoveryModal(true)}
               />
 
               <LobbyStats
@@ -238,19 +224,7 @@ const TournamentLobby = () => {
               />
             </motion.div>
 
-            {/* Tournament Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45 }}
-              className={LAYOUT_TEMPLATES.spacing.sectionSm}
-            >
-              <TournamentFilters
-                onFilterChange={handleFilterChange}
-                onViewChange={handleViewChange}
-                currentView={currentView}
-              />
-            </motion.div>
+
 
             {/* Draft Tournaments Section */}
             {draftTournaments.length > 0 && (
@@ -260,17 +234,17 @@ const TournamentLobby = () => {
                 transition={{ delay: 0.5 }}
                 className={LAYOUT_TEMPLATES.spacing.sectionLg}
               >
-                <Card className="bg-card border border-border shadow-sm">
+                <Card className="bg-slate-900/30 border border-white/5 shadow-sm backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-secondary border border-border/50">
-                        <Icon name="FileText" size={20} className="text-foreground" />
+                      <div className="p-2 rounded-lg bg-slate-800 border border-slate-700">
+                        <Icon name="FileText" size={20} className="text-slate-300" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-foreground">Draft Tournaments</h2>
-                        <p className="text-sm text-muted-foreground">Continue setting up your tournaments</p>
+                        <h2 className="text-xl font-semibold text-white">Draft Tournaments</h2>
+                        <p className="text-sm text-slate-400">Continue setting up your tournaments</p>
                       </div>
-                      <Badge variant="outline" className="ml-auto">
+                      <Badge variant="outline" className="ml-auto bg-slate-800 text-slate-300 border-slate-700">
                         {draftTournaments.length}
                       </Badge>
                     </div>
@@ -301,18 +275,18 @@ const TournamentLobby = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              <Card className="bg-card border border-border shadow-sm">
+              <Card className="bg-slate-900/30 border border-white/5 shadow-sm backdrop-blur-sm">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-secondary border border-border/50">
-                      <Icon name="Trophy" size={20} className="text-foreground" />
+                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                      <Icon name="Trophy" size={20} className="text-emerald-500" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-foreground">Active Tournaments</h2>
-                      <p className="text-sm text-muted-foreground">Manage your running and completed tournaments</p>
+                      <h2 className="text-xl font-semibold text-white">Active Tournaments</h2>
+                      <p className="text-sm text-slate-400">Manage your running and completed tournaments</p>
                     </div>
                     {officialTournaments.length > 0 && (
-                      <Badge variant="primary" className="ml-auto">
+                      <Badge variant="primary" className="ml-auto bg-emerald-500 text-white border-0">
                         {officialTournaments.length}
                       </Badge>
                     )}
@@ -341,11 +315,11 @@ const TournamentLobby = () => {
                       transition={{ delay: 0.7 }}
                       className={cn("text-center", LAYOUT_TEMPLATES.spacing.sectionLg)}
                     >
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-secondary border border-border flex items-center justify-center">
-                        <Icon name="Trophy" size={40} className="text-foreground" />
+                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+                        <Icon name="Trophy" size={40} className="text-slate-500" />
                       </div>
-                      <h3 className="text-xl font-semibold text-foreground mb-3">No tournaments yet</h3>
-                      <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                      <h3 className="text-xl font-semibold text-white mb-3">No tournaments yet</h3>
+                      <p className="text-slate-400 mb-8 max-w-md mx-auto">
                         Create your first tournament to start managing Scrabble competitions with ease.
                       </p>
                       <Button
@@ -354,7 +328,7 @@ const TournamentLobby = () => {
                         iconPosition="left"
                         variant="primary"
                         size="lg"
-                        className="px-8 py-3 text-lg"
+                        className="px-8 py-3 text-lg bg-emerald-600 hover:bg-emerald-500 text-white"
                       >
                         Create Tournament
                       </Button>
@@ -367,11 +341,7 @@ const TournamentLobby = () => {
         </main>
       </div>
 
-      <TournamentRecoveryModal
-        isOpen={showRecoveryModal}
-        onClose={() => setShowRecoveryModal(false)}
-        onTournamentRecovered={handleTournamentRecovered}
-      />
+
     </>
   );
 };

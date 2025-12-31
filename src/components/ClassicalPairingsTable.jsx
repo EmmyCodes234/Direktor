@@ -23,7 +23,7 @@ const ClassicalPairingsTable = ({ pairings, players = [], selectedRound }) => {
         const player = players.find(p => p.player_id === playerId || p.id === playerId);
         return {
             name: player ? player.name : playerName,
-            rank: player?.seed || player?.rank || '-',
+            rank: player?.initial_seed || player?.seed || player?.rank || player?.id || '-',
             rating: player?.rating
         };
     };

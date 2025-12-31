@@ -7,6 +7,16 @@ import ThemeToggle from 'components/ui/ThemeToggle';
 import PublicTournamentBanner from 'components/public/PublicTournamentBanner';
 import ReportFooter from 'components/public/ReportFooter';
 import PublicLoadingScreen from 'components/public/PublicLoadingScreen';
+import PublicAverageOpponentScores from "pages/PublicAverageOpponentScores";
+import PublicAverageScores from "pages/PublicAverageScores";
+import PublicHighCombinedScore from "pages/PublicHighCombinedScore";
+import PublicToughBreak from "pages/PublicToughBreak";
+import PublicBlowouts from "pages/PublicBlowouts";
+import PublicPeakScores from "pages/PublicPeakScores";
+import PublicLowScores from "pages/PublicLowScores";
+import PublicLowLosses from "pages/PublicLowLosses";
+import PublicLowSpreads from "pages/PublicLowSpreads";
+import PublicGiantKillers from "pages/PublicGiantKillers";
 
 const PublicTournamentStats = () => {
     const { tournamentSlug } = useParams();
@@ -19,6 +29,46 @@ const PublicTournamentStats = () => {
     // 1. Determine Report Type
     const searchParams = new URLSearchParams(location.search);
     const view = searchParams.get('view') || 'general'; // Default to 'general'
+
+    // SHIM: Redirect old view to new page component
+    useEffect(() => {
+        if (view === 'avg_opp_score') {
+            navigate(`/tournament/${tournamentSlug}/avg-scores`, { replace: true });
+        }
+        if (view === 'avg_score') {
+            navigate(`/tournament/${tournamentSlug}/player-avg-scores`, { replace: true });
+        }
+        if (view === 'shootouts') {
+            navigate(`/tournament/${tournamentSlug}/high-combined`, { replace: true });
+        }
+        if (view === 'tough_break') {
+            navigate(`/tournament/${tournamentSlug}/tough-break`, { replace: true });
+        }
+        if (view === 'high_spread') {
+            navigate(`/tournament/${tournamentSlug}/blowouts`, { replace: true });
+        }
+        if (view === 'peak_score') {
+            navigate(`/tournament/${tournamentSlug}/peak-scores`, { replace: true });
+        }
+        if (view === 'low_wins') {
+            navigate(`/tournament/${tournamentSlug}/low-scores`, { replace: true });
+        }
+        if (view === 'low_losses') {
+            navigate(`/tournament/${tournamentSlug}/low-losses`, { replace: true });
+        }
+        if (view === 'low_spread') {
+            navigate(`/tournament/${tournamentSlug}/low-spreads`, { replace: true });
+        }
+        if (view === 'giant_killers') {
+            navigate(`/tournament/${tournamentSlug}/giant-killers`, { replace: true });
+        }
+
+        // Redirect legacy/manual round stats to new scores page
+        const roundParam = searchParams.get('round');
+        if (roundParam) {
+            navigate(`/tournament/${tournamentSlug}/scores?round=${roundParam}`, { replace: true });
+        }
+    }, [view, tournamentSlug, navigate]);
 
     // 2. Fetch Data
     useEffect(() => {
@@ -396,51 +446,62 @@ const PublicTournamentStats = () => {
     );
 
     return (
-        <div className="min-h-screen bg-white text-black font-serif">
+        <div className="min-h-screen bg-white text-black font-sans">
             <PublicTournamentBanner tournament={tournament} />
-            <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+            <div className="py-4 md:py-8 max-w-4xl mx-auto px-2 md:px-4 text-center">
 
-                <h1 className="text-2xl font-bold mb-6">{report?.title || 'Tournament Data'}</h1>
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-6 md:mb-8 gap-2">
+                    {/* Header Navigation */}
+                    {!report?.isMenu && (
+                        <Button variant="ghost" className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-xs md:text-sm font-serif p-0 h-auto hover:bg-transparent" onClick={() => navigate(`/tournament/${tournamentSlug}`)}>
+                            <Icon name="ArrowLeft" className="w-3 h-3 md:w-4 md:h-4" /> Back to Tournament
+                        </Button>
+                    )}
+
+                    <h1 className="text-xl md:text-2xl font-bold font-serif">{report?.title || 'Tournament Data'}</h1>
+                </div>
 
                 {report?.isGeneral && (
-                    <div className="inline-block text-left mb-8">
+                    <div className="inline-block text-left mb-8 w-full md:w-auto">
                         <div className="font-bold mb-2 text-center text-lg">Division A</div>
-                        <table className="border-collapse text-left w-full min-w-[300px]">
-                            <tbody>
-                                {report.data.map((item, idx) => {
-                                    if (item.type === 'spacer') {
-                                        return <tr key={idx}><td className="h-4"></td><td></td></tr>;
-                                    }
-                                    return (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                            <td className="pr-8 py-1">{item.label}</td>
-                                            <td className="font-mono text-gray-800">{item.value}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                        <div className="overflow-x-auto shadow-sm border border-gray-100 rounded-lg">
+                            <table className="border-collapse text-left w-full min-w-[300px] text-sm">
+                                <tbody>
+                                    {report.data.map((item, idx) => {
+                                        if (item.type === 'spacer') {
+                                            return <tr key={idx}><td className="h-4 bg-gray-50 border-t border-b border-gray-100" colSpan={2}></td></tr>;
+                                        }
+                                        return (
+                                            <tr key={idx} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                                <td className="pr-4 md:pr-8 pl-3 py-2 text-gray-600 font-medium">{item.label}</td>
+                                                <td className="pl-4 pr-3 py-2 font-mono text-gray-900 font-bold text-right">{item.value}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
 
                 {!report?.isGeneral && !report?.isMenu && (
-                    <div className="border rounded-lg overflow-hidden shadow-sm inline-block text-left w-full">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-gray-100 border-b">
-                                <tr>
+                    <div className="overflow-x-auto shadow-sm border border-gray-100 rounded-lg">
+                        <table className="w-full text-xs md:text-sm border-collapse font-sans min-w-[320px]">
+                            <thead>
+                                <tr className="text-center font-bold text-xs md:text-base border-b border-gray-200 bg-gray-50">
                                     {report.headers.map((h, i) => (
-                                        <th key={i} className="p-3 font-bold text-sm uppercase tracking-wider text-gray-600">{h}</th>
+                                        <th key={i} className={`p-1 md:p-2 pb-2 md:pb-4 whitespace-nowrap ${i === 1 ? 'text-left pl-4' : ''}`}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody className="divide-y divide-gray-100">
                                 {report.data.map((row, i) => (
-                                    <tr key={i} className="hover:bg-gray-50">
-                                        <td className="p-3 font-mono text-gray-500 w-16">{row.rank}</td>
-                                        <td className="p-3 font-medium">{row.name}</td>
-                                        <td className="p-3 font-bold">{row.value}</td>
-                                        <td className="p-3 text-gray-600 text-sm">{row.extra}</td>
+                                    <tr key={i} className="hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                                        <td className="p-1 md:p-2 font-bold text-center w-8 md:w-12">{row.rank}</td>
+                                        <td className="p-1 md:p-2 font-medium text-left pl-4 truncate max-w-[140px] md:max-w-none">{row.name}</td>
+                                        <td className="p-1 md:p-2 font-mono font-bold text-center text-gray-900">{row.value}</td>
+                                        <td className="p-1 md:p-2 text-gray-600 text-[10px] md:text-sm text-center font-mono">{row.extra}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -448,16 +509,16 @@ const PublicTournamentStats = () => {
                     </div>
                 )}
 
-                {/* Always show menu at bottom or top */}
-                <div className="border-t mt-12 pt-8">
-                    <h3 className="text-gray-500 text-sm uppercase tracking-wider mb-4">Detailed Reports</h3>
+                {/* Always show menu at bottom */}
+                <div className="border-t border-gray-100 mt-8 pt-8">
+                    <h3 className="text-gray-400 text-xs uppercase tracking-wider mb-4 font-bold">More Reports</h3>
                     {renderMenu()}
                 </div>
 
-                <div className="mt-8">
-                    <Button variant="ghost" className="text-gray-500 hover:text-black" onClick={() => navigate(`/tournament/${tournamentSlug}`)}>
-                        <Icon name="ArrowLeft" size={16} /> Returns to Index
-                    </Button>
+                <div className="mt-8 flex justify-center">
+                    <LinkItem href={`/tournament/${tournamentSlug}`} className="text-gray-400 hover:text-gray-600 text-sm flex items-center gap-2">
+                        <Icon name="Home" size={14} /> Tournament Index
+                    </LinkItem>
                 </div>
 
                 <ReportFooter />
@@ -474,5 +535,11 @@ const StatMenuLink = ({ slug, view, label, active }) => (
         {label}
     </a>
 )
+
+const LinkItem = ({ href, className, children }) => (
+    <a href={href} className={className}>
+        {children}
+    </a>
+);
 
 export default PublicTournamentStats;

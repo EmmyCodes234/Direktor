@@ -1,6 +1,8 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { cn } from "../../utils/cn";
 import { ChevronRight } from "lucide-react";
+import Icon from "../AppIcon";
 
 const RetroGrid = ({
     angle = 65,
@@ -37,19 +39,18 @@ const RetroGrid = ({
 const HeroSection = React.forwardRef(({
     className,
     title = "Streamline Your Tournaments",
+    badge = { text: "New: Remote Submissions", href: "/blog/remote-submissions" },
     subtitle = {
-        regular: "Professional Scrabble tournament management with ",
-        gradient: "powerful automation tools.",
+        regular: "The best way to manage ",
+        gradient: "your tournaments.",
     },
-    description = "From player registration to final standings, Direktor handles every aspect of tournament organization with precision and ease.",
-    ctaText = "Start Your Tournament",
+    description = "Eliminate spreadsheets and email threads. Empower your organization with professional-grade tournament software.",
+    ctaText = "Get Started",
     ctaHref = "/signup",
-    secondaryCtaText = "View Demo",
+    secondaryCtaText = "Learn more",
     secondaryCtaHref = "/demo",
-    bottomImage = {
-        light: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&h=800&fit=crop&crop=entropy&auto=format&q=80",
-        dark: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&h=800&fit=crop&crop=entropy&auto=format&q=80",
-    },
+    ctaClassName,
+    bottomImage,
     gridOptions,
     onCtaClick,
     onSecondaryCtaClick,
@@ -58,43 +59,104 @@ const HeroSection = React.forwardRef(({
     return (
         <div className={cn("relative", className)} ref={ref} {...props}>
             {/* Simplified background for mobile performance */}
-            <div className="absolute top-0 z-[0] h-screen w-screen bg-background border-b border-border/40" />
-            <section className="relative max-w-full mx-auto z-1">
+            <div className="absolute top-0 z-[0] h-screen w-screen bg-[#020617]" />
+            <section className="relative max-w-full mx-auto z-1 overflow-hidden">
                 <RetroGrid {...gridOptions} />
-                <div className="max-w-screen-xl z-20 mx-auto px-4 py-28 sm:py-32 md:px-8">
-                    <div className="max-w-4xl mx-auto text-center space-y-8">
+                <div className="max-w-screen-xl z-20 mx-auto px-4 py-24 sm:py-32 md:px-8 relative">
+                    <div className="max-w-5xl mx-auto text-center space-y-8 flex flex-col items-center">
+                        {/* Badge */}
+                        {badge && (
+                            <motion.a
+                                href={badge.href}
+                                initial={{ opacity: 0, y: -20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5 }}
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs sm:text-sm font-medium hover:bg-emerald-500/20 transition-colors mb-4"
+                            >
+                                <span className="bg-emerald-500 text-[#020617] text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wide">New</span>
+                                {badge.text}
+                                <ChevronRight className="w-3 h-3" />
+                            </motion.a>
+                        )}
+
                         {/* Title */}
-                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter text-foreground leading-[0.9] text-balance">
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                            className="text-5xl sm:text-7xl md:text-8xl font-heading font-black tracking-tight text-white leading-[1.1] md:leading-[1.1] text-balance drop-shadow-2xl"
+                        >
                             {subtitle.regular}
-                            <span className="text-foreground/40 block mt-2">
+                            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mt-2 pb-2">
                                 {subtitle.gradient}
                             </span>
-                        </h1>
+                        </motion.h1>
 
                         {/* Description */}
-                        <p className="max-w-2xl mx-auto text-muted-foreground text-lg sm:text-xl md:text-2xl leading-relaxed font-light">
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                            className="max-w-2xl mx-auto text-slate-400 text-lg sm:text-xl md:text-2xl leading-relaxed font-light mt-6"
+                        >
                             {description}
-                        </p>
+                        </motion.p>
 
                         {/* CTAs */}
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                            className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8 w-full sm:w-auto"
+                        >
                             <button
                                 onClick={onCtaClick}
-                                className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-foreground px-10 font-medium text-background transition-all duration-300 hover:w-full sm:hover:w-auto hover:scale-105 hover:bg-foreground/90 focus:outline-none focus:ring-2 focus:ring-foreground focus:ring-offset-2"
+                                className={cn(
+                                    "group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full px-8 font-bold text-lg transition-all duration-300 hover:w-full sm:hover:w-auto hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#020617]",
+                                    ctaClassName || "bg-white text-black hover:bg-slate-200"
+                                )}
                             >
-                                <span className="mr-2 text-lg">{ctaText}</span>
+                                <span className="mr-2">{ctaText}</span>
                                 <ChevronRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
                             </button>
 
                             {secondaryCtaText && onSecondaryCtaClick && (
                                 <button
                                     onClick={onSecondaryCtaClick}
-                                    className="inline-flex h-14 items-center justify-center rounded-full border border-border bg-transparent px-10 text-lg font-medium text-foreground transition-all duration-300 hover:bg-secondary/50"
+                                    className="inline-flex h-14 items-center justify-center rounded-full px-8 text-lg font-medium text-slate-300 transition-all duration-300 hover:text-white group"
                                 >
                                     {secondaryCtaText}
+                                    <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                                 </button>
                             )}
-                        </div>
+                        </motion.div>
+
+                        {/* Social Proof / Avatars */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 1 }}
+                            className="flex flex-col items-center gap-2 mt-8 pt-4"
+                        >
+                            <div className="flex -space-x-4 rtl:space-x-reverse">
+                                {[
+                                    "https://i.pravatar.cc/100?img=33",
+                                    "https://i.pravatar.cc/100?img=47",
+                                    "https://i.pravatar.cc/100?img=12",
+                                    "https://i.pravatar.cc/100?img=5"
+                                ].map((src, i) => (
+                                    <img key={i} className="w-10 h-10 border-2 border-[#020617] rounded-full" src={src} alt="" />
+                                ))}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <div className="flex text-emerald-500">
+                                    {[1, 2, 3, 4, 5].map(i => <Icon key={i} name="Star" size={14} fill="currentColor" />)}
+                                </div>
+                                <span className="text-slate-400 text-sm font-medium">
+                                    <strong className="text-slate-200">1,200+</strong> directors trust us
+                                </span>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>

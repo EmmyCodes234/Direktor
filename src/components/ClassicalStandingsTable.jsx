@@ -40,9 +40,13 @@ const ClassicalStandingsTable = ({
     };
 
     const getPlayerDetails = (player) => {
+        // Fallback for seed: seed -> initial_seed -> 'Unseeded' (or -)
+        // If we want to mimic CLI, we can use rank if seed is missing, but usually seed is static.
+        // Let's use seed or initial_seed.
+        const displaySeed = player.seed || player.initial_seed || '-';
         return {
             name: formatName(player.name),
-            seed: player.seed || '-',
+            seed: displaySeed,
             rank: player.rank || '-',
             id: player.player_id
         };

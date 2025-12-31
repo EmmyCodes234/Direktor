@@ -113,11 +113,10 @@ const AllTournamentsPage = () => {
                                 Browse all available tournaments
                             </p>
                         </div>
-                        <div className="flex-1 flex justify-end">
-                            <ThemeToggle variant="simple" />
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" onClick={() => navigate('/login')}>Login</Button>
                         </div>
                     </div>
-                </div>
             </header>
 
             {/* Main Content */}
@@ -165,16 +164,16 @@ const AllTournamentsPage = () => {
                                             <Icon name="MapPin" size={16} className="mr-2 flex-shrink-0" />
                                             <span className="truncate">{tournament.venue || 'Location not set'}</span>
                                         </div>
-                                        
+
                                         <div className="flex items-center text-sm text-muted-foreground">
                                             <Icon name="Calendar" size={16} className="mr-2 flex-shrink-0" />
                                             <span>
-                                                {tournament.type === 'best_of_league' 
+                                                {tournament.type === 'best_of_league'
                                                     ? `${formatDate(tournament.start_date)} - ${formatDate(tournament.end_date)}`
                                                     : formatDate(tournament.date)}
                                             </span>
                                         </div>
-                                        
+
                                         <div className="flex items-center text-sm text-muted-foreground">
                                             <Icon name="Users" size={16} className="mr-2 flex-shrink-0" />
                                             <span>{tournament.player_count} player{tournament.player_count !== 1 ? 's' : ''}</span>

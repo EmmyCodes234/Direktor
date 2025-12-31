@@ -391,6 +391,7 @@ export const generateKingOfTheHillPairings = (playersToPair, previousMatchups, a
     return assignStarts(newPairings, playersToPair, allResults);
 };
 
+
 export const generateTeamSwissPairings = (teams, previousTeamMatchups, allResults) => {
     // Filter out teams that might be empty due to players being paused/withdrawn elsewhere
     // Although 'teams' argument comes from upstream, we double check derived availability
@@ -483,4 +484,147 @@ export const generateTeamSwissPairings = (teams, previousTeamMatchups, allResult
     }
 
     return newTeamPairings;
+};
+
+/**
+ * Generates a comprehensive Round Robin schedule using the Berger Table method.
+ * Supports any number of players and multiple cycles (repeats).
+ * 
+ * @param {Array} players - List of player objects.
+ * @param {number} repeats - Number of full round robin cycles (default 1).
+ * @param {Object} existingSchedule - Optional existing schedule to append to (not strictly used here but good for API consistency).
+ * @returns {Object} A map of roundNumber -> array of pairing objects.
+ */
+export const generateRoundRobinSchedule = (players, repeats = 1) => {
+    // 1. Prepare Players
+    const activePlayers = players.filter(p => !p.withdrawn && p.status !== 'paused')
+        .sort((a, b) => (a.initial_seed || 999) - (b.initial_seed || 999)); // Sort by seed for standard RR order
+
+    let schedulePlayers = [...activePlayers];
+    const hasBye = schedulePlayers.length % 2 !== 0;
+
+    if (hasBye) {
+        schedulePlayers.push({ name: 'BYE', isBye: true, player_id: null });
+    }
+
+    const n = schedulePlayers.length;
+    const roundsPerCycle = n - 1;
+    const totalRounds = roundsPerCycle * repeats;
+    const schedule = {};
+
+    // 2. Generate Cycles
+    let roundOffset = 0;
+
+    for (let cycle = 0; cycle < repeats; cycle++) {
+        // For each round in the cycle
+        for (let round = 0; round < roundsPerCycle; round++) {
+            const currentRoundNum = roundOffset + round + 1;
+            const pairings = [];
+            let table = 1;
+
+            // Berger Table Logic
+            // Fixed player at index 0 against changing opponent
+            // Others pair up based on distance from ends
+
+            // Identify indices for this round
+            // Standard method:
+            // Last element is fixed? OR First element fixed?
+            // Let's use the standard "Fixed First" rotation.
+            // P0 is fixed. Others [1...N-1] rotate.
+            // Rotation amount = round number.
+
+            // Indices map:
+            // P0 plays P[ (N-1) - round ? complex math ] 
+            // Easier: Manipulate an array of indices [0, 1, 2, ... N-1]
+
+            // Algorithm:
+            // Array: [0, 1, 2, ... N-1]
+            // Keep 0 fixed.
+            // Rotate sub-array [1...N-1] by 'round' steps.
+
+            // Create working array for this round
+            let workingIndices = [0];
+            let rotatingIndices = [];
+            for (let i = 1; i < n; i++) rotatingIndices.push(i);
+
+            // Rotate 'rotatingIndices' by 'round' steps LAST-to-FIRST (Clockwise)
+            // Or just use (index + round) % (N-1) logic
+
+            // Let's manually rotate the array for clarity
+            // Round 0: [1, 2, 3...]
+            // Round 1: [Last, 1, 2...]
+
+            let rotated = [...rotatingIndices];
+            for (let r = 0; r < round; r++) {
+                const last = rotated.pop();
+                rotated.unshift(last);
+            }
+
+            workingIndices = workingIndices.concat(rotated);
+
+            // Pairs are (0, N-1), (1, N-2), etc? 
+            // Berger standard pairings are top-bottom of the array usually?
+            // "The first person plays the one in the same position in the second half of the list" -> No that's different.
+
+            // Standard Circle:
+            //    0       1       2
+            //    5       4       3
+            // Pairs: (0,5), (1,4), (2,3)
+
+            const half = n / 2;
+            for (let i = 0; i < half; i++) {
+                const p1Index = workingIndices[i];
+                const p2Index = workingIndices[n - 1 - i];
+
+                let p1 = schedulePlayers[p1Index];
+                let p2 = schedulePlayers[p2Index];
+
+                // Color Balancing:
+                // Standard RR: Alternate colors for fixed player.
+                // Others alternate naturally.
+                // Cycle 2 (Repeat): Flip everything.
+
+                // Base Swap for fixed player (Index 0) logic usually:
+                // If round is odd, 0 is Home. If even, 0 is Away. Or vice versa.
+                // For others, it's implicit in strict Berger.
+
+                // Simple Logic:
+                // If cycle is odd (1, 3...), swap all P1/P2 from the standard generated above.
+                // (Since Cycle 0 is standard)
+
+                let finalP1 = p1;
+                let finalP2 = p2;
+
+                // If Repeat (Cycle > 0) -> check parity
+                // If cycle is odd (1, 3...), we want to flip colors relative to Cycle 0.
+                if (cycle % 2 !== 0) {
+                    finalP1 = p2;
+                    finalP2 = p1;
+                }
+
+                // Check Bye
+                if (finalP1.isBye || finalP2.isBye) {
+                    // Always put Real Player as P1 for "Bye" row
+                    const real = finalP1.isBye ? finalP2 : finalP1;
+                    pairings.push({
+                        table: 'BYE',
+                        player1: real,
+                        player2: { name: 'BYE', player_id: null, isBye: true }
+                    });
+                } else {
+                    pairings.push({
+                        table: table++,
+                        player1: finalP1,
+                        player2: finalP2
+                    });
+                }
+            }
+
+            schedule[currentRoundNum] = pairings;
+        }
+
+        roundOffset += roundsPerCycle;
+    }
+
+    return schedule;
 };

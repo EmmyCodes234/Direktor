@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const DivisionManager = ({ formData, onDivisionsChange }) => {
   const [divisions, setDivisions] = useState(formData.divisions || [{ name: 'Division A', min_rating: 1600, max_rating: 9999 }, { name: 'Division B', min_rating: 0, max_rating: 1599 }]);
-  
+
   const handleDivisionChange = (index, field, value) => {
     const newDivisions = [...divisions];
     newDivisions[index][field] = value;
@@ -57,18 +57,39 @@ const DivisionManager = ({ formData, onDivisionsChange }) => {
                 value={division.name}
                 onChange={(e) => handleDivisionChange(index, 'name', e.target.value)}
               />
-              <Input
-                label="Min Rating"
-                type="number"
-                value={division.min_rating}
-                onChange={(e) => handleDivisionChange(index, 'min_rating', parseInt(e.target.value) || 0)}
-              />
-              <Input
-                label="Max Rating"
-                type="number"
-                value={division.max_rating}
-                onChange={(e) => handleDivisionChange(index, 'max_rating', parseInt(e.target.value) || 0)}
-              />
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`caps-${index}`}
+                    checked={division.use_rating_caps || false}
+                    onChange={(e) => handleDivisionChange(index, 'use_rating_caps', e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <label htmlFor={`caps-${index}`} className="text-sm font-medium text-muted-foreground cursor-pointer">
+                    Rating Limit
+                  </label>
+                </div>
+                {division.use_rating_caps && (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Min"
+                      type="number"
+                      value={division.min_rating}
+                      onChange={(e) => handleDivisionChange(index, 'min_rating', parseInt(e.target.value) || 0)}
+                      className="bg-background/50"
+                    />
+                    <Input
+                      placeholder="Max"
+                      type="number"
+                      value={division.max_rating}
+                      onChange={(e) => handleDivisionChange(index, 'max_rating', parseInt(e.target.value) || 0)}
+                      className="bg-background/50"
+                    />
+                  </div>
+                )}
+              </div>
               <Button variant="destructive" size="icon" onClick={() => removeDivision(index)}>
                 <Icon name="Trash2" size={16} />
               </Button>

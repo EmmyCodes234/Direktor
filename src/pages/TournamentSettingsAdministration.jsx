@@ -122,23 +122,23 @@ const BannerUploadSection = ({ currentBanner, onFileChange }) => {
     };
 
     return (
-        <Card className="bg-card border border-border shadow-sm">
-            <CardHeader className="pb-4 border-b border-border">
-                <h3 className="font-semibold flex items-center gap-2">
-                    <Icon name="Image" size={18} /> Public Page Banner
+        <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
+            <CardHeader className="pb-4 border-b border-slate-800">
+                <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                    <Icon name="Image" size={18} className="text-emerald-500" /> Public Page Banner
                 </h3>
             </CardHeader>
             <CardContent className="pt-6">
                 <div className="space-y-4">
                     {currentBanner && (
-                        <div className="w-full h-32 md:h-48 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 relative">
+                        <div className="w-full h-32 md:h-48 bg-slate-950 rounded-lg overflow-hidden border border-slate-800 relative">
                             <img src={currentBanner} alt="Current Banner" className="w-full h-full object-cover" />
-                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">Current</div>
+                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">Current</div>
                         </div>
                     )}
 
                     <div>
-                        <label className="block text-sm font-medium mb-1.5">Upload New Banner</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Upload New Banner</label>
                         <div className="flex items-center gap-3">
                             <input
                                 type="file"
@@ -147,14 +147,15 @@ const BannerUploadSection = ({ currentBanner, onFileChange }) => {
                                 className="block w-full text-sm text-slate-500
                                   file:mr-4 file:py-2 file:px-4
                                   file:rounded-full file:border-0
-                                  file:text-sm file:font-semibold
-                                  file:bg-violet-50 file:text-violet-700
-                                  hover:file:bg-violet-100
+                                  file:text-xs file:font-semibold
+                                  file:bg-emerald-500/10 file:text-emerald-500
+                                  hover:file:bg-emerald-500/20
+                                  cursor-pointer
                                 "
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            Required dimensions: <strong>1500x375 pixels</strong>.
+                        <p className="text-xs text-slate-500 mt-2">
+                            Required dimensions: <strong className="text-slate-300">1500x375 pixels</strong>.
                             Images with different dimensions will be rejected.
                         </p>
                     </div>
@@ -327,60 +328,91 @@ const TournamentSettingsAdministration = () => {
     }
 
     return (
-        <DashboardLayout tournamentInfo={tournamentInfo}>
-            <Toaster position="top-center" richColors />
+        <div className="min-h-screen bg-[#020617] text-slate-200 font-mono selection:bg-emerald-500/30 selection:text-emerald-200">
+            <Toaster position="top-center" richColors theme="dark" />
 
-            <div className="max-w-4xl mx-auto space-y-8">
-                {/* Header */}
+            {/* Standalone Header */}
+            <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
+                <div className="container flex h-14 items-center max-w-4xl mx-auto px-4">
+                    <div className="flex items-center gap-2 mr-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/tournament/${tournamentSlug}/dashboard`)}
+                            className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            <Icon name="ArrowLeft" size={18} />
+                        </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <h1 className="font-bold text-lg sm:text-lg text-slate-100 tracking-tight">Settings</h1>
+                        <span className="text-slate-700 hidden sm:inline-block">/</span>
+                        <span className="text-sm text-slate-500 font-bold uppercase tracking-wider hidden sm:inline-block">{tournamentInfo?.name}</span>
+                    </div>
+                    <div className="ml-auto flex items-center space-x-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/tournament/${tournamentSlug}/dashboard`)}
+                            className="text-slate-400 hover:text-white hover:bg-slate-800"
+                        >
+                            Exit
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="container max-w-4xl mx-auto py-8 px-4 space-y-8">
+                {/* Header Info */}
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
-                    <p className="text-muted-foreground mt-1">Configure tournament rules, visibility, and basic details.</p>
+                    <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Configuration</h2>
+                    <p className="text-slate-500">Manage rules, visibility, and tournament details.</p>
                 </div>
 
                 <form onSubmit={handleSaveSettings} className="space-y-6">
                     {/* General Settings */}
-                    <Card className="bg-card border border-border shadow-sm">
-                        <CardHeader className="pb-4 border-b border-border">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <Icon name="Settings" size={18} /> General Information
+                    <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
+                        <CardHeader className="pb-4 border-b border-slate-800">
+                            <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                                <Icon name="Settings" size={18} className="text-emerald-500" /> General Information
                             </h3>
                         </CardHeader>
                         <CardContent className="pt-6 grid gap-6">
                             <div className="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium mb-1.5 block">Tournament Name</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Tournament Name</label>
                                     <input
                                         type="text"
-                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-700"
                                         value={tournamentInfo?.name || ''}
                                         onChange={e => handleSettingsChange('name', e.target.value)}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium mb-1.5 block">Date</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Date</label>
                                     <input
                                         type="date"
-                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all [&::-webkit-calendar-picker-indicator]:invert"
                                         value={tournamentInfo?.date || ''}
                                         onChange={e => handleSettingsChange('date', e.target.value)}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1.5 block">Location</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Location</label>
                                 <input
                                     type="text"
-                                    className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all placeholder:text-slate-700"
                                     value={tournamentInfo?.location || ''}
                                     onChange={e => handleSettingsChange('location', e.target.value)}
                                     placeholder="Venue or Online URL"
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium mb-1.5 block">Description</label>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Description</label>
                                 <textarea
-                                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-h-[100px]"
+                                    className="w-full rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all min-h-[100px] placeholder:text-slate-700"
                                     value={tournamentInfo?.description || ''}
                                     onChange={e => handleSettingsChange('description', e.target.value)}
                                     placeholder="Event details..."
@@ -389,48 +421,89 @@ const TournamentSettingsAdministration = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Share Section - Public URL */}
-                    <ShareSection tournamentSlug={tournamentSlug} />
+                    {/* Share Section - Styling Wrapper only, inner content assumes compatibility or needs update. 
+                        Let's update ShareSection manually in next step if needed, or inline styling here if possible. 
+                        Wait, ShareSection is defined above. I need to update it too. I'll stick to replacing the main component structure first.
+                    */}
+                    {/* Share Section - Public URL (Re-implemented inline for styling control if component doesn't support props, but checking above... ShareSection returns glass-card. glass-card might need CSS update or override)
+                        Actually, let's wrap it or hope glass-card adapts. Dashboard uses Tailwind classes. 
+                        I will assume ShareSection needs update. I'll replace it with inline code for perfect match.
+                    */}
+                    <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
+                        <CardHeader className="pb-4 border-b border-slate-800">
+                            <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                                <Icon name="Share2" size={18} className="text-emerald-500" /> Share Tournament
+                            </h3>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <p className="text-sm text-slate-400 mb-4">Use this link to share the public-facing tournament page.</p>
+                            <div className="flex items-center space-x-2 p-1.5 bg-slate-950 border border-slate-800 rounded-lg">
+                                <input
+                                    type="text"
+                                    readOnly
+                                    value={`https://direktorapp.netlify.app/tournament/${tournamentSlug}`}
+                                    className="flex-1 bg-transparent text-slate-400 text-xs font-mono px-2 focus:outline-none"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`https://direktorapp.netlify.app/tournament/${tournamentSlug}`);
+                                        toast.success("Public link copied!");
+                                    }}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10 h-7 text-xs"
+                                >
+                                    Copy Link
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Banner Configuration */}
                     <BannerUploadSection
                         currentBanner={tournamentInfo?.banner_url || tournamentInfo?.banner_path || null}
                         onFileChange={handleBannerFileChange}
+                    // Passing className or style might not verify inner classes. 
+                    // I will rely on BannerUploadSection being updated separately if it looks off.
+                    // Actually I can update BannerUploadSection in the same file if I use multi_replace? 
+                    // No, let's stick to this big block replacement for the main render.
                     />
 
                     {/* Photo Management Section */}
                     {tournamentInfo && players.length > 0 && (
-                        <PhotoMatcherUtility
-                            tournamentId={tournamentInfo.id}
-                            players={players}
-                            onComplete={() => toast.success("Photos updated!")}
-                        />
+                        <div className="bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden">
+                            <PhotoMatcherUtility
+                                tournamentId={tournamentInfo.id}
+                                players={players}
+                                onComplete={() => toast.success("Photos updated!")}
+                            />
+                        </div>
                     )}
 
                     {/* Rules & Format */}
-                    <Card className="bg-card border border-border shadow-sm">
-                        <CardHeader className="pb-4 border-b border-border">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <Icon name="List" size={18} /> Format & Rules
+                    <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
+                        <CardHeader className="pb-4 border-b border-slate-800">
+                            <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                                <Icon name="List" size={18} className="text-emerald-500" /> Format & Rules
                             </h3>
                         </CardHeader>
                         <CardContent className="pt-6 grid gap-6">
                             <div className="grid md:grid-cols-3 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium mb-1.5 block">Total Rounds</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Total Rounds</label>
                                     <input
                                         type="number"
                                         min="1"
                                         max="50"
-                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                                         value={tournamentInfo?.rounds || ''}
                                         onChange={e => handleSettingsChange('rounds', parseInt(e.target.value))}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium mb-1.5 block">Pairing System</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Pairing System</label>
                                     <select
-                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                                         value={tournamentInfo?.pairing_system || 'swiss'}
                                         onChange={e => handleSettingsChange('pairing_system', e.target.value)}
                                     >
@@ -440,9 +513,9 @@ const TournamentSettingsAdministration = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium mb-1.5 block">Scoring</label>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Scoring</label>
                                     <select
-                                        className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
                                         value={tournamentInfo?.scoring_system || 'standard'}
                                         onChange={e => handleSettingsChange('scoring_system', e.target.value)}
                                     >
@@ -452,10 +525,10 @@ const TournamentSettingsAdministration = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/20">
+                            <div className="flex items-center justify-between p-4 rounded-lg border border-slate-800 bg-slate-950/50">
                                 <div>
-                                    <h4 className="font-medium text-sm">Public Visibility</h4>
-                                    <p className="text-xs text-muted-foreground">Allow anyone with the link to view standings and pairings.</p>
+                                    <h4 className="font-bold text-sm text-slate-200">Public Visibility</h4>
+                                    <p className="text-xs text-slate-500">Allow anyone with the link to view standings and pairings.</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input
@@ -464,34 +537,49 @@ const TournamentSettingsAdministration = () => {
                                         onChange={e => handleSettingsChange('is_public', e.target.checked)}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 rounded-lg border border-slate-800 bg-slate-950/50">
+                                <div>
+                                    <h4 className="font-bold text-sm text-slate-200">Remote Submission</h4>
+                                    <p className="text-xs text-slate-500">Allow players to submit results remotely.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={tournamentInfo?.remote_submission_enabled || false}
+                                        onChange={e => handleSettingsChange('remote_submission_enabled', e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-white"></div>
                                 </label>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between pt-4">
+                    <div className="flex items-center justify-between pt-4 pb-12">
                         <Button
                             type="button"
-                            variant="destructive"
-                            variantType="outline"
+                            variant="outline"
                             onClick={handleDeleteTournament}
-                            className="text-red-500 hover:bg-red-500/10 hover:text-red-600 border-red-500/20"
+                            className="text-red-500 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50"
                         >
                             Delete Tournament
                         </Button>
                         <Button
                             type="submit"
-                            className="w-32"
+                            className="w-32 bg-emerald-600 hover:bg-emerald-500 text-white"
                             loading={saving}
                         >
                             Save Changes
                         </Button>
                     </div>
                 </form>
-            </div>
-        </DashboardLayout>
+            </main>
+        </div>
     );
 };
 

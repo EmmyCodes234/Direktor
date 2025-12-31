@@ -107,13 +107,13 @@ const PublicTournamentStandings = () => {
                 }
             }
 
-            const enrichedPlayers = finalPlayersData.map(tp => ({
+            const enrichedPlayers = finalPlayersData.map((tp, index) => ({
                 ...tp.players,
-                player_id: tp.players.id,
-                seed: tp.seed,
-                team_id: tp.team_id,
-                status: tp.status,
-                photo_url: tp.players.photo_url
+                ...tp,
+                player_id: tp.players.id, // Preserve UUID as player_id for consistency
+                seed: tp.seed || tp.initial_seed || (index + 1),
+                initial_seed: tp.initial_seed || tp.seed || (index + 1),
+                photo_url: tp.players.photo_url || tp.photo_url
             }));
 
             setPlayers(enrichedPlayers);

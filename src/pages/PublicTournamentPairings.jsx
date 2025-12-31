@@ -190,10 +190,11 @@ const PublicTournamentPairings = () => {
         .order('seed', { ascending: true });
 
       if (playersError) throw playersError;
-      const enrichedPlayers = playersData.map(tp => ({
+      const enrichedPlayers = playersData.map((tp, index) => ({
         ...tp.players,
         player_id: tp.players.id,
-        seed: tp.seed,
+        seed: tp.seed || tp.initial_seed || (index + 1),
+        initial_seed: tp.initial_seed || tp.seed || (index + 1),
         team_id: tp.team_id,
         status: tp.status
       }));

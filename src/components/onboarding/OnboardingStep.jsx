@@ -52,13 +52,13 @@ const WelcomeStep = () => {
       >
         <Icon name="Trophy" className="w-12 h-12 text-primary-foreground" />
       </motion.div>
-      
+
       <div className="space-y-4">
         <h3 className="text-2xl font-bold text-foreground">
           Welcome to Direktor! 🏆
         </h3>
         <p className="text-muted-foreground leading-relaxed">
-          You're about to discover the most powerful and intuitive tournament management platform ever created. 
+          You're about to discover the most powerful and intuitive tournament management platform ever created.
           Let's get you set up in just a few minutes.
         </p>
       </div>
@@ -132,18 +132,16 @@ const UserTypeStep = ({ userType }) => {
           <motion.button
             key={type.id}
             onClick={() => handleUserTypeSelect(type.id)}
-            className={`p-6 rounded-xl border-2 transition-all duration-200 text-left ${
-              userType === type.id
+            className={`p-6 rounded-xl border-2 transition-all duration-200 text-left ${userType === type.id
                 ? 'border-primary bg-primary/5 shadow-lg'
                 : 'border-border hover:border-primary/50 hover:bg-muted/30'
-            }`}
+              }`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                userType === type.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-              }`}>
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${userType === type.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                }`}>
                 <Icon name={type.icon} className="w-6 h-6" />
               </div>
               <div className="flex-1">
@@ -175,11 +173,11 @@ const TournamentTypesStep = ({ preferences }) => {
 
   const tournamentTypes = [
     { id: 'individual', label: 'Individual Tournaments', icon: 'User' },
-    { id: 'team', label: 'Team Tournaments', icon: 'Users' },
-    { id: 'club', label: 'Club Events', icon: 'Home' },
-    { id: 'national', label: 'National Championships', icon: 'Flag' },
-    { id: 'online', label: 'Online Tournaments', icon: 'Globe' },
-    { id: 'youth', label: 'Youth Events', icon: 'Heart' }
+    // { id: 'team', label: 'Team Tournaments', icon: 'Users' },
+    // { id: 'club', label: 'Club Events', icon: 'Home' },
+    // { id: 'national', label: 'National Championships', icon: 'Flag' },
+    // { id: 'online', label: 'Online Tournaments', icon: 'Globe' },
+    // { id: 'youth', label: 'Youth Events', icon: 'Heart' }
   ];
 
   const handleToggle = (type) => {
@@ -187,7 +185,7 @@ const TournamentTypesStep = ({ preferences }) => {
     const newTypes = currentTypes.includes(type)
       ? currentTypes.filter(t => t !== type)
       : [...currentTypes, type];
-    
+
     updatePreferences({ tournamentTypes: newTypes });
   };
 
@@ -209,18 +207,16 @@ const TournamentTypesStep = ({ preferences }) => {
             <motion.button
               key={type.id}
               onClick={() => handleToggle(type.id)}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                isSelected
+              className={`p-4 rounded-lg border-2 transition-all duration-200 ${isSelected
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50 hover:bg-muted/30'
-              }`}
+                }`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               <div className="flex flex-col items-center gap-2 text-center">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
                   <Icon name={type.icon} className="w-4 h-4" />
                 </div>
                 <span className="text-sm font-medium text-foreground">{type.label}</span>
@@ -367,14 +363,12 @@ const PreferencesStep = ({ preferences }) => {
             </div>
             <button
               onClick={() => handleToggle(option.key)}
-              className={`w-12 h-6 rounded-full transition-colors ${
-                preferences[option.key] ? 'bg-primary' : 'bg-muted'
-              }`}
+              className={`w-12 h-6 rounded-full transition-colors ${preferences[option.key] ? 'bg-primary' : 'bg-muted'
+                }`}
             >
               <div
-                className={`w-5 h-5 bg-white rounded-full transition-transform ${
-                  preferences[option.key] ? 'translate-x-6' : 'translate-x-0.5'
-                }`}
+                className={`w-5 h-5 bg-white rounded-full transition-transform ${preferences[option.key] ? 'translate-x-6' : 'translate-x-0.5'
+                  }`}
               />
             </button>
           </div>
@@ -402,7 +396,7 @@ const CompleteStep = ({ userType }) => {
       >
         <Icon name="Check" className="w-12 h-12 text-white" />
       </motion.div>
-      
+
       <div className="space-y-4">
         <h3 className="text-2xl font-bold text-foreground">
           You're All Set! 🎉

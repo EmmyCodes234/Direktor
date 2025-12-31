@@ -8,32 +8,38 @@ import ExpandableTabsJS from '../components/ui/expandable-tabs';
 import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, HelpCircle, Code, Database, Image, Shield, Smartphone } from 'lucide-react';
 
 const DocSection = ({ title, id, children }) => (
-    <section id={id} className="mb-16 scroll-mt-24">
-        <h2 className="text-3xl font-heading font-bold text-foreground mb-6 pb-2 border-b border-border">{title}</h2>
-        <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed space-y-4">
+    <section id={id} className="mb-20 scroll-mt-32">
+        <h2 className="text-3xl font-heading font-black tracking-tight text-white mb-8 pb-4 border-b border-white/10 flex items-center gap-3">
+            <div className="h-8 w-1 bg-emerald-500 rounded-full" />
+            {title}
+        </h2>
+        <div className="prose prose-invert prose-slate max-w-none text-slate-400 leading-relaxed space-y-6">
             {children}
         </div>
     </section>
 );
 
 const DocSubSection = ({ title, children }) => (
-    <div className="mb-8">
-        <h3 className="text-xl font-heading font-semibold text-foreground mb-4">{title}</h3>
-        <div className="space-y-3">
+    <div className="mb-10 last:mb-0">
+        <h3 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            {title}
+        </h3>
+        <div className="space-y-4 pl-4 border-l border-white/5">
             {children}
         </div>
     </div>
 );
 
 const FeatureCard = ({ icon, title, description, className = "" }) => (
-    <div className={`bg-card border border-border rounded-xl p-6 shadow-sm ${className}`}>
+    <div className={`bg-slate-900/50 border border-white/5 hover:border-emerald-500/30 transition-all duration-300 rounded-2xl p-6 shadow-lg shadow-black/20 hover:shadow-emerald-900/10 backdrop-blur-sm group ${className}`}>
         <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 border border-border">
-                <Icon name={icon} size={24} className="text-foreground" />
+            <div className="w-12 h-12 rounded-xl bg-slate-800/50 group-hover:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 border border-white/5 group-hover:border-emerald-500/20 transition-colors">
+                <Icon name={icon} size={24} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
             </div>
             <div>
-                <h4 className="font-semibold text-foreground mb-2">{title}</h4>
-                <p className="text-sm text-muted-foreground">{description}</p>
+                <h4 className="font-semibold text-white mb-2 group-hover:text-emerald-400 transition-colors">{title}</h4>
+                <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
             </div>
         </div>
     </div>
@@ -59,23 +65,23 @@ const DocumentationPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="dark min-h-screen bg-[#020617]">
             <Header />
             <div className="flex pt-20">
                 {/* Sidebar Navigation */}
-                <aside className="w-64 fixed left-0 top-20 h-screen overflow-y-auto border-r border-border bg-background/50 backdrop-blur-sm">
+                <aside className="hidden lg:block w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] overflow-y-auto border-r border-white/5 bg-[#020617]/95 backdrop-blur-sm pb-10">
                     <nav className="p-4">
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             {navigationItems.map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => setActiveSection(item.id)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeSection === item.id
-                                            ? 'bg-secondary text-foreground font-medium shadow-sm'
-                                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${activeSection === item.id
+                                        ? 'bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                                        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
                                         }`}
                                 >
-                                    <Icon name={item.icon} size={16} />
+                                    <Icon name={item.icon} size={16} className={activeSection === item.id ? "text-emerald-500" : "text-slate-500 group-hover:text-slate-400"} />
                                     <span className="text-sm font-medium">{item.label}</span>
                                 </button>
                             ))}
@@ -84,8 +90,8 @@ const DocumentationPage = () => {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 ml-64">
-                    <div className="max-w-4xl mx-auto px-8 lg:px-12 py-8 lg:py-12">
+                <main className="flex-1 lg:ml-64 w-full">
+                    <div className="max-w-5xl mx-auto px-6 md:px-12 py-8 lg:py-12">
                         {/* Mobile Navigation */}
                         <div className="lg:hidden mb-8">
                             <ExpandableTabsJS
@@ -108,7 +114,7 @@ const DocumentationPage = () => {
                                 className="border-border bg-background"
                                 onChange={(index) => {
                                     const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'];
-                                    setActiveSection(sections[index]);
+                                    setActiveSection(sections[index] || 'overview');
                                 }}
                             />
                         </div>
@@ -120,12 +126,21 @@ const DocumentationPage = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5 }}
                             >
-                                <div className="text-center mb-16">
-                                    <Icon name="BookOpenCheck" size={64} className="mx-auto text-foreground mb-6" />
-                                    <h1 className="text-5xl font-heading font-bold text-foreground mb-4">Direktor Documentation</h1>
-                                    <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                                        Your complete guide to running world-class Scrabble tournaments with the most advanced tournament management platform.
-                                    </p>
+                                <div className="text-center mb-16 relative py-12">
+                                    {/* Background decoration */}
+                                    <div className="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full transform -translate-y-1/2" />
+
+                                    <div className="relative z-10">
+                                        <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center mb-8 shadow-2xl shadow-emerald-900/20">
+                                            <Icon name="BookOpenCheck" size={40} className="text-emerald-400" />
+                                        </div>
+                                        <h1 className="text-5xl md:text-6xl font-heading font-black tracking-tighter text-white mb-6">
+                                            Direktor <span className="text-emerald-500">Docs</span>
+                                        </h1>
+                                        <p className="text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
+                                            Your complete guide to running world-class Scrabble tournaments with the most advanced tournament management platform.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <DocSection title="What is Direktor?" id="what-is-direktor">
@@ -189,17 +204,17 @@ const DocumentationPage = () => {
                                         Direktor is built with modern, scalable technologies to ensure reliability and performance:
                                     </p>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
-                                            <h4 className="font-semibold text-foreground mb-2">Frontend</h4>
-                                            <p className="text-sm text-muted-foreground">React Native, Framer Motion, Tailwind CSS</p>
+                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
+                                            <h4 className="font-semibold text-white mb-2">Frontend</h4>
+                                            <p className="text-sm text-slate-400">React Native, Framer Motion, Tailwind CSS</p>
                                         </div>
-                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
-                                            <h4 className="font-semibold text-foreground mb-2">Backend</h4>
-                                            <p className="text-sm text-muted-foreground">Supabase, PostgreSQL, Row Level Security</p>
+                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
+                                            <h4 className="font-semibold text-white mb-2">Backend</h4>
+                                            <p className="text-sm text-slate-400">Supabase, PostgreSQL, Row Level Security</p>
                                         </div>
-                                        <div className="bg-secondary/10 border border-border rounded-lg p-4">
-                                            <h4 className="font-semibold text-foreground mb-2">Storage</h4>
-                                            <p className="text-sm text-muted-foreground">Supabase Storage, Image optimization, CDN</p>
+                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
+                                            <h4 className="font-semibold text-white mb-2">Storage</h4>
+                                            <p className="text-sm text-slate-400">Supabase Storage, Image optimization, CDN</p>
                                         </div>
                                     </div>
                                 </DocSection>
@@ -386,18 +401,18 @@ const DocumentationPage = () => {
 
                                     <DocSubSection title="Photo Naming Conventions">
                                         <p>Best practices for naming photos to ensure accurate matching:</p>
-                                        <div className="bg-muted/20 rounded-lg p-4 mb-4">
-                                            <h5 className="font-semibold text-foreground mb-2">Recommended Formats:</h5>
-                                            <ul className="list-disc pl-5 space-y-1 text-sm">
+                                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 mb-4">
+                                            <h5 className="font-semibold text-emerald-400 mb-2">Recommended Formats:</h5>
+                                            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
                                                 <li><code>John Smith.jpg</code> - Exact player name</li>
                                                 <li><code>John_Smith.jpg</code> - With underscores</li>
                                                 <li><code>John-Smith.jpg</code> - With hyphens</li>
                                                 <li><code>john smith.jpg</code> - Lowercase (will be matched)</li>
                                             </ul>
                                         </div>
-                                        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-                                            <h5 className="font-semibold text-foreground mb-2">Avoid These:</h5>
-                                            <ul className="list-disc pl-5 space-y-1 text-sm">
+                                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4">
+                                            <h5 className="font-semibold text-rose-400 mb-2">Avoid These:</h5>
+                                            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
                                                 <li><code>IMG_001.jpg</code> - Unclear naming</li>
                                                 <li><code>Photo1.png</code> - Generic names</li>
                                                 <li><code>DSC_1234.jpeg</code> - Camera default names</li>
@@ -408,18 +423,18 @@ const DocumentationPage = () => {
                                     <DocSubSection title="Supported File Formats">
                                         <p>The system supports various image formats with automatic optimization:</p>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Image Formats:</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4">
+                                                <h5 className="font-semibold text-white mb-2">Image Formats:</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
                                                     <li>JPEG/JPG - Best for photos</li>
                                                     <li>PNG - Good for graphics</li>
                                                     <li>GIF - Animated images</li>
                                                     <li>WebP - Modern format</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Upload Format:</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm">
+                                            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4">
+                                                <h5 className="font-semibold text-white mb-2">Upload Format:</h5>
+                                                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
                                                     <li>ZIP files only</li>
                                                     <li>Max 50MB total</li>
                                                     <li>Max 10MB per photo</li>
@@ -437,8 +452,8 @@ const DocumentationPage = () => {
                                             <li><strong>Partial Match:</strong> Filename contains unique player identifier</li>
                                             <li><strong>Word Match:</strong> Multiple words match between filename and player name</li>
                                         </ol>
-                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mt-4">
-                                            <p className="text-sm text-muted-foreground">
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mt-4">
+                                            <p className="text-sm text-emerald-200">
                                                 <strong>Note:</strong> If automatic matching fails, you can manually assign photos to players
                                                 using the manual matching interface.
                                             </p>
@@ -767,9 +782,11 @@ const DocumentationPage = () => {
 
                                     <DocSubSection title="Component Props">
                                         <p>Key component interfaces and properties:</p>
-                                        <div className="bg-muted/20 rounded-lg p-4">
-                                            <h5 className="font-semibold text-foreground mb-2">PhotoDatabaseManager Props</h5>
-                                            <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
+                                        <div className="bg-slate-900 border border-white/10 rounded-xl overflow-hidden">
+                                            <div className="px-4 py-2 border-b border-white/10 bg-white/5">
+                                                <h5 className="font-semibold text-emerald-400 text-sm">PhotoDatabaseManager Props</h5>
+                                            </div>
+                                            <pre className="text-sm bg-slate-950 p-4 overflow-x-auto text-slate-300">
                                                 {`interface PhotoDatabaseManagerProps {
   isOpen: boolean;                    // Modal open state
   onClose: () => void;               // Close handler
@@ -783,9 +800,11 @@ const DocumentationPage = () => {
 
                                     <DocSubSection title="Database Schema">
                                         <p>Key database tables and relationships:</p>
-                                        <div className="bg-muted/20 rounded-lg p-4">
-                                            <h5 className="font-semibold text-foreground mb-2">Player Photos Table</h5>
-                                            <pre className="text-sm bg-background p-3 rounded border overflow-x-auto">
+                                        <div className="bg-slate-900 border border-white/10 rounded-xl overflow-hidden">
+                                            <div className="px-4 py-2 border-b border-white/10 bg-white/5">
+                                                <h5 className="font-semibold text-emerald-400 text-sm">Player Photos Table</h5>
+                                            </div>
+                                            <pre className="text-sm bg-slate-950 p-4 overflow-x-auto text-slate-300">
                                                 {`CREATE TABLE player_photos (
     id BIGSERIAL PRIMARY KEY,
     tournament_id BIGINT NOT NULL REFERENCES tournaments(id),
@@ -812,11 +831,13 @@ const DocumentationPage = () => {
                                 transition={{ duration: 0.5 }}
                                 className="text-center py-16"
                             >
-                                <Icon name="Construction" size={64} className="mx-auto text-muted-foreground mb-4" />
-                                <h2 className="text-2xl font-heading font-bold text-foreground mb-2">Section Under Development</h2>
-                                <p className="text-muted-foreground">
+                                <div className="w-16 h-16 rounded-xl bg-slate-800/50 border border-white/5 flex items-center justify-center mx-auto mb-6">
+                                    <Icon name="Construction" size={32} className="text-slate-400" />
+                                </div>
+                                <h2 className="text-2xl font-heading font-bold text-white mb-2">Section Under Development</h2>
+                                <p className="text-slate-400 max-w-md mx-auto">
                                     This documentation section is being expanded with comprehensive details.
-                                    Check back soon for complete coverage of {activeSection.replace('-', ' ')}.
+                                    Check back soon for complete coverage of {(activeSection || 'overview').replace('-', ' ')}.
                                 </p>
                             </motion.div>
                         )}

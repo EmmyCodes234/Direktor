@@ -15,33 +15,44 @@ import Button from '../../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const useQuery = () => {
-    return new URLSearchParams(useLocation().search);
+  return new URLSearchParams(useLocation().search);
 }
 
 const createSlug = (name) => {
-    return name
-        .toLowerCase()
-        .replace(/&/g, 'and')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+  return name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 };
 
 const TournamentSetupConfiguration = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const query = useQuery();
-  const draftId = query.get('draftId');
 
   const [currentStep, setCurrentStep] = useState('details');
   const [isLoading, setIsLoading] = useState(false);
-  const [isReconciling, setIsReconciling] = useState(false);
-  const [reconciliationData, setReconciliationData] = useState({ imports: [], matches: new Map() });
-  
-  const [formData, setFormData] = useState({
-    name: '', venue: '', date: '', type: 'individual', rounds: 8, playerCount: 0, player_ids: [], teams: [], divisions: [], start_date: '', end_date: '', games_per_match: 0,
-  });
 
-  const [playerDetails, setPlayerDetails] = useState([]);
+  // Simplified State - No Player/Team Management in Wizard anymore
+  const [formData, setFormData] = useState({
+    name: '',
+    venue: '',
+    location: '', // New
+    date: '',
+    type: 'individual',
+    rounds: 8,
+    start_date: '',
+    end_date: '',
+    games_per_match: 0,
+    pairing_system: 'swiss', // New
+    is_public: true, // New
+    // Legacy fields kept structure but unused in Wizard
+    playerCount: 0,
+    player_ids: [],
+    teams: [],
+    divisions: [],
+  });
 
   useEffect(() => {
     const planName = query.get('name');
@@ -55,172 +66,48 @@ const TournamentSetupConfiguration = () => {
     // Validate date format before setting
     const validateDate = (dateStr) => {
       if (!dateStr) return '';
-      // Check if it's in YYYY-MM-DD format
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (dateRegex.test(dateStr)) {
-        // Additional validation to ensure it's a real date
         const date = new Date(dateStr);
         if (!isNaN(date.getTime())) {
           return dateStr;
         }
       }
-      console.warn('Invalid date format in URL parameter:', dateStr);
       return '';
     };
 
     setFormData(prev => ({
-        ...prev,
-        name: planName || prev.name,
-        rounds: planRounds ? parseInt(planRounds, 10) : prev.rounds,
-        venue: planVenue || prev.venue,
-        date: validateDate(planDate) || prev.date,
-        start_date: validateDate(planStartDate) || prev.start_date,
-        end_date: validateDate(planEndDate) || prev.end_date,
-        type: planType || prev.type,
+      ...prev,
+      name: planName || prev.name,
+      rounds: planRounds ? parseInt(planRounds, 10) : prev.rounds,
+      venue: planVenue || prev.venue,
+      date: validateDate(planDate) || prev.date,
+      start_date: validateDate(planStartDate) || prev.start_date,
+      end_date: validateDate(planEndDate) || prev.end_date,
+      type: planType || prev.type,
     }));
   }, [location.search]);
-  
-  useEffect(() => {
-    const fetchPlayerDetails = async () => {
-        if(formData.player_ids.length === 0) return;
-        
-        const { data, error } = await supabase
-            .from('players')
-            .select('id, name')
-            .in('id', formData.player_ids);
-        
-        if (error) {
-            toast.error("Failed to fetch player details for team management.");
-        } else {
-            setPlayerDetails(data);
-        }
-    };
-    fetchPlayerDetails();
-  }, [formData.player_ids]);
 
 
   const handleFormChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-  
-  const handleDivisionsChange = (divisions) => {
-    setFormData(prev => ({ ...prev, divisions }));
-  };
 
-  const handleTeamUpdate = (teams) => {
-      setFormData(prev => ({ ...prev, teams }));
-  }
-
+  // Simplification: Re-enable Divisions
   const handleNextStep = () => {
     if (currentStep === 'details') {
-        setCurrentStep('players');
-    } else if (currentStep === 'players') {
-        setCurrentStep('divisions');
+      setCurrentStep('divisions');
     } else if (currentStep === 'divisions') {
-        if (formData.type === 'team') {
-            setCurrentStep('teams');
-        } else {
-            setCurrentStep('rounds');
-        }
-    } else if (currentStep === 'teams') {
-        setCurrentStep('rounds');
+      setCurrentStep('rounds');
     }
   };
 
   const handlePrevStep = () => {
     if (currentStep === 'rounds') {
-        if (formData.type === 'team') {
-            setCurrentStep('teams');
-        } else {
-            setCurrentStep('divisions');
-        }
-    } else if (currentStep === 'teams') {
-        setCurrentStep('divisions');
+      setCurrentStep('divisions');
     } else if (currentStep === 'divisions') {
-        setCurrentStep('players');
-    } else if (currentStep === 'players') {
-        setCurrentStep('details');
+      setCurrentStep('details');
     }
-  };
-
-  const startReconciliation = async (parsedPlayers) => {
-    setIsLoading(true);
-    toast.info("Checking for existing players in the Master Library...");
-    const namesToSearch = parsedPlayers.map(p => p.name);
-    
-    const { data: existingPlayers, error } = await supabase
-      .from('players')
-      .select('*')
-      .in('name', namesToSearch);
-
-    if (error) {
-      toast.error("Could not check Master Player Library.");
-      setIsLoading(false);
-      return;
-    }
-
-    const matches = new Map();
-    existingPlayers.forEach(p => {
-      if (!matches.has(p.name)) matches.set(p.name, []);
-      matches.get(p.name).push(p);
-    });
-
-    setReconciliationData({ imports: parsedPlayers, matches });
-    setIsReconciling(true);
-    setIsLoading(false);
-  };
-
-  const finalizeRoster = async (reconciledPlayers) => {
-    setIsLoading(true);
-    toast.info("Finalizing roster...");
-
-    const newPlayersToCreate = reconciledPlayers.filter(p => p.action === 'create');
-    const playersToLink = reconciledPlayers.filter(p => p.action === 'link');
-
-    let finalPlayerIds = playersToLink.map(p => p.linkedPlayer.id);
-
-    if (newPlayersToCreate.length > 0) {
-      const newPlayerRecords = newPlayersToCreate.map(p => ({
-        name: p.name,
-        rating: p.rating,
-      }));
-
-      // Check for existing players before creating new ones
-      const namesToCreate = newPlayerRecords.map(p => p.name);
-      const { data: existingPlayers } = await supabase.from('players').select('id, name').in('name', namesToCreate);
-      
-      const existingNames = new Set(existingPlayers.map(p => p.name));
-      const trulyNewPlayers = newPlayerRecords.filter(p => !existingNames.has(p.name));
-      
-      existingPlayers.forEach(p => finalPlayerIds.push(p.id));
-
-      if (trulyNewPlayers.length > 0) {
-          const { data: createdPlayers, error } = await supabase
-            .from('players')
-            .insert(trulyNewPlayers)
-            .select('id');
-
-          if (error) {
-            toast.error(`Failed to create new players: ${error.message}`);
-            setIsLoading(false);
-            return;
-          }
-          finalPlayerIds = [...finalPlayerIds, ...createdPlayers.map(p => p.id)];
-      }
-    }
-
-    setFormData(prev => {
-      const arePlayerIdsSame = prev.player_ids.length === finalPlayerIds.length &&
-                               prev.player_ids.every((id, index) => id === finalPlayerIds[index]);
-
-      if (arePlayerIdsSame) {
-          return prev; // No change, return previous state to prevent re-render
-      }
-      return { ...prev, player_ids: finalPlayerIds, playerCount: finalPlayerIds.length };
-    });
-    setIsReconciling(false);
-    setIsLoading(false);
-    toast.success("Roster finalized successfully!");
   };
 
   const generateUniqueSlug = async (name) => {
@@ -230,22 +117,22 @@ const TournamentSetupConfiguration = () => {
     let counter = 1;
 
     while (!isUnique) {
-        const { data, error } = await supabase
-            .from('tournaments')
-            .select('slug')
-            .eq('slug', slug)
-            .single();
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('slug')
+        .eq('slug', slug)
+        .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-            throw error;
-        }
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
 
-        if (data) {
-            slug = `${baseSlug}-${counter}`;
-            counter++;
-        } else {
-            isUnique = true;
-        }
+      if (data) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      } else {
+        isUnique = true;
+      }
     }
     return slug;
   };
@@ -253,199 +140,87 @@ const TournamentSetupConfiguration = () => {
   const handleCreateTournament = async () => {
     setIsLoading(true);
     try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("You must be logged in to create a tournament.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("You must be logged in to create a tournament.");
 
-        const uniqueSlug = await generateUniqueSlug(formData.name);
-        
-        const rounds = formData.type === 'best_of_league' ? formData.playerCount - 1 : formData.rounds;
+      const uniqueSlug = await generateUniqueSlug(formData.name);
 
-        // Sanitize all date fields to null if empty string or not a valid date
-        const sanitizeDate = (val) => {
-            if (typeof val !== 'string' || val.trim() === '') {
-                return null;
-            }
-            
-            // Check if the date string is in a valid format (YYYY-MM-DD)
-            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-            if (!dateRegex.test(val)) {
-                console.warn('Invalid date format:', val);
-                return null;
-            }
-            
-            // Additional validation to ensure it's a real date
-            const date = new Date(val);
-            if (isNaN(date.getTime())) {
-                console.warn('Invalid date value:', val);
-                return null;
-            }
-            
-            // Check if date is not in the past (allow today)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            if (date < today) {
-                console.warn('Date is in the past:', val);
-                // Don't return null here, just warn - some tournaments might be historical
-            }
-            
-            return val;
-        };
-        // Additional validation for league tournaments
-        if (formData.type === 'best_of_league') {
-            const startDate = sanitizeDate(formData.start_date);
-            const endDate = sanitizeDate(formData.end_date);
-            
-            if (startDate && endDate) {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                if (end < start) {
-                    throw new Error('End date cannot be before start date for league tournaments.');
-                }
-            }
+      const rounds = formData.type === 'best_of_league' ? 0 : formData.rounds;
+
+      const sanitizeDate = (val) => {
+        if (typeof val !== 'string' || val.trim() === '') return null;
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(val)) return null;
+        return val;
+      };
+
+      if (formData.type === 'best_of_league') {
+        const startDate = sanitizeDate(formData.start_date);
+        const endDate = sanitizeDate(formData.end_date);
+        if (startDate && endDate) {
+          if (new Date(endDate) < new Date(startDate)) {
+            throw new Error('End date cannot be before start date.');
+          }
         }
+      }
 
-        const tournamentData = {
-            name: formData.name,
-            venue: formData.venue,
-            date: sanitizeDate(formData.date),
-            start_date: sanitizeDate(formData.start_date),
-            end_date: sanitizeDate(formData.end_date),
-            rounds: rounds,
-            status: 'setup',
-            playerCount: formData.playerCount,
-            type: formData.type,
-            divisions: formData.divisions,
-            games_per_match: formData.games_per_match,
-            slug: uniqueSlug,
-            user_id: user.id, // Assign ownership
-        };
-        
-        // Debug logging to help identify date issues
-        console.log('Tournament data being sent:', {
-            originalDates: {
-                date: formData.date,
-                start_date: formData.start_date,
-                end_date: formData.end_date
-            },
-            sanitizedDates: {
-                date: tournamentData.date,
-                start_date: tournamentData.start_date,
-                end_date: tournamentData.end_date
-            }
-        });
-        
-        // Tournament data prepared for submission
+      const tournamentData = {
+        name: formData.name,
+        venue: formData.venue,
+        location: formData.location,
+        date: sanitizeDate(formData.date),
+        start_date: sanitizeDate(formData.start_date),
+        end_date: sanitizeDate(formData.end_date),
+        rounds: rounds,
+        status: 'setup',
+        playerCount: 0,
+        type: formData.type,
+        divisions: formData.divisions, // Save Divisions Configuration
+        games_per_match: formData.games_per_match,
+        slug: uniqueSlug,
+        user_id: user.id,
+        pairing_system: formData.pairing_system,
+        is_public: formData.is_public
+      };
 
-        const { data: newTournament, error: tournamentError } = await supabase
-            .from('tournaments')
-            .insert(tournamentData)
-            .select('id, slug')
-            .single();
+      const { data: newTournament, error: tournamentError } = await supabase
+        .from('tournaments')
+        .insert(tournamentData)
+        .select('id, slug')
+        .single();
 
-        if (tournamentError) {
-            console.error('Tournament creation error:', tournamentError);
-            // Check if it's a date-related error
-            if (tournamentError.message && tournamentError.message.includes('date')) {
-                throw new Error(`Date format error: Please ensure all dates are in YYYY-MM-DD format. Error: ${tournamentError.message}`);
-            }
-            throw tournamentError;
-        }
+      if (tournamentError) throw tournamentError;
 
-        const { data: fetchedPlayerDetails, error: playerError } = await supabase
-            .from('players')
-            .select('id, rating')
-            .in('id', formData.player_ids);
-        
-        if (playerError) throw playerError;
-
-        const seededPlayers = [...fetchedPlayerDetails]
-            .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-            .map((player, index) => {
-                const division = formData.divisions.find(d => player.rating >= d.min_rating && player.rating <= d.max_rating);
-                return { 
-                    tournament_id: newTournament.id,
-                    player_id: player.id,
-                    seed: index + 1,
-                    rank: index + 1,
-                    division: division ? division.name : null,
-                    match_wins: 0,
-                    match_losses: 0
-                };
-            });
-        
-        const { error: joinTableError } = await supabase
-            .from('tournament_players')
-      .insert(seededPlayers);
-            
-        if (joinTableError) throw joinTableError;
-        
-        if (formData.type === 'team' && formData.teams.length > 0) {
-            const teamRecords = formData.teams.map(t => ({
-                name: t.name,
-                tournament_id: newTournament.id
-            }));
-            
-            const { data: createdTeams, error: teamError } = await supabase
-                .from('teams')
-                .insert(teamRecords)
-                .select('id, name');
-            
-            if (teamError) throw teamError;
-
-            for (const team of formData.teams) {
-                const createdTeam = createdTeams.find(ct => ct.name === team.name);
-                if (createdTeam) {
-                    const playerIdsToUpdate = team.players.map(p => p.id);
-                    await supabase
-                        .from('tournament_players')
-                        .update({ team_id: createdTeam.id })
-                        .eq('tournament_id', newTournament.id)
-                        .in('player_id', playerIdsToUpdate);
-                }
-            }
-        }
-        
-        toast.success('Tournament created successfully!');
-        setTimeout(() => navigate(`/tournament/${newTournament.slug}/dashboard`), 1000);
+      toast.success('Tournament created successfully!');
+      setTimeout(() => navigate(`/tournament/${newTournament.slug}/dashboard`), 500);
     } catch (error) {
-        toast.error(`Failed to create tournament: ${error.message}`);
+      console.error(error);
+      toast.error(`Failed to create tournament: ${error.message}`);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
-  
+
   const stepsConfig = [
-      { id: 'details', label: 'Details' },
-      { id: 'players', label: 'Players' },
-      { id: 'divisions', label: 'Divisions' },
-      ...(formData.type === 'team' ? [{ id: 'teams', label: 'Teams' }] : []),
-      { id: 'rounds', label: 'Rounds' }
+    { id: 'details', label: 'Details' },
+    { id: 'divisions', label: 'Divisions' },
+    { id: 'rounds', label: 'Configuration' }
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <Toaster position="top-center" richColors />
       <Header />
-      <AnimatePresence>
-        {isReconciling && (
-          <PlayerReconciliationModal
-            imports={reconciliationData.imports}
-            matches={reconciliationData.matches}
-            onCancel={() => setIsReconciling(false)}
-            onFinalize={finalizeRoster}
-          />
-        )}
-      </AnimatePresence>
-              <main className="pt-16 pb-12">
+      <main className="pt-16 pb-12">
         <div className="max-w-4xl mx-auto px-4 lg:px-6">
           <div className="text-center mb-12 lg:mb-16">
             <h1 className="text-3xl sm:text-4xl font-heading font-bold text-gradient mb-4">
-              New Tournament Wizard
+              New Tournament
             </h1>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
             <div className="md:col-span-1">
-                <SetupProgress steps={stepsConfig} currentStep={currentStep} onStepClick={setCurrentStep} />
+              <SetupProgress steps={stepsConfig} currentStep={currentStep} onStepClick={setCurrentStep} />
             </div>
             <div className="md:col-span-3">
               <AnimatePresence mode="wait">
@@ -457,16 +232,14 @@ const TournamentSetupConfiguration = () => {
                   transition={{ duration: 0.2 }}
                 >
                   {currentStep === 'details' && <TournamentDetailsForm formData={formData} onChange={handleFormChange} errors={{}} />}
-                  {currentStep === 'players' && <PlayerRosterManager formData={formData} onStartReconciliation={startReconciliation} onDivisionsChange={handleDivisionsChange} />}
-                  {currentStep === 'divisions' && <DivisionManager formData={formData} onDivisionsChange={handleDivisionsChange} />}
-                  {currentStep === 'teams' && <TeamManager formData={{...formData, player_ids: playerDetails}} onTeamUpdate={handleTeamUpdate} />}
+                  {currentStep === 'divisions' && <DivisionManager formData={formData} onDivisionsChange={(divs) => handleFormChange('divisions', divs)} />}
                   {currentStep === 'rounds' && <RoundsConfiguration formData={formData} onChange={handleFormChange} errors={{}} />}
                 </motion.div>
               </AnimatePresence>
-                <div className="mt-8 flex justify-between items-center">
-                    {currentStep !== 'details' ? (<Button variant="outline" onClick={handlePrevStep}>Back</Button>) : <div />}
-                    {currentStep !== 'rounds' ? (<Button onClick={handleNextStep} disabled={formData.playerCount === 0 && currentStep === 'players'}>Next</Button>) : (<Button onClick={handleCreateTournament} loading={isLoading}>Finalize & Create</Button>)}
-                </div>
+              <div className="mt-8 flex justify-between items-center">
+                {currentStep !== 'details' ? (<Button variant="outline" onClick={handlePrevStep}>Back</Button>) : <div />}
+                {currentStep !== 'rounds' ? (<Button onClick={handleNextStep}>Next</Button>) : (<Button onClick={handleCreateTournament} loading={isLoading}>Create Tournament</Button>)}
+              </div>
             </div>
           </div>
         </div>

@@ -89,7 +89,7 @@ const RemoteResultsSubmission = () => {
       setError(null);
 
       const { error: submitError } = await supabase
-        .from('results')
+        .from('pending_results')
         .insert({
           tournament_id: tournament.id,
           player1_id: parseInt(player1),
@@ -99,7 +99,7 @@ const RemoteResultsSubmission = () => {
           score1: parseInt(score1),
           score2: parseInt(score2),
           round: parseInt(round),
-          submitted_remotely: true
+          status: 'pending'
         });
 
       if (submitError) throw submitError;

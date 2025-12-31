@@ -15,26 +15,26 @@ const StatusBadge = ({ status }) => {
       case 'draft':
         return {
           variant: 'outline',
-          className: 'bg-background text-muted-foreground border-border',
+          className: 'bg-slate-800/50 text-slate-400 border-slate-700',
           icon: 'Clock'
         };
       case 'in_progress':
       case 'active':
         return {
           variant: 'default',
-          className: 'bg-primary text-primary-foreground border-transparent',
+          className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
           icon: 'Play'
         };
       case 'completed':
         return {
           variant: 'secondary',
-          className: 'bg-secondary text-secondary-foreground border-transparent',
+          className: 'bg-slate-800 text-slate-300 border-transparent',
           icon: 'CheckCircle'
         };
       default:
         return {
           variant: 'outline',
-          className: 'bg-background text-muted-foreground border-border',
+          className: 'bg-slate-800/50 text-slate-400 border-slate-700',
           icon: 'HelpCircle'
         };
     }
@@ -84,15 +84,15 @@ const TournamentCard = ({
       transition={{ delay: 0.1 + index * 0.05 }}
       className="group"
     >
-      <Card className="h-full bg-card border border-border hover:border-border-active transition-all duration-300 hover:shadow-lg overflow-hidden">
+      <Card className="h-full bg-slate-900/50 border border-white/5 hover:border-emerald-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/10 overflow-hidden backdrop-blur-sm">
         {/* Hover overlay */}
-        <div className="absolute inset-0 bg-secondary/0 group-hover:bg-secondary/5 transition-all duration-500 pointer-events-none" />
+        <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 transition-all duration-500 pointer-events-none" />
 
         <CardHeader className="pb-3 relative z-10">
           <div className={cn("flex items-start justify-between", LAYOUT_TEMPLATES.flex.between)}>
             <div className="flex-1 min-w-0">
               <h3 className={cn(
-                "font-bold mb-2 truncate text-foreground",
+                "font-bold mb-2 truncate text-white group-hover:text-emerald-400 transition-colors",
                 isDraft ? "text-lg" : "text-xl"
               )}>
                 {tournamentName}
@@ -104,11 +104,11 @@ const TournamentCard = ({
 
             {/* Draft Indicator Icon */}
             {isDraft && (
-              <div className="p-2 rounded-full bg-secondary border border-border">
+              <div className="p-2 rounded-full bg-slate-800 border border-slate-700">
                 <Icon
                   name="Edit3"
                   size={16}
-                  className="text-muted-foreground"
+                  className="text-slate-400"
                 />
               </div>
             )}
@@ -118,9 +118,9 @@ const TournamentCard = ({
         <CardContent className="pb-4 relative z-10">
           <div className={LAYOUT_TEMPLATES.spacing.content}>
             {/* Date Information */}
-            <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-              <div className="p-1.5 rounded-md bg-secondary">
-                <Icon name="Calendar" size={14} className="text-muted-foreground" />
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="p-1.5 rounded-md bg-slate-800 text-slate-300">
+                <Icon name="Calendar" size={14} />
               </div>
               <span>
                 {isDraft ? `Draft saved ${createdDate}` : `Created ${createdDate}`}
@@ -129,16 +129,16 @@ const TournamentCard = ({
 
             {/* Player and Round Information (only for non-draft tournaments) */}
             {!isDraft && (
-              <div className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="flex items-center gap-4 text-sm text-slate-400">
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1.5 rounded-md bg-secondary">
-                    <Icon name="Users" size={14} className="text-muted-foreground" />
+                  <div className="p-1.5 rounded-md bg-slate-800 text-slate-300">
+                    <Icon name="Users" size={14} />
                   </div>
                   <span>{playerCount} players</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1.5 rounded-md bg-secondary">
-                    <Icon name="RotateCcw" size={14} className="text-muted-foreground" />
+                  <div className="p-1.5 rounded-md bg-slate-800 text-slate-300">
+                    <Icon name="RotateCcw" size={14} />
                   </div>
                   <span>{rounds} rounds</span>
                 </div>
@@ -159,7 +159,7 @@ const TournamentCard = ({
                   onClick={() => onShare(tournament.slug)}
                   tooltip="Share tournament"
                   aria-label="Share tournament"
-                  className="text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+                  className="text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all duration-200"
                 >
                   <Icon name="Share2" size={16} />
                 </Button>
@@ -172,7 +172,7 @@ const TournamentCard = ({
                 onClick={() => onDelete(tournament)}
                 tooltip="Delete tournament"
                 aria-label="Delete tournament"
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
+                className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
               >
                 <Icon name="Trash2" size={16} />
               </Button>
@@ -183,8 +183,9 @@ const TournamentCard = ({
               onClick={() => onSelect(tournament)}
               variant={isDraft ? "outline" : "primary"}
               className={cn(
-                "font-medium transition-all duration-300 shadow-sm hover:shadow-md",
-                isDraft && "bg-secondary text-foreground hover:bg-secondary/80 border-border"
+                "font-medium transition-all duration-300 shadow-sm hover:shadow-emerald-500/20",
+                !isDraft && "bg-emerald-600 hover:bg-emerald-500 text-white border-0",
+                isDraft && "bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700 hover:text-white"
               )}
             >
               {isDraft ? "Continue Setup" : "Manage"}

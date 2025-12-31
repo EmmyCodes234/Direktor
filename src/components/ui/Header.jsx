@@ -6,10 +6,13 @@ import { cn } from '../../utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
 import useMediaQuery from '../../hooks/useMediaQuery';
 import ThemeToggle from './ThemeToggle';
+import { useAppDispatch } from '../../store/hooks';
+import { signOut } from '../../store/slices/authSlice';
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { tournamentSlug } = useParams();
   const [activeTournamentSlug, setActiveTournamentSlug] = useState(null);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
@@ -44,7 +47,7 @@ const Header = () => {
     {
       label: 'New Tournament',
       icon: 'Plus',
-      action: () => navigate('/tournament-setup'),
+      action: () => navigate('/tournament-setup-configuration'),
       mobileOnly: false
     },
     {
@@ -56,25 +59,29 @@ const Header = () => {
     {
       label: 'Help & Support',
       icon: 'HelpCircle',
-      action: () => window.open('/docs', '_blank'),
+      action: () => navigate('/documentation'),
       mobileOnly: true
     },
     {
       label: 'Sign Out',
       icon: 'LogOut',
-      action: () => {
-        // Handle sign out
-        console.log('Sign out clicked');
+      action: async () => {
+        try {
+          await dispatch(signOut());
+          navigate('/');
+        } catch (error) {
+          console.error('Sign out failed', error);
+        }
       },
       mobileOnly: false
     }
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-gradient-to-r from-zinc-50/90 via-white/95 to-zinc-100/90 dark:from-zinc-950/90 dark:via-zinc-900/95 dark:to-zinc-950/90 border-b border-hero-purple/20 shadow-lg shadow-hero-purple/5 dark:shadow-hero-purple/10">
-      {/* Purple gradient background overlay */}
-      <div className="absolute inset-0 bg-hero-purple/5 dark:bg-hero-purple/10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,119,198,0.08),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
-      
+    <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-[#020617]/80 border-b border-white/5 shadow-sm">
+      {/* Gradient accent top border */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+
       <div className="relative max-w-7xl mx-auto px-4 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo/Brand */}
@@ -86,20 +93,14 @@ const Header = () => {
             onClick={() => navigate('/')}
             aria-label="Direktor home"
           >
-            {/* Logo background with gradient */}
-            <div className="absolute inset-0 bg-hero-gradient rounded-lg opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-            
-            {/* Logo text with gradient */}
-            <span className="relative bg-gradient-to-r from-zinc-900 to-zinc-700 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent group-hover:text-hero-gradient transition-all duration-300">
+            {/* Logo text */}
+            <span className="relative text-white font-bold tracking-tight group-hover:text-emerald-400 transition-colors duration-300">
               Direktor
             </span>
           </motion.button>
 
           {/* Right side utilities */}
           <div className="flex items-center space-x-2">
-            {/* Theme Toggle */}
-            <ThemeToggle variant="simple" />
-            
             {/* Quick Actions Menu */}
             <div className="relative" ref={menuRef}>
               <motion.button
@@ -107,7 +108,7 @@ const Header = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
                 onClick={() => setQuickMenuOpen(!quickMenuOpen)}
-                className="p-2 text-hero-secondary hover:text-hero-primary hover:bg-hero-purple/10 rounded-lg transition-all duration-300 touch-target"
+                className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all duration-300 touch-target"
                 aria-label="Quick actions menu"
               >
                 <Icon name="MoreHorizontal" size={20} />
@@ -120,7 +121,7 @@ const Header = () => {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 top-full mt-2 w-56 bg-gradient-to-br from-zinc-50/95 via-white to-zinc-100/95 dark:from-zinc-900/95 dark:via-zinc-800 dark:to-zinc-900/95 border border-hero-purple/20 rounded-lg shadow-xl shadow-hero-purple/10 dark:shadow-hero-purple/20 z-50 backdrop-blur-md"
+                    className="absolute right-0 top-full mt-2 w-56 bg-[#020617] border border-white/10 rounded-lg shadow-xl shadow-emerald-500/10 z-50 backdrop-blur-md"
                   >
                     <div className="p-2 space-y-1">
                       {quickActions.map((action) => (
@@ -130,7 +131,7 @@ const Header = () => {
                             action.action();
                             setQuickMenuOpen(false);
                           }}
-                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-hero-secondary hover:text-hero-primary hover:bg-hero-purple/10 rounded-md transition-all duration-300 touch-target"
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-md transition-all duration-300 touch-target"
                         >
                           <Icon name={action.icon} size={16} />
                           <span>{action.label}</span>

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 /**
  * Hook for tournament actions (Score Submission, Round Completion, Unpairing).
  */
-const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setResults, setMatches) => {
+const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setResults, setMatches, setPendingResults) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     /**
@@ -62,6 +62,18 @@ const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setRes
                 setResults(prev => prev.map(r => r.id === existingId ? data : r));
 
             } else {
+                // Check for duplicates before inserting
+                const { data: existingDupes } = await supabase
+                    .from('results')
+                    .select('id')
+                    .eq('tournament_id', tournamentInfo.id)
+                    .eq('round', resultData.round || tournamentInfo.currentRound)
+                    .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2_id.eq.${player1.player_id})`);
+
+                if (existingDupes && existingDupes.length > 0) {
+                    throw new Error("A result for this match already exists.");
+                }
+
                 const { data, error } = await supabase
                     .from('results')
                     .insert(payload)
@@ -183,9 +195,134 @@ const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setRes
         }
     }, [tournamentInfo, setTournamentInfo]);
 
+    /**
+     * Approve Pending Result
+     * Moves from 'pending_results' to 'results'
+     */
+    const approveResult = useCallback(async (pendingItem) => {
+        setIsSubmitting(true);
+        try {
+            // 1. DUPLICATE CHECK
+            // Check if result already exists for this round/players to prevent duplicates
+            const { data: existingResults, error: checkError } = await supabase
+                .from('results')
+                .select('id')
+                .eq('tournament_id', pendingItem.tournament_id)
+                .eq('round', pendingItem.round)
+                .or(`and(player1_id.eq.${pendingItem.player1_id},player2_id.eq.${pendingItem.player2_id}),and(player1_id.eq.${pendingItem.player2_id},player2_id.eq.${pendingItem.player1_id})`);
+
+            if (checkError) throw checkError;
+
+            if (existingResults && existingResults.length > 0) {
+                // Determine what to do. For now, throw error strictly.
+                // Or we could auto-reject.
+                const shouldContinue = window.confirm("A result for this pairing in this round already exists. Do you want to approve anyway (duplicate)?");
+                if (!shouldContinue) return false;
+            }
+
+            // 2. Create real result payload
+            const resultPayload = {
+                tournament_id: pendingItem.tournament_id,
+                round: pendingItem.round,
+                player1_id: pendingItem.player1_id,
+                player2_id: pendingItem.player2_id,
+                score1: pendingItem.score1,
+                score2: pendingItem.score2,
+                player1_name: pendingItem.player1_name,
+                player2_name: pendingItem.player2_name,
+                submitted_remotely: true
+            };
+
+            // 3. Insert into results
+            const { data: newResult, error: insertError } = await supabase
+                .from('results')
+                .insert(resultPayload)
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            // 4. Delete from pending_results
+            const { error: deleteError } = await supabase
+                .from('pending_results')
+                .delete()
+                .eq('id', pendingItem.id);
+
+            if (deleteError) {
+                console.error("Failed to delete pending result after approval:", deleteError);
+            }
+
+            // 5. Update local state (Optimistic)
+            setResults(prev => [newResult, ...prev]);
+            if (setPendingResults) {
+                setPendingResults(prev => prev.filter(p => p.id !== pendingItem.id));
+            }
+
+            toast.success("Result approved and recorded.");
+            return true;
+
+        } catch (err) {
+            console.error("Approval error:", err);
+            toast.error(`Approval failed: ${err.message}`);
+            return false;
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [tournamentInfo, setResults, setPendingResults]);
+
+    /**
+     * Reject Pending Result
+     */
+    const rejectResult = useCallback(async (pendingId) => {
+        try {
+            const { error } = await supabase
+                .from('pending_results')
+                .delete()
+                .eq('id', pendingId);
+
+            if (error) throw error;
+
+            if (setPendingResults) {
+                setPendingResults(prev => prev.filter(p => p.id !== pendingId));
+            }
+            toast.info("Submission rejected.");
+            return true;
+        } catch (err) {
+            toast.error(`Rejection failed: ${err.message}`);
+            return false;
+        }
+    }, [setPendingResults]);
+
+    /**
+     * Delete Result (For CLI)
+     */
+    const deleteResult = useCallback(async (resultId) => {
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('results')
+                .delete()
+                .eq('id', resultId);
+
+            if (error) throw error;
+
+            toast.info("Result deleted.");
+            setResults(prev => prev.filter(r => r.id !== resultId));
+            return true;
+        } catch (err) {
+            toast.error(`Delete failed: ${err.message}`);
+            return false;
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [setResults]);
+
     return {
         isSubmitting,
         submitResult,
+        approveResult,
+        rejectResult,
+        deleteResult,
         unpairRound,
         completeRound
     };

@@ -97,75 +97,63 @@ const PublicTournamentIndex = () => {
                 <div className="flex flex-col items-center space-y-1 mb-12">
                     <LinkItem href={`/tournament/${tournamentSlug}/field`}>Field</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/live-streamboard`}>Live Streamboard</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/submit-result`}>Submit Result</LinkItem>
 
                     <div className="h-4"></div> {/* Spacing as requested */}
 
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=avg_opp_score`}>Average Opponent Scores</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=avg_score`}>Average Scores</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=shootouts`}>Shootouts</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=tough_break`}>Tough Break</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=high_spread`}>High Spreads</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=peak_score`}>Peak Score</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=low_losses`}>Low Losses</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=low_spread`}>Low Spreads</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=low_wins`}>Low Wins</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=clutch_win`}>Clutch Win</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/avg-scores`}>Opponent Strength</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/player-avg-scores`}>Scoring Pace</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/high-combined`}>Shootouts</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/tough-break`}>Tough Break</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/blowouts`}>Blowouts</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/peak-scores`}>Peak Score</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/low-losses`}>Cold Spells</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/low-spreads`}>Nailbiters</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/low-scores`}>Grind Wins</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/prize-report`}>Prize Report</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/stats?view=ranking`}>Ratings</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/live-streamboard`}>Live Streamboard 1-22</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/leaderboard`}>Leaderboard</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/insights`}>Smart Insights</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/match-log`}>Match Log</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=high_total_score`}>High Total Scores</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=close_defeats`}>Close Defeats</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=giant_killers`}>Giant Killers</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/giant-killers`}>Giant Killers</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/cross-table`}>Cross-Table</LinkItem>
+                    <LinkItem href={`/tournament/${tournamentSlug}/scores`}>Round Scores</LinkItem>
 
                 </div>
 
                 {/* Round Reports */}
-                <div className="w-full">
-                    <table className="w-full text-left border-collapse">
-                        <tbody>
-                            {roundsData.map((roundData) => (
-                                <tr key={roundData.round} className="align-top">
-                                    <td className="py-2 pr-8 text-right font-medium text-gray-700 whitespace-nowrap w-1/3">
-                                        Round {roundData.round}
-                                    </td>
-                                    <td className="py-2 pl-4 border-l border-gray-300">
-                                        <div className="flex flex-col items-start space-y-0.5">
-                                            {roundData.isPaired ? (
-                                                <>
-                                                    <LinkItem href={`/tournament/${tournamentSlug}/matchups?round=${roundData.round}&sort=rank`}>Matchups</LinkItem>
-                                                </>
-                                            ) : (
-                                                <span className="text-gray-400 italic text-sm">Matchups Pending</span>
-                                            )}
+                {/* Round Reports */}
+                <div className="w-full flex flex-col items-center space-y-8">
+                    {roundsData.map((roundData) => (
+                        <div key={roundData.round} className="flex flex-col items-center space-y-1">
+                            <h3 className="text-gray-900 font-bold uppercase tracking-widest text-sm mb-1">
+                                Round {roundData.round}
+                            </h3>
 
-                                            {roundData.hasResults ? (
-                                                <>
-                                                    <LinkItem href={`/tournament/${tournamentSlug}/stats?round=${roundData.round}`}>Scores</LinkItem>
-                                                    <LinkItem href={`/tournament/${tournamentSlug}/leaderboard?round=${roundData.round}`}>Leaderboard</LinkItem>
+                            {roundData.isPaired ? (
+                                <LinkItem href={`/tournament/${tournamentSlug}/matchups?round=${roundData.round}&sort=rank`}>Matchups</LinkItem>
+                            ) : (
+                                <span className="text-gray-400 italic text-lg">Matchups Pending</span>
+                            )}
 
-                                                </>
-                                            ) : (
-                                                <span className="text-gray-400 italic text-sm">Results Pending</span>
-                                            )}
-
-                                            <span className="text-gray-400 cursor-not-allowed hidden">Score Slips</span>
-
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            {roundData.hasResults ? (
+                                <>
+                                    <LinkItem href={`/tournament/${tournamentSlug}/stats?round=${roundData.round}`}>Scores</LinkItem>
+                                    <LinkItem href={`/tournament/${tournamentSlug}/leaderboard?round=${roundData.round}`}>Leaderboard</LinkItem>
+                                </>
+                            ) : (
+                                <span className="text-gray-400 italic text-lg">Results Pending</span>
+                            )}
+                        </div>
+                    ))}
                 </div>
             </div>
 
 
-            <div className="absolute top-4 right-4 print:hidden">
+            {/* Theme Toggle Removed - Always Light Mode */}
+            {/* <div className="absolute top-4 right-4 print:hidden">
                 <ThemeToggle variant="simple" />
-            </div>
+            </div> */}
         </div >
     );
 };

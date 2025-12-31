@@ -6,6 +6,8 @@ import { Toaster, toast } from 'sonner';
 // Components
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import ResultsEntryCLI from './components/ResultsEntryCLI';
+import TournamentDivisionManager from './components/TournamentDivisionManager';
+import TournamentPlayerManager from './components/TournamentPlayerManager';
 import LiveContextPanel from './components/LiveContextPanel';
 import PlayerStatsModal from '../../components/PlayerStatsModal.jsx';
 import ConfirmationModal from '../../components/ConfirmationModal.jsx';
@@ -26,17 +28,51 @@ const TournamentCommandCenterDashboard = () => {
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   // 1. Data Fetching
-  const { tournamentInfo, setTournamentInfo, players, setPlayers, results, setResults, matches, setMatches, teams, pendingResults, loading } = useTournamentData(tournamentSlug);
+  const { tournamentInfo, setTournamentInfo, players, setPlayers, results, setResults, matches, setMatches, teams, pendingResults, setPendingResults, loading, refresh } = useTournamentData(tournamentSlug);
 
   // 2. Logic / Actions
-  const { isSubmitting, submitResult, unpairRound, completeRound } = useTournamentActions(tournamentInfo, setTournamentInfo, players, setResults, setMatches);
+  // 2. Logic / Actions
+  const { isSubmitting, submitResult, approveResult, rejectResult, deleteResult, unpairRound, completeRound } = useTournamentActions(tournamentInfo, setTournamentInfo, players, setResults, setMatches, setPendingResults);
 
   // 3. Derived State (Standings)
+  // 3. Derived State (Standings)
   const rankedPlayers = useStandingsCalculator(players, results, matches, tournamentInfo);
+
+  // Derived Team Standings
+  const teamStandings = useMemo(() => {
+    if (!teams || teams.length === 0) return [];
+
+    // Initialize stats
+    const stats = teams.map(t => ({
+      ...t,
+      teamWins: 0,
+      teamLosses: 0,
+      individualWins: 0,
+      totalSpread: 0
+    }));
+
+    // Aggregate Player Stats
+    rankedPlayers.forEach(p => {
+      if (p.team_id) {
+        const team = stats.find(t => t.id === p.team_id);
+        if (team) {
+          team.individualWins += (p.wins || 0) + ((p.ties || 0) * 0.5);
+          team.totalSpread += (p.spread || 0);
+        }
+      }
+    });
+
+    // Sort by Individual Wins then Spread (Simple aggregate ranking for now)
+    return stats.sort((a, b) => {
+      if (a.individualWins !== b.individualWins) return b.individualWins - a.individualWins;
+      return b.totalSpread - a.totalSpread;
+    }).map((t, i) => ({ ...t, rank: i + 1 }));
+  }, [teams, rankedPlayers]);
 
   // 4. UI State
   const [selectedPlayerModal, setSelectedPlayerModal] = useState(null);
   const [confirmationState, setConfirmationState] = useState(null);
+  const [activeView, setActiveView] = useState('cli'); // 'cli' | 'divisions'
 
   // --- Handlers ---
   const handleResultSubmit = useCallback((data) => {
@@ -93,6 +129,39 @@ const TournamentCommandCenterDashboard = () => {
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* View Switcher */}
+          <div className="hidden md:flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+            <button
+              onClick={() => setActiveView('cli')}
+              className={cn(
+                "px-3 py-1 text-xs font-bold uppercase tracking-wider rounded transition-all",
+                activeView === 'cli' ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              Command
+            </button>
+            <button
+              onClick={() => setActiveView('divisions')}
+              className={cn(
+                "px-3 py-1 text-xs font-bold uppercase tracking-wider rounded transition-all",
+                activeView === 'divisions' ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              Divisions
+            </button>
+            <button
+              onClick={() => setActiveView('players')}
+              className={cn(
+                "px-3 py-1 text-xs font-bold uppercase tracking-wider rounded transition-all",
+                activeView === 'players' ? "bg-slate-800 text-white shadow-sm" : "text-slate-500 hover:text-slate-300"
+              )}
+            >
+              Players
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-slate-800 mx-2" />
+
           <div className="hidden lg:flex items-center space-x-3 mr-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest border-r border-slate-800 pr-4">
             <span className="flex items-center space-x-1">
               <span className="text-slate-600">ID:</span>
@@ -103,8 +172,11 @@ const TournamentCommandCenterDashboard = () => {
               <span className="text-emerald-500">OPTIMAL</span>
             </span>
           </div>
-          <AnnouncementsManager compact />
-          <Button variant="outline" size="sm" onClick={() => navigate(`/tournament/${tournamentSlug}`)} className="border-slate-800 hover:bg-slate-800 text-xs py-1">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/tournament/${tournamentSlug}/settings`)} className="border-slate-800 hover:bg-slate-800 text-xs py-1">
+            <Icon name="Settings" size={14} className="mr-2" />
+            Settings
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.open(`/tournament/${tournamentSlug}`, '_blank')} className="border-slate-800 hover:bg-slate-800 text-xs py-1">
             <Icon name="ExternalLink" size={14} className="mr-2" />
             Public View
           </Button>
@@ -114,19 +186,45 @@ const TournamentCommandCenterDashboard = () => {
       {/* Main HUD Layout */}
       <main className="flex-1 overflow-hidden relative min-h-0">
         <PanelGroup direction={isDesktop ? "horizontal" : "vertical"} className="h-full">
-          {/* Primary CLI Area */}
+          {/* Primary View Area */}
           <Panel defaultSize={70} minSize={30} className="p-0 lg:p-4 flex flex-col min-h-0">
             <div className="flex-1 bg-black/40 backdrop-blur-sm rounded-none lg:rounded-2xl border-0 lg:border border-slate-800/50 overflow-hidden shadow-2xl relative min-h-0 flex flex-col">
               <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/[0.02] to-transparent pointer-events-none" />
-              <ResultsEntryCLI
-                tournamentInfo={tournamentInfo}
-                players={rankedPlayers}
-                matches={matches}
-                results={results}
-                onResultSubmit={handleResultSubmit}
-                onUpdateTournament={setTournamentInfo}
-                onClose={() => { }}
-              />
+
+              {/* View Content */}
+              {/* View Content - Mounted with style visibility to preserve state */}
+              <div style={{ display: activeView === 'cli' ? 'block' : 'none', height: '100%' }}>
+                <ResultsEntryCLI
+                  tournamentInfo={tournamentInfo}
+                  players={rankedPlayers}
+                  matches={matches}
+                  results={results}
+                  teams={teams}
+                  onResultSubmit={handleResultSubmit}
+                  onDeleteResult={deleteResult}
+                  onUpdateTournament={setTournamentInfo}
+                  onClose={() => { }}
+                />
+              </div>
+
+              <div style={{ display: activeView === 'divisions' ? 'block' : 'none', height: '100%' }} className="overflow-y-auto p-6 custom-scrollbar">
+                <TournamentDivisionManager
+                  tournamentId={tournamentInfo.id}
+                  divisions={tournamentInfo.divisions}
+                  onUpdate={refresh}
+                />
+              </div>
+
+              <div style={{ display: activeView === 'players' ? 'block' : 'none', height: '100%' }} className="overflow-y-auto p-6 custom-scrollbar">
+                <TournamentPlayerManager
+                  tournamentId={tournamentInfo.id}
+                  players={players}
+                  divisions={tournamentInfo.divisions}
+                  teams={teams}
+                  onUpdate={refresh}
+                />
+              </div>
+
             </div>
           </Panel>
 
@@ -143,12 +241,13 @@ const TournamentCommandCenterDashboard = () => {
               <LiveContextPanel
                 tournamentInfo={tournamentInfo}
                 players={rankedPlayers}
+                teamStandings={teamStandings}
                 results={results}
                 pendingResults={pendingResults}
                 matches={matches}
                 onSelectPlayer={setSelectedPlayerModal}
-                onApproveResult={() => { }}
-                onRejectResult={() => { }}
+                onApproveResult={approveResult}
+                onRejectResult={rejectResult}
               />
             </div>
           </Panel>
