@@ -131,6 +131,11 @@ const ClassicalStandingsTable = ({
                                                         {p.name}
                                                     </a>
                                                     <span className="text-blue-700/70 ml-1 text-xs sm:text-sm font-normal">(#{p.seed})</span>
+                                                    {player.class && (
+                                                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-gray-200 text-gray-600 uppercase tracking-widest border border-gray-300">
+                                                            {player.class}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 {/* Mobile-only Last Game info Stacked */}
                                                 <div className="lg:hidden mt-0.5 text-[10px] sm:text-xs text-gray-500 tabular-nums font-normal">

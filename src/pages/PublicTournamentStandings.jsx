@@ -302,9 +302,9 @@ const PublicTournamentStandings = () => {
     if (!tournament) {
         return (
             <div className="text-center py-12">
-                <Icon name="AlertCircle" size={48} className="mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-bold text-foreground mb-2">Tournament Not Found</h2>
-                <p className="text-muted-foreground mb-6">The requested tournament could not be found.</p>
+                <Icon name="AlertCircle" size={48} className="mx-auto text-slate-400 mb-4" />
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Tournament Not Found</h2>
+                <p className="text-slate-500 mb-6">The requested tournament could not be found.</p>
                 <Button onClick={() => navigate('/tournaments')} variant="default">
                     <Icon name="ArrowLeft" className="mr-2" size={16} />
                     Back to Tournaments
@@ -318,46 +318,42 @@ const PublicTournamentStandings = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="min-h-screen bg-background"
+            className="min-h-screen bg-white"
         >
             <PublicTournamentBanner tournament={tournament} />
             <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-8 font-sans">
-                {/* Header */}
-                <div className="flex flex-col items-center justify-center text-center gap-4 mb-8">
-                    <div className="w-full">
-                        <div className="flex justify-between items-center mb-10 no-print">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <Icon name="ArrowLeft" size={20} />
-                            </Button>
-                            <div className="flex items-center gap-2">
-                                <ShareButton
-                                    title={`${tournament.name} - Standings`}
-                                    text={`Check out the standings for ${tournament.name}`}
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-9"
-                                />
-                            </div>
-                        </div>
-
-                        <h2 className="text-center text-2xl md:text-3xl font-bold text-black mb-1 font-heading uppercase tracking-tight">
+                {/* Navigation Row */}
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-8">
+                    <button
+                        onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+                        className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-sm font-medium mb-2 md:mb-0"
+                    >
+                        <Icon name="ArrowLeft" size={16} />
+                        Back to Tournament
+                    </button>
+                    <div className="text-center">
+                        <h2 className="text-2xl md:text-3xl font-bold text-black mb-1 font-heading uppercase tracking-tight">
                             {selectedRound ? `Round ${selectedRound} Standings` : 'Tournament Standings'}
                         </h2>
-                        <p className="text-muted-foreground text-lg font-medium">
+                        <p className="text-slate-500 text-lg font-medium">
                             {tournament.name}
                         </p>
+                    </div>
+                    <div className="hidden md:absolute md:right-0 md:flex">
+                        <ShareButton
+                            title={`${tournament.name} - Standings`}
+                            text={`Check out the standings for ${tournament.name}`}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9"
+                        />
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="w-full">
                     {tournament.type === 'team' ? (
-                        <div className="bg-card rounded-lg border shadow-sm p-6">
+                        <div className="bg-white rounded-lg border shadow-sm p-6">
                             <h2 className="text-xl font-semibold mb-4 text-center">Team Standings</h2>
                             <StandingsTable
                                 players={teamStandings}

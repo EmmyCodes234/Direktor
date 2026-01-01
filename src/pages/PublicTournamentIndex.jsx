@@ -25,14 +25,18 @@ const PublicTournamentIndex = () => {
             if (tError) throw tError;
             setTournament(tData);
 
-            // Fetch matches and results to determine round status
-            const [matchesRes, resultsRes] = await Promise.all([
+            // Fetch matches, results, and commentaries
+            const [matchesRes, resultsRes, commentariesRes, ratingsRes] = await Promise.all([
                 supabase.from('matches').select('id, round, status').eq('tournament_id', tData.id),
-                supabase.from('results').select('id, round').eq('tournament_id', tData.id)
+                supabase.from('results').select('id, round').eq('tournament_id', tData.id),
+                supabase.from('round_commentaries').select('round').eq('tournament_id', tData.id),
+                supabase.from('round_ratings').select('round').eq('tournament_id', tData.id)
             ]);
 
             const matches = matchesRes.data || [];
             const rData = resultsRes.data || [];
+            const commentaries = new Set(commentariesRes.data?.map(c => c.round) || []);
+            const ratings = new Set(ratingsRes.data?.map(r => r.round) || []);
 
             // Determine max round from config, matches, or results
             let maxRound = tData.rounds || tData.total_rounds || 0;
@@ -57,20 +61,25 @@ const PublicTournamentIndex = () => {
 
                 const isPaired = hasMatches || hasSchedule;
                 const hasResults = rData?.some(res => res.round == r);
+                const hasCommentary = commentaries.has(r);
+                const hasRatings = ratings.has(r);
 
                 roundsStatus.push({
                     round: r,
                     isPaired,
-                    hasResults
+                    hasResults,
+                    hasCommentary,
+                    hasRatings
                 });
             }
 
-            // setRoundsData descending
-            setRoundsData(roundsStatus.sort((a, b) => b.round - a.round));
+            // Reverse so round 1 is at bottom? Or top? Usually top is better on mobile. Let's keep 1 at top.
+            // Actually usually for rounds list, 1..N is standard.
+            setRoundsData(roundsStatus);
+            setLoading(false);
 
         } catch (err) {
-            console.error(err);
-        } finally {
+            console.error("Error fetching tournament:", err);
             setLoading(false);
         }
     }, [tournamentSlug]);
@@ -79,7 +88,14 @@ const PublicTournamentIndex = () => {
         fetchTournamentData();
     }, [fetchTournamentData]);
 
-
+    const LinkItem = ({ href, children }) => (
+        <a
+            href={href}
+            className="text-blue-700 hover:text-red-700 hover:underline text-lg decoration-1 underline-offset-2 block"
+        >
+            {children}
+        </a>
+    );
 
     if (loading) {
         return <PublicLoadingScreen />;
@@ -111,7 +127,7 @@ const PublicTournamentIndex = () => {
                     <LinkItem href={`/tournament/${tournamentSlug}/low-spreads`}>Nailbiters</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/low-scores`}>Grind Wins</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/prize-report`}>Prize Report</LinkItem>
-                    <LinkItem href={`/tournament/${tournamentSlug}/stats?view=ranking`}>Ratings</LinkItem>
+                    {/* Ratings removed from here, moved to round specific */}
                     <LinkItem href={`/tournament/${tournamentSlug}/leaderboard`}>Leaderboard</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/insights`}>Smart Insights</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/match-log`}>Match Log</LinkItem>
@@ -143,6 +159,15 @@ const PublicTournamentIndex = () => {
                                 </>
                             ) : (
                                 <span className="text-gray-400 italic text-lg">Results Pending</span>
+                            )}
+
+                            {/* Ratings Link */}
+                            {roundData.hasRatings && (
+                                <LinkItem href={`/tournament/${tournamentSlug}/ratings/${roundData.round}`}>Ratings</LinkItem>
+                            )}
+
+                            {roundData.hasCommentary && (
+                                <LinkItem href={`/tournament/${tournamentSlug}/commentary/${roundData.round}`}>Commentary</LinkItem>
                             )}
                         </div>
                     ))}

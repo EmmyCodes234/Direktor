@@ -5,12 +5,14 @@ import Input from '../ui/Input';
 
 const AddPlayer = ({ onAddPlayer }) => {
   const [playerName, setPlayerName] = useState('');
+  const [rating, setRating] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (playerName.trim()) {
-      onAddPlayer(playerName.trim());
+      onAddPlayer(playerName.trim(), rating ? parseInt(rating) : null);
       setPlayerName('');
+      setRating('');
     }
   };
 
@@ -21,13 +23,22 @@ const AddPlayer = ({ onAddPlayer }) => {
         Add New Player
       </h3>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <Input
-          label="Player Name"
-          type="text"
-          value={playerName}
-          onChange={(e) => setPlayerName(e.target.value)}
-          placeholder="Enter player's full name"
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Player Name"
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Enter player's full name"
+          />
+          <Input
+            label="Initial Rating (Optional)"
+            type="number"
+            value={rating}
+            onChange={(e) => setRating(e.target.value)}
+            placeholder="1200"
+          />
+        </div>
         <Button
           type="submit"
           disabled={!playerName.trim()}

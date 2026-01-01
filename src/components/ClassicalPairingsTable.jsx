@@ -24,7 +24,8 @@ const ClassicalPairingsTable = ({ pairings, players = [], selectedRound }) => {
         return {
             name: player ? player.name : playerName,
             rank: player?.initial_seed || player?.seed || player?.rank || player?.id || '-',
-            rating: player?.rating
+            rating: player?.rating,
+            class: player?.class,
         };
     };
 
@@ -58,14 +59,14 @@ const ClassicalPairingsTable = ({ pairings, players = [], selectedRound }) => {
                         className="w-full flex flex-col items-center"
                     >
                         <h2 className="text-center text-xl md:text-2xl font-bold text-black mb-4 font-heading">
-                            Round {round} Ranked Pairings
+                            Round {round} Matchups
                         </h2>
 
                         <div className="overflow-hidden bg-white border border-gray-200 rounded-sm shadow-sm inline-block">
                             {/* Table Header */}
                             <div className="grid grid-cols-[50px_1fr] bg-gray-100 border-b border-gray-300 font-bold text-sm md:text-base">
                                 <div className="p-2 text-center text-black border-r border-gray-300">Board</div>
-                                <div className="p-2 pl-3 text-black">Who Plays Whom</div>
+                                <div className="p-2 pl-3 text-black">Matchup</div>
                             </div>
 
                             {/* Table Body */}
@@ -104,11 +105,13 @@ const ClassicalPairingsTable = ({ pairings, players = [], selectedRound }) => {
                                             <div className="p-2 pl-3 text-black whitespace-nowrap text-base">
                                                 <span className="mr-1">
                                                     {formatName(leftPlayer.name)} (#{leftPlayer.rank})
+                                                    {leftPlayer.class && <span className="ml-1 inline-flex items-center px-1 rounded-sm text-[10px] font-bold bg-gray-200 text-gray-600 uppercase tracking-widest border border-gray-300">{leftPlayer.class}</span>}
                                                     {leftStarts && <span className="font-bold italic text-black/60 ml-1 text-xs">*first*</span>}
                                                 </span>
                                                 <span className="font-normal text-black/60 mx-1">vs.</span>
                                                 <span>
                                                     {formatName(rightPlayer.name)} (#{rightPlayer.rank})
+                                                    {rightPlayer.class && <span className="ml-1 inline-flex items-center px-1 rounded-sm text-[10px] font-bold bg-gray-200 text-gray-600 uppercase tracking-widest border border-gray-300">{rightPlayer.class}</span>}
                                                     {rightStarts && <span className="font-bold italic text-black/60 ml-1 text-xs">*first*</span>}
                                                 </span>
                                             </div>

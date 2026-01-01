@@ -31,10 +31,7 @@ const useTournamentData = (tournamentSlug) => {
     });
     const [teams, setTeams] = useState([]);
     const [pendingResults, setPendingResults] = useState([]);
-    const [loading, setLoading] = useState(() => {
-        // If we have cache, don't show initial loader
-        return !localStorage.getItem(`direktor_cache_${tournamentSlug}`);
-    });
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Use a ref to track if we're mounted to avoid state updates on unmount
@@ -60,7 +57,7 @@ const useTournamentData = (tournamentSlug) => {
 
             const { data: tournamentData, error: tErr } = await supabase
                 .from('tournaments')
-                .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug))`)
+                .select(`*, tournament_players(*, players(id, name, rating, photo_url, slug, gender))`)
                 .eq('slug', tournamentSlug)
                 .single();
 

@@ -16,6 +16,7 @@ import CarryoverConfigSection from '../components/settings/CarryoverConfigSectio
 import PromotionEventsHistory from '../components/players/PromotionEventsHistory';
 import LadderSystemConfigSection from '../components/settings/LadderSystemConfigSection';
 import SettingsNavigation from '../components/settings/SettingsNavigation';
+import ClassConfigurationSection from '../components/settings/ClassConfigurationSection';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
@@ -278,6 +279,24 @@ const TournamentSettingsAdministration = () => {
         }
 
         const { id, created_at, ...finalUpdateData } = updateData;
+
+        // Fetch latest version to check for status updates based on changes
+        const { data: currentDbTournament } = await supabase
+            .from('tournaments')
+            .select('status, rounds, current_round')
+            .eq('id', tournamentInfo.id)
+            .single();
+
+        // LOGIC: If tournament was completed, check if the new round count exceeds the ACTUAL progress (current_round).
+        // If so, we must reactivate it.
+        // We use (currentDbTournament.current_round || 0) because it might be null/0.
+        // We compare against finalUpdateData.rounds.
+        if (currentDbTournament &&
+            currentDbTournament.status === 'completed' &&
+            finalUpdateData.rounds > (currentDbTournament.current_round || 0)) {
+            finalUpdateData.status = 'in_progress';
+            toast.info("Tournament reactivated due to added rounds.");
+        }
 
         const { error } = await supabase
             .from('tournaments')
@@ -558,6 +577,12 @@ const TournamentSettingsAdministration = () => {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Class Configuration */}
+                    <ClassConfigurationSection
+                        classDefinitions={tournamentInfo?.class_definitions || []}
+                        onChange={(newDefs) => handleSettingsChange('class_definitions', newDefs)}
+                    />
 
                     {/* Actions */}
                     <div className="flex items-center justify-between pt-4 pb-12">

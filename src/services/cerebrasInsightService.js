@@ -168,35 +168,51 @@ const CerebrasService = {
     async generateDetailedRoundReport(standings, round, topMatchResults) {
         if (MOCK_MODE) return { summary: "Mock Report", key_matchups: [], surprises: "None" };
 
+        // Enhance context with Scrabble specific derivatives
         const top10 = standings.slice(0, 10).map(p =>
-            `#${p.rank} ${p.name} (${p.wins} wins, ${p.spread} spr)`
+            `#${p.rank} ${p.name} [${p.gender || 'Unknown'}] (${p.wins} wins, ${p.spread} spread)`
         ).join('\n');
 
-        const matchContext = topMatchResults.map(m =>
-            `${m.p1} vs ${m.p2} -> Winner: ${m.winner} (${m.score})`
-        ).join('\n');
+        const matchContext = topMatchResults.map(m => {
+            const [s1, s2] = m.score.split('-').map(Number);
+            const total = s1 + s2;
+            const diff = Math.abs(s1 - s2);
+
+            let quality = "";
+            if (total > 900) quality = "High-Octane Shootout";
+            else if (total < 700) quality = "Tactical Defensive Grind";
+            else if (diff < 10) quality = "White-Knuckle Thriller";
+            else if (diff > 150) quality = "Absolute Rout";
+
+            return `${m.p1} vs ${m.p2} -> Winner: ${m.winner} (${m.score}) [${quality}]`;
+        }).join('\n');
 
         const context = `
-            Round: ${round}
+            Tournament Round: ${round}
             
-            Leaderboard Top 10:
+            Current Top 10 Leaderboard (Wins / Spread):
             ${top10}
             
             Key Top Table Results:
             ${matchContext}
 
-            Task: Generate a comprehensive Tournament Report for this round.
+            Task: Write a world-class Scrabble tournament report for this round.
+            
+            Guidelines:
+            1. Be "Scrabble Smart": Mention "Spread".
+            2. Analyze Scores: Identify slugfests vs defensive games.
+            3. Narrative: Who is dominating?
+            4. Pronouns: Use correct pronouns based on the tags provided (e.g. [Male] -> he/him, [Female] -> she/her). If [Unknown], use singular 'they'. NEVER use "it".
             
             Return JSON with 3 keys:
-            1. "summary": A 2-3 sentence overview of the round. High energy, sports-center style.
-            2. "key_matchups": An array of strings describing the most critical results (e.g. "Smith topples Jones to take 1st"). Max 3 items.
-            3. "surprises": A short paragraph about unexpected storylines or dark horses.
+            1. "summary": A 2-3 sentence sophisticated overview.
+            2. "key_matchups": An array of 3 strings.
+            3. "surprises": A short paragraph.
 
             Format: JSON Object.
         `;
 
         try {
-            // Using 70b but with explicit error check
             const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -206,7 +222,10 @@ const CerebrasService = {
                 body: JSON.stringify({
                     model: "llama3.1-8b",
                     messages: [
-                        { role: "system", content: "You are a senior tournament analyst. Return pure JSON." },
+                        {
+                            role: "system",
+                            content: "You are an expert Scrabble Tournament Commentator (like Will Anderson or John Chew). You understand the nuance of spread, tile distribution implications (inferred from score), and tournament psychology. Your writing is crisp, professional, and knowledgeable."
+                        },
                         { role: "user", content: context }
                     ],
                     response_format: { type: "json_object" }
@@ -223,7 +242,6 @@ const CerebrasService = {
             let content = data.choices?.[0]?.message?.content;
 
             if (typeof content === 'string') {
-                // Remove markdown code blocks if present
                 content = content.replace(/```json/g, '').replace(/```/g, '').trim();
                 return JSON.parse(content);
             }

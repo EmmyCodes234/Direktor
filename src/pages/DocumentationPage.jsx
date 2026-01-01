@@ -1,848 +1,337 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/ui/Header';
 import Icon from '../components/AppIcon';
-import { motion } from 'framer-motion';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '../components/ui/Accordion';
-import Button from '../components/ui/Button';
-import ExpandableTabsJS from '../components/ui/expandable-tabs';
-import { Home, Play, Settings, Users, Shuffle, BarChart3, LayoutDashboard, Zap, HelpCircle, Code, Database, Image, Shield, Smartphone } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ChevronRight, Book, Zap, Wrench, Terminal, HelpCircle, Database, Shield } from 'lucide-react';
 
-const DocSection = ({ title, id, children }) => (
-    <section id={id} className="mb-20 scroll-mt-32">
-        <h2 className="text-3xl font-heading font-black tracking-tight text-white mb-8 pb-4 border-b border-white/10 flex items-center gap-3">
-            <div className="h-8 w-1 bg-emerald-500 rounded-full" />
-            {title}
-        </h2>
-        <div className="prose prose-invert prose-slate max-w-none text-slate-400 leading-relaxed space-y-6">
-            {children}
-        </div>
-    </section>
-);
-
-const DocSubSection = ({ title, children }) => (
-    <div className="mb-10 last:mb-0">
-        <h3 className="text-xl font-heading font-semibold text-white mb-4 flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {title}
-        </h3>
-        <div className="space-y-4 pl-4 border-l border-white/5">
-            {children}
-        </div>
-    </div>
-);
-
-const FeatureCard = ({ icon, title, description, className = "" }) => (
-    <div className={`bg-slate-900/50 border border-white/5 hover:border-emerald-500/30 transition-all duration-300 rounded-2xl p-6 shadow-lg shadow-black/20 hover:shadow-emerald-900/10 backdrop-blur-sm group ${className}`}>
-        <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-slate-800/50 group-hover:bg-emerald-500/10 flex items-center justify-center flex-shrink-0 border border-white/5 group-hover:border-emerald-500/20 transition-colors">
-                <Icon name={icon} size={24} className="text-slate-400 group-hover:text-emerald-400 transition-colors" />
+// --- DATA SOURCE: THE ENCYCLOPEDIA ---
+const DOCS_DATA = [
+    {
+        id: 'intro',
+        title: 'Introduction & Architecture',
+        icon: 'Book',
+        content: (
+            <div className="space-y-6">
+                <p className="text-lg leading-relaxed text-slate-300">
+                    <strong>The Direktor Encyclopedia (v2026.3)</strong> is the comprehensive technical and operational manual for the Direktor Tournament Management System.
+                </p>
+                <div className="bg-slate-900/50 border border-emerald-500/20 rounded-xl p-6">
+                    <h3 className="text-emerald-400 font-bold text-xl mb-2 flex items-center gap-2">
+                        <Database size={20} /> The "Single Truth" Philosophy
+                    </h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                        Unlike legacy desktop pairing software (prone to file corruption), Direktor operates on a <strong>Local-First, Cloud-Synced</strong> model.
+                        A real-time PostgreSQL database acts as the single source of truth. Score entry on the "Admin Console" triggers immediate websocket updates to all connected devices (Wall Charts, Player Phones).
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-white/5">
+                        <h4 className="font-semibold text-white mb-1 flex items-center gap-2"><Shield size={16} className="text-blue-400" /> Player Identity</h4>
+                        <p className="text-xs text-slate-400">Strict statuses: <strong>Active</strong>, <strong>Withdrawn</strong>, <strong>Paused</strong>.</p>
+                    </div>
+                    <div className="p-4 bg-slate-800/50 rounded-lg border border-white/5">
+                        <h4 className="font-semibold text-white mb-1 flex items-center gap-2"><Zap size={16} className="text-yellow-400" /> Idempotency</h4>
+                        <p className="text-xs text-slate-400">Operations like `ratings 1-5` are non-destructive and self-correcting.</p>
+                    </div>
+                </div>
             </div>
-            <div>
-                <h4 className="font-semibold text-white mb-2 group-hover:text-emerald-400 transition-colors">{title}</h4>
-                <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
+        )
+    },
+    {
+        id: 'tutorials',
+        title: 'Tutorials: Zero to Hero',
+        icon: 'Zap',
+        content: (
+            <div className="space-y-8">
+                <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-8">
+                    <h3 className="text-2xl font-bold text-white mb-4">Running Your First Tournament</h3>
+                    <div className="text-sm font-mono text-emerald-400 mb-6">Estimated Time: 10 Minutes</div>
+
+                    <div className="space-y-6 relative">
+                        {[
+                            { title: "1. Create Event", desc: "Dashboard > (+) Card. Name: 'Summer Open'. Rounds: 5. System: Swiss." },
+                            { title: "2. Add Players", desc: "Go to Roster. Add manually or import CSV." },
+                            { title: "3. Start Round 1", desc: "Go to Command Center. Type `sw 1 0 0` in the CLI." },
+                            { title: "4. Enter Results", desc: "Type `scores 1`. Enter `John 400 Jane 350`." },
+                            { title: "5. Next Round", desc: "Type `miss` to check completion. Then `sw 2 1 0`." }
+                        ].map((step, idx) => (
+                            <div key={idx} className="flex gap-4">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                                    {idx + 1}
+                                </div>
+                                <div>
+                                    <h4 className="font-bold text-white mb-1">{step.title}</h4>
+                                    <p className="text-slate-400 text-sm">{step.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-);
+        )
+    },
+    {
+        id: 'how-to',
+        title: 'How-To Guides',
+        icon: 'Wrench',
+        content: (
+            <div className="grid grid-cols-1 gap-6">
+                {[
+                    {
+                        title: "Correct a Wrong Score",
+                        steps: ["If active: Re-enter `John 450 Jane 350`.", "If closed: `scores [rnd]` -> re-enter.", "CRITICAL: Run `stats` and `ratings` to fix history."]
+                    },
+                    {
+                        title: "Handle Withdrawal",
+                        steps: ["Go to Roster.", "Click 'Withdraw' icon.", "System skips them in next pairing automatically."]
+                    },
+                    {
+                        title: "Manual Pairing",
+                        steps: ["Type `man [rnd]`.", "Drag & Drop players on the board.", "Click Save."]
+                    },
+                    {
+                        title: "Import Photos",
+                        steps: ["Zip photos as `Name.jpg`.", "Type `pix import` in CLI.", "Upload Zip."]
+                    }
+                ].map((guide, idx) => (
+                    <div key={idx} className="bg-slate-900/50 border border-white/5 p-6 rounded-xl hover:border-white/10 transition-colors">
+                        <h3 className="font-bold text-white text-lg mb-4">{guide.title}</h3>
+                        <ol className="list-decimal pl-4 space-y-2 text-slate-400 text-sm">
+                            {guide.steps.map((s, i) => <li key={i} dangerouslySetInnerHTML={{ __html: s.replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1 rounded text-orange-300">$1</code>') }} />)}
+                        </ol>
+                    </div>
+                ))}
+            </div>
+        )
+    },
+    {
+        id: 'reference',
+        title: 'Technical Reference',
+        icon: 'Terminal',
+        content: (
+            <div className="space-y-12">
+
+                {/* CONFIGURATION REFERENCE */}
+                <div>
+                    <h3 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4">Configuration Reference</h3>
+                    <p className="text-slate-400 mb-4">Core parameters adjustable in the <strong>Settings</strong> dashboard.</p>
+                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-emerald-400 font-bold border-b border-white/10">
+                                <tr><th className="p-4">Parameter</th><th className="p-4">Options</th><th className="p-4">Description</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
+                                {[
+                                    ['rounds', '1-50', 'Total number of rounds in the event.'],
+                                    ['pairing_system', 'Swiss, Round Robin, Random', 'Algorithm used for `sw`, `rr` commands.'],
+                                    ['scoring_system', 'Standard, Handicap', 'Determines valid score inputs.'],
+                                    ['is_public', 'True/False', 'Toggle visibility of the public landing page.'],
+                                    ['remote_submission_enabled', 'True/False', 'Allow players to enter their own scores via mobile.']
+                                ].map(([param, def, desc], i) => (
+                                    <tr key={i} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-4 text-orange-400 font-bold">{param}</td>
+                                        <td className="p-4 text-blue-400">{def}</td>
+                                        <td className="p-4 text-slate-300 font-sans">{desc}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* EXTENDED COMMAND REFERENCE */}
+                <div>
+                    <h3 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4">Command Reference</h3>
+                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950 mb-6">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-emerald-400 font-bold border-b border-white/10">
+                                <tr><th className="p-3">Cmd</th><th className="p-3">Args</th><th className="p-3">Description</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-slate-300 font-mono">
+                                {[
+                                    ['sw', 'Rnd Base Rep', 'Swiss Pair (`sw 4 3 0`)'],
+                                    ['koth', 'Rep Base', 'King of the Hill (Strict Rank)'],
+                                    ['rr', 'Rep', 'Round Robin Schedule'],
+
+                                    ['q', 'Type Rep Src', 'Quartile Pairing'],
+                                    ['scores', 'Rnd', 'Enter Score Mode'],
+                                    ['miss', '-', 'Show Missing Slips'],
+                                    ['rs', 'Range', 'Round Standings (`rs 1-5`)'],
+                                    ['sp', 'Range', 'Show Pairings (`sp 1-5`)'],
+                                    ['ratings', 'Range', 'Recalculate Glicko (`ratings 1-5`)'],
+                                    ['pix', 'import', 'Bulk Photo Import']
+                                ].map(([cmd, args, desc], i) => (
+                                    <tr key={i} className="hover:bg-white/5">
+                                        <td className="p-3 text-orange-400">{cmd}</td>
+                                        <td className="p-3 text-slate-500">{args}</td>
+                                        <td className="p-3" dangerouslySetInnerHTML={{ __html: desc.replace(/`([^`]+)`/g, '<span class="text-white">$1</span>') }} />
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                        <div className="bg-slate-900/50 border border-white/5 p-6 rounded-xl">
+                            <h4 className="text-lg font-bold text-white mb-2 font-mono">sw &lt;Rnd&gt; &lt;Base&gt; &lt;Rep&gt;</h4>
+                            <p className="text-sm text-emerald-400 mb-4 font-mono">Example: sw 4 3 0 (Pair Rd 4, using Rd 3 ranks, 0 repeats)</p>
+                            <ul className="list-disc pl-5 space-y-1 text-slate-400 text-sm">
+                                <li><strong>Base:</strong> Set to 0 to use current ratings. Set to Rnd-1 for standard Swiss. Set to Rnd-2 to simulate "Lagged" Swiss.</li>
+                                <li><strong>Repeats:</strong> Number of times players can meet (Usually 0).</li>
+                            </ul>
+                        </div>
+                        <div className="bg-slate-900/50 border border-white/5 p-6 rounded-xl">
+                            <h4 className="text-lg font-bold text-white mb-2 font-mono">q &lt;Type&gt; &lt;Rep&gt; &lt;Src&gt;</h4>
+                            <p className="text-sm text-emerald-400 mb-4 font-mono">Quartile Pairing (Divides field into 4 groups)</p>
+                            <ul className="list-disc pl-5 space-y-1 text-slate-400 text-sm">
+                                <li><strong>Type 1:</strong> Q1vQ2, Q3vQ4 (Clash)</li>
+                                <li><strong>Type 2:</strong> Q1vQ4, Q2vQ3 (Cross)</li>
+                                <li><strong>Type 3:</strong> Q1vQ3, Q2vQ4 (Slide)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {/* GLOSSARY */}
+                <div>
+                    <h3 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4">Glossary of Concepts</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                            ['Gibsonization', 'Automatic detection of a "Lock" scenario. The winner is paired against a "Spoiler" (non-prize winner) to preserve the race for 2nd place.'],
+                            ['Spread', 'Cumulative margin of victory (Points For - Points Against). Primary tie-breaker.'],
+                            ['Volatility (σ)', 'Glicko-2 metric measuring performance consistency. High σ = Erratic play.'],
+                            ['Start Balancing', 'Algorithm attempts to equalize the number of "First Starts" (White/Black) for each player.']
+                        ].map(([term, def], i) => (
+                            <div key={i} className="p-4 bg-white/5 rounded-lg border border-white/5">
+                                <h5 className="font-bold text-emerald-400 mb-1">{term}</h5>
+                                <p className="text-sm text-slate-400">{def}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'faq',
+        title: 'FAQ',
+        icon: 'HelpCircle',
+        content: (
+            <div className="space-y-4">
+                {[
+                    { q: "Why can't I pair the next round?", a: "You have **Missing Games**. Run `miss`. You cannot pair until the base round is complete." },
+                    { q: "What about odd numbers?", a: "The system assigns a **BYE** to the lowest-ranked eligible player. A Bye = Win (+0 Spread)." },
+                    { q: "Can players enter scores?", a: "Yes, via **Remote Submission**. You see them populate live." },
+                    { q: "Why did rating drop after a win?", a: "High Deviation (RD) collapse or beating a much lower rated player by a small margin. Run `ratings 1-X` to verify." }
+                ].map((item, i) => (
+                    <div key={i} className="bg-slate-900/50 border border-white/5 p-4 rounded-xl">
+                        <h5 className="font-bold text-white mb-2 flex items-start gap-2">
+                            <span className="text-emerald-500">Q:</span> {item.q}
+                        </h5>
+                        <p className="text-sm text-slate-300 pl-6 leading-relaxed" dangerouslySetInnerHTML={{ __html: item.a.replace(/\*\*([^\*]+)\*\*/g, '<strong class="text-white">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-slate-800 px-1 rounded text-orange-300">$1</code>') }} />
+                    </div>
+                ))}
+            </div>
+        )
+    }
+];
 
 const DocumentationPage = () => {
-    const [activeSection, setActiveSection] = useState('overview');
+    const [activeId, setActiveId] = useState('intro');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const navigationItems = [
-        { id: 'overview', label: 'Overview', icon: 'Home' },
-        { id: 'getting-started', label: 'Getting Started', icon: 'Play' },
-        { id: 'tournament-setup', label: 'Tournament Setup', icon: 'Settings' },
-        { id: 'player-management', label: 'Player Management', icon: 'Users' },
-        { id: 'photo-system', label: 'Photo System', icon: 'Image' },
-        { id: 'pairing-systems', label: 'Pairing Systems', icon: 'Shuffle' },
-        { id: 'scoring-results', label: 'Scoring & Results', icon: 'BarChart3' },
-        { id: 'dashboard', label: 'Tournament Dashboard', icon: 'LayoutDashboard' },
-        { id: 'mobile-optimization', label: 'Mobile Features', icon: 'Smartphone' },
-        { id: 'advanced-features', label: 'Advanced Features', icon: 'Zap' },
-        { id: 'security', label: 'Security & Privacy', icon: 'Shield' },
-        { id: 'troubleshooting', label: 'Troubleshooting', icon: 'HelpCircle' },
-        { id: 'api-reference', label: 'API Reference', icon: 'Code' }
-    ];
+    const filteredDocs = DOCS_DATA.filter(doc =>
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (typeof doc.content === 'string' && doc.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
     return (
-        <div className="dark min-h-screen bg-[#020617]">
+        <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30">
             <Header />
-            <div className="flex pt-20">
-                {/* Sidebar Navigation */}
-                <aside className="hidden lg:block w-64 fixed left-0 top-20 h-[calc(100vh-5rem)] overflow-y-auto border-r border-white/5 bg-[#020617]/95 backdrop-blur-sm pb-10">
-                    <nav className="p-4">
-                        <div className="space-y-1">
-                            {navigationItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveSection(item.id)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200 ${activeSection === item.id
-                                        ? 'bg-emerald-500/10 text-emerald-400 font-medium border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                                        }`}
-                                >
-                                    <Icon name={item.icon} size={16} className={activeSection === item.id ? "text-emerald-500" : "text-slate-500 group-hover:text-slate-400"} />
-                                    <span className="text-sm font-medium">{item.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </nav>
-                </aside>
 
-                {/* Main Content */}
-                <main className="flex-1 lg:ml-64 w-full">
-                    <div className="max-w-5xl mx-auto px-6 md:px-12 py-8 lg:py-12">
-                        {/* Mobile Navigation */}
-                        <div className="lg:hidden mb-8">
-                            <ExpandableTabsJS
-                                tabs={[
-                                    { title: "Overview", icon: Home },
-                                    { title: "Getting Started", icon: Play },
-                                    { title: "Tournament Setup", icon: Settings },
-                                    { title: "Player Management", icon: Users },
-                                    { title: "Photo System", icon: Image },
-                                    { title: "Pairing Systems", icon: Shuffle },
-                                    { title: "Scoring & Results", icon: BarChart3 },
-                                    { title: "Dashboard", icon: LayoutDashboard },
-                                    { title: "Mobile Features", icon: Smartphone },
-                                    { title: "Advanced Features", icon: Zap },
-                                    { title: "Security", icon: Shield },
-                                    { title: "Troubleshooting", icon: HelpCircle },
-                                    { title: "API Reference", icon: Code },
-                                ]}
-                                activeColor="text-foreground"
-                                className="border-border bg-background"
-                                onChange={(index) => {
-                                    const sections = ['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'];
-                                    setActiveSection(sections[index] || 'overview');
-                                }}
+            <div className="max-w-7xl mx-auto pt-20 flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
+
+                {/* SIDEBAR */}
+                <aside className="w-full lg:w-72 flex-shrink-0 lg:border-r border-white/5 bg-[#020617]/95 backdrop-blur lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] overflow-y-auto z-10">
+                    <div className="p-6">
+                        <div className="relative mb-6">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search Encyclopedia..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
                             />
                         </div>
 
-                        {/* Overview Section */}
-                        {activeSection === 'overview' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <div className="text-center mb-16 relative py-12">
-                                    {/* Background decoration */}
-                                    <div className="absolute inset-0 bg-emerald-500/5 blur-3xl rounded-full transform -translate-y-1/2" />
-
-                                    <div className="relative z-10">
-                                        <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center mb-8 shadow-2xl shadow-emerald-900/20">
-                                            <Icon name="BookOpenCheck" size={40} className="text-emerald-400" />
-                                        </div>
-                                        <h1 className="text-5xl md:text-6xl font-heading font-black tracking-tighter text-white mb-6">
-                                            Direktor <span className="text-emerald-500">Docs</span>
-                                        </h1>
-                                        <p className="text-xl text-slate-400 max-w-2xl mx-auto font-light leading-relaxed">
-                                            Your complete guide to running world-class Scrabble tournaments with the most advanced tournament management platform.
-                                        </p>
+                        <nav className="space-y-1">
+                            {DOCS_DATA.map((section) => (
+                                <button
+                                    key={section.id}
+                                    onClick={() => setActiveId(section.id)}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${activeId === section.id
+                                        ? 'bg-emerald-500/10 text-white shadow-[0_0_20px_rgba(16,185,129,0.1)] border border-emerald-500/20'
+                                        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Icon name={section.icon} size={18} className={activeId === section.id ? "text-emerald-400" : "text-slate-500 group-hover:text-slate-400"} />
+                                        <span className="font-medium text-sm">{section.title.split(':')[0]}</span>
                                     </div>
+                                    {activeId === section.id && <ChevronRight size={14} className="text-emerald-500/50" />}
+                                </button>
+                            ))}
+                        </nav>
+
+                        <div className="mt-8 pt-6 border-t border-white/5">
+                            <div className="bg-gradient-to-br from-emerald-500/10 to-blue-500/10 rounded-xl p-4 border border-white/5">
+                                <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2">Need Help?</h4>
+                                <p className="text-xs text-slate-400 mb-3">Join our Discord for real-time support from other directors.</p>
+                                <button className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium text-white transition-colors border border-white/5">
+                                    Join Community
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                {/* MAIN CONTENT */}
+                <main className="flex-1 min-w-0">
+                    <div className="max-w-4xl mx-auto px-6 py-8 lg:px-12 lg:py-12">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeId}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <div className="mb-8">
+                                    <div className="flex items-center gap-2 text-emerald-500 mb-2 text-sm font-medium uppercase tracking-widest">
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        Documentation
+                                    </div>
+                                    <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-4">
+                                        {DOCS_DATA.find(d => d.id === activeId)?.title}
+                                    </h1>
+                                    <div className="h-1 w-20 bg-emerald-500 rounded-full"></div>
                                 </div>
 
-                                <DocSection title="What is Direktor?" id="what-is-direktor">
-                                    <p className="text-lg">
-                                        Direktor is a next-generation, web-based platform designed to revolutionize Scrabble tournament management.
-                                        Built on the core principle of <strong>Guided Workflow</strong>, it transforms the director's role from a
-                                        technical operator into a true manager by providing context-aware assistance throughout the tournament lifecycle.
-                                    </p>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                                        <FeatureCard
-                                            icon="Zap"
-                                            title="Smart Automation"
-                                            description="Intelligent pairing systems, automated scoring, and real-time result tracking eliminate manual work."
-                                        />
-                                        <FeatureCard
-                                            icon="Users"
-                                            title="Player Management"
-                                            description="Comprehensive player database with ratings, history, and photo management for easy identification."
-                                        />
-                                        <FeatureCard
-                                            icon="BarChart3"
-                                            title="Advanced Analytics"
-                                            description="Detailed statistics, performance metrics, and insights to improve tournament quality."
-                                        />
-                                        <FeatureCard
-                                            icon="Smartphone"
-                                            title="Mobile-First Design"
-                                            description="Optimized for mobile devices with touch-friendly controls and responsive layouts."
-                                        />
-                                    </div>
-                                </DocSection>
-
-                                <DocSection title="Key Features" id="key-features">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <FeatureCard
-                                            icon="Shuffle"
-                                            title="Multiple Pairing Systems"
-                                            description="Swiss, Round Robin, King of the Hill, and custom pairing algorithms with intelligent optimization."
-                                        />
-                                        <FeatureCard
-                                            icon="Image"
-                                            title="Photo Management System"
-                                            description="Bulk photo upload, intelligent player matching, and secure storage for tournament identification."
-                                        />
-                                        <FeatureCard
-                                            icon="Database"
-                                            title="Master Player Library"
-                                            description="Centralized player database with ratings, history, and cross-tournament statistics."
-                                        />
-                                        <FeatureCard
-                                            icon="LayoutDashboard"
-                                            title="Real-Time Dashboard"
-                                            description="Live tournament status, current pairings, and instant result updates."
-                                        />
-                                    </div>
-                                </DocSection>
-
-                                <DocSection title="Technology Stack" id="technology-stack">
-                                    <p className="text-lg mb-6">
-                                        Direktor is built with modern, scalable technologies to ensure reliability and performance:
-                                    </p>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
-                                            <h4 className="font-semibold text-white mb-2">Frontend</h4>
-                                            <p className="text-sm text-slate-400">React Native, Framer Motion, Tailwind CSS</p>
-                                        </div>
-                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
-                                            <h4 className="font-semibold text-white mb-2">Backend</h4>
-                                            <p className="text-sm text-slate-400">Supabase, PostgreSQL, Row Level Security</p>
-                                        </div>
-                                        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4 backdrop-blur-sm">
-                                            <h4 className="font-semibold text-white mb-2">Storage</h4>
-                                            <p className="text-sm text-slate-400">Supabase Storage, Image optimization, CDN</p>
-                                        </div>
-                                    </div>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Getting Started Section */}
-                        {activeSection === 'getting-started' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Getting Started" id="getting-started">
-                                    <p className="text-lg mb-6">
-                                        Welcome to Direktor! This guide will walk you through creating your first tournament and understanding the core concepts.
-                                    </p>
-
-                                    <DocSubSection title="1. Creating Your Account">
-                                        <p>Start by creating a Direktor account to access the tournament management features:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Email Registration:</strong> Provide your full name, email address, and a secure password</li>
-                                            <li><strong>Google Sign-in:</strong> Quick access using your existing Google account</li>
-                                            <li><strong>Email Verification:</strong> Check your email and click the verification link to activate your account</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="2. Understanding the Interface">
-                                        <p>Direktor uses a clean, intuitive interface designed for tournament directors:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Tournament Lobby:</strong> Your home dashboard showing all your tournaments</li>
-                                            <li><strong>Command Center:</strong> Active tournament management with context-aware controls</li>
-                                            <li><strong>Settings Panel:</strong> Configure tournament parameters and pairing systems</li>
-                                            <li><strong>Player Management:</strong> Add, edit, and manage tournament participants</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="3. Your First Tournament">
-                                        <p>Creating your first tournament is straightforward with our guided setup process:</p>
-                                        <ol className="list-decimal pl-5 space-y-2">
-                                            <li>Click "New Tournament" from the Tournament Lobby</li>
-                                            <li>Enter basic tournament information (name, venue, date)</li>
-                                            <li>Add players using our Master Player Library system</li>
-                                            <li>Configure rounds and pairing settings</li>
-                                            <li>Start your tournament and begin pairing rounds</li>
-                                        </ol>
-                                    </DocSubSection>
-
-                                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mt-8">
-                                        <h4 className="font-semibold text-foreground mb-3">💡 Pro Tip</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            Take advantage of the guided workflow system. Direktor will suggest the next logical step
-                                            based on your current tournament state, making it impossible to miss critical steps.
-                                        </p>
-                                    </div>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Tournament Setup Section */}
-                        {activeSection === 'tournament-setup' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Tournament Setup" id="tournament-setup">
-                                    <p className="text-lg mb-6">
-                                        Learn how to configure and customize your tournaments with Direktor's flexible setup options.
-                                    </p>
-
-                                    <DocSubSection title="Tournament Configuration">
-                                        <p>Essential tournament settings that define your event:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Basic Information:</strong> Name, venue, date, and description</li>
-                                            <li><strong>Tournament Format:</strong> Number of rounds, time controls, and scoring system</li>
-                                            <li><strong>Pairing System:</strong> Swiss, Round Robin, or custom algorithms</li>
-                                            <li><strong>Divisions:</strong> Multiple skill divisions with separate pairings</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Advanced Settings">
-                                        <p>Customize your tournament experience with advanced options:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Rating Systems:</strong> NASPA, WESPA, or custom rating calculations</li>
-                                            <li><strong>Bye Handling:</strong> Configure how byes are distributed and scored</li>
-                                            <li><strong>Time Controls:</strong> Set game time limits and overtime rules</li>
-                                            <li><strong>Scoring Rules:</strong> Customize point values and bonus systems</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Tournament Templates">
-                                        <p>Save and reuse tournament configurations for consistency:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Quick Start:</strong> Use predefined templates for common tournament types</li>
-                                            <li><strong>Custom Templates:</strong> Save your own configurations for future use</li>
-                                            <li><strong>Template Sharing:</strong> Share templates with other tournament directors</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Player Management Section */}
-                        {activeSection === 'player-management' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Player Management" id="player-management">
-                                    <p className="text-lg mb-6">
-                                        Manage tournament participants efficiently with our comprehensive player management system.
-                                    </p>
-
-                                    <DocSubSection title="Adding Players">
-                                        <p>Multiple ways to add players to your tournament:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Master Library:</strong> Search and add players from the central database</li>
-                                            <li><strong>Bulk Import:</strong> Upload CSV files with multiple players</li>
-                                            <li><strong>Manual Entry:</strong> Add individual players with custom information</li>
-                                            <li><strong>Quick Add:</strong> Fast entry for last-minute registrations</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Player Information">
-                                        <p>Comprehensive player profiles with essential details:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Basic Details:</strong> Name, email, phone, and emergency contact</li>
-                                            <li><strong>Rating Information:</strong> Current rating, rating history, and rating system</li>
-                                            <li><strong>Tournament History:</strong> Previous tournaments, results, and statistics</li>
-                                            <li><strong>Preferences:</strong> Pairing preferences, bye preferences, and special needs</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Player Organization">
-                                        <p>Organize players effectively for smooth tournament operation:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Divisions:</strong> Group players by skill level or rating</li>
-                                            <li><strong>Seeding:</strong> Automatic or manual seeding based on ratings</li>
-                                            <li><strong>Status Tracking:</strong> Monitor player registration and participation</li>
-                                            <li><strong>Communication:</strong> Send announcements and updates to players</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-
-
-                        {/* Photo System Section */}
-                        {activeSection === 'photo-system' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Photo Management System" id="photo-system">
-                                    <p className="text-lg mb-6">
-                                        The Photo Management System allows tournament directors to upload, manage, and display player photos
-                                        for easy identification during tournaments.
-                                    </p>
-
-                                    <DocSubSection title="System Overview">
-                                        <p>The photo system provides comprehensive photo management capabilities:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Bulk Upload:</strong> Upload ZIP files containing multiple player photos</li>
-                                            <li><strong>Intelligent Matching:</strong> Automatic player matching using filename recognition</li>
-                                            <li><strong>Secure Storage:</strong> Supabase storage with proper access controls</li>
-                                            <li><strong>Mobile Optimization:</strong> Touch-friendly interface for mobile devices</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Photo Upload Process">
-                                        <p>Step-by-step guide to uploading player photos:</p>
-                                        <ol className="list-decimal pl-5 space-y-2">
-                                            <li><strong>Prepare Photos:</strong> Organize photos in a ZIP file with clear naming</li>
-                                            <li><strong>Upload ZIP:</strong> Use the PhotoDatabaseManager to upload your ZIP file</li>
-                                            <li><strong>Automatic Processing:</strong> System extracts, compresses, and matches photos</li>
-                                            <li><strong>Review Matches:</strong> Check automatic matching results</li>
-                                            <li><strong>Manual Matching:</strong> Assign unmatched photos to players manually</li>
-                                        </ol>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Photo Naming Conventions">
-                                        <p>Best practices for naming photos to ensure accurate matching:</p>
-                                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 mb-4">
-                                            <h5 className="font-semibold text-emerald-400 mb-2">Recommended Formats:</h5>
-                                            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
-                                                <li><code>John Smith.jpg</code> - Exact player name</li>
-                                                <li><code>John_Smith.jpg</code> - With underscores</li>
-                                                <li><code>John-Smith.jpg</code> - With hyphens</li>
-                                                <li><code>john smith.jpg</code> - Lowercase (will be matched)</li>
-                                            </ul>
-                                        </div>
-                                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4">
-                                            <h5 className="font-semibold text-rose-400 mb-2">Avoid These:</h5>
-                                            <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
-                                                <li><code>IMG_001.jpg</code> - Unclear naming</li>
-                                                <li><code>Photo1.png</code> - Generic names</li>
-                                                <li><code>DSC_1234.jpeg</code> - Camera default names</li>
-                                            </ul>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Supported File Formats">
-                                        <p>The system supports various image formats with automatic optimization:</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4">
-                                                <h5 className="font-semibold text-white mb-2">Image Formats:</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
-                                                    <li>JPEG/JPG - Best for photos</li>
-                                                    <li>PNG - Good for graphics</li>
-                                                    <li>GIF - Animated images</li>
-                                                    <li>WebP - Modern format</li>
-                                                </ul>
-                                            </div>
-                                            <div className="bg-slate-900/50 border border-white/5 rounded-xl p-4">
-                                                <h5 className="font-semibold text-white mb-2">Upload Format:</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-400">
-                                                    <li>ZIP files only</li>
-                                                    <li>Max 50MB total</li>
-                                                    <li>Max 10MB per photo</li>
-                                                    <li>Automatic compression</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Player Matching Algorithm">
-                                        <p>How the system automatically matches photos to players:</p>
-                                        <ol className="list-decimal pl-5 space-y-2">
-                                            <li><strong>Exact Match:</strong> Filename exactly matches player name</li>
-                                            <li><strong>Normalized Match:</strong> Handles spaces, underscores, and hyphens</li>
-                                            <li><strong>Partial Match:</strong> Filename contains unique player identifier</li>
-                                            <li><strong>Word Match:</strong> Multiple words match between filename and player name</li>
-                                        </ol>
-                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 mt-4">
-                                            <p className="text-sm text-emerald-200">
-                                                <strong>Note:</strong> If automatic matching fails, you can manually assign photos to players
-                                                using the manual matching interface.
-                                            </p>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Photo Management Features">
-                                        <p>Comprehensive tools for managing uploaded photos:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Photo Viewing:</strong> Browse all uploaded photos with player details</li>
-                                            <li><strong>Photo Editing:</strong> Replace photos for existing players</li>
-                                            <li><strong>Bulk Operations:</strong> Select and manage multiple photos at once</li>
-                                            <li><strong>Photo Removal:</strong> Delete individual or multiple photos</li>
-                                            <li><strong>Export Functionality:</strong> Download photo database as CSV</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Security & Privacy">
-                                        <p>How your photos are protected and secured:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Access Control:</strong> Only tournament owners can manage photos</li>
-                                            <li><strong>Row Level Security:</strong> Database-level access control</li>
-                                            <li><strong>Secure Storage:</strong> Encrypted storage with Supabase</li>
-                                            <li><strong>Public Access:</strong> Photos are publicly viewable for tournament identification</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Mobile Optimization">
-                                        <p>Mobile-first design for tournament directors on the go:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Touch Interface:</strong> 44px+ touch targets for all controls</li>
-                                            <li><strong>Responsive Design:</strong> Adapts to all screen sizes</li>
-                                            <li><strong>Mobile Upload:</strong> Easy photo upload from mobile devices</li>
-                                            <li><strong>Performance:</strong> Optimized for mobile bandwidth and processing</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Pairing Systems Section */}
-                        {activeSection === 'pairing-systems' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Pairing Systems" id="pairing-systems">
-                                    <p className="text-lg mb-6">
-                                        Direktor offers multiple pairing algorithms to suit different tournament formats and preferences.
-                                    </p>
-
-                                    <DocSubSection title="Swiss System">
-                                        <p>The most common pairing system for competitive tournaments:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Automatic Pairing:</strong> Players are paired based on current score</li>
-                                            <li><strong>Color Balance:</strong> System maintains equal white/black distribution</li>
-                                            <li><strong>Bye Handling:</strong> Automatic bye distribution for odd numbers</li>
-                                            <li><strong>Pairing Rules:</strong> Configurable rules for maximum flexibility</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Round Robin">
-                                        <p>Complete round-robin system for smaller tournaments:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>All vs All:</strong> Every player faces every other player</li>
-                                            <li><strong>Optimal Scheduling:</strong> Minimizes waiting time between rounds</li>
-                                            <li><strong>Color Balance:</strong> Equal white and black games for each player</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="King of the Hill">
-                                        <p>Dynamic pairing system for competitive play:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Performance Based:</strong> Winners play winners, losers play losers</li>
-                                            <li><strong>Rapid Advancement:</strong> Strong players advance quickly</li>
-                                            <li><strong>Engaging Matches:</strong> Keeps all players competitive</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Scoring & Results Section */}
-                        {activeSection === 'scoring-results' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Scoring & Results" id="scoring-results">
-                                    <p className="text-lg mb-6">
-                                        Track scores, calculate standings, and generate comprehensive tournament results.
-                                    </p>
-
-                                    <DocSubSection title="Score Entry">
-                                        <p>Multiple ways to enter and manage game scores:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Individual Entry:</strong> Enter scores game by game</li>
-                                            <li><strong>Bulk Entry:</strong> Upload multiple scores at once</li>
-                                            <li><strong>Mobile Entry:</strong> Enter scores from mobile devices</li>
-                                            <li><strong>Validation:</strong> Automatic score validation and error checking</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Standings Calculation">
-                                        <p>Automatic calculation of tournament standings:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Score Points:</strong> Game points and bonus points</li>
-                                            <li><strong>Game Points:</strong> Win/loss/draw records</li>
-                                            <li><strong>Tiebreakers:</strong> Multiple tiebreaking methods</li>
-                                            <li><strong>Real-time Updates:</strong> Instant standings updates</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Dashboard Section */}
-                        {activeSection === 'dashboard' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Tournament Dashboard" id="dashboard">
-                                    <p className="text-lg mb-6">
-                                        The tournament dashboard provides real-time information and control over your active tournament.
-                                    </p>
-
-                                    <DocSubSection title="Live Information">
-                                        <p>Real-time tournament status and updates:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Current Round:</strong> Active round status and progress</li>
-                                            <li><strong>Player Status:</strong> Who's playing, finished, or waiting</li>
-                                            <li><strong>Game Results:</strong> Live score updates and game completion</li>
-                                            <li><strong>Pairing Status:</strong> Current pairings and next round preparation</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Control Center">
-                                        <p>Manage tournament flow and operations:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Round Management:</strong> Start, pause, and complete rounds</li>
-                                            <li><strong>Pairing Generation:</strong> Create new pairings for next round</li>
-                                            <li><strong>Result Processing:</strong> Process completed games and update standings</li>
-                                            <li><strong>Tournament Control:</strong> Pause, resume, or end tournament</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Mobile Optimization Section */}
-                        {activeSection === 'mobile-optimization' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Mobile Features & Optimization" id="mobile-optimization">
-                                    <p className="text-lg mb-6">
-                                        Direktor is optimized for mobile devices, allowing tournament directors to manage events from anywhere.
-                                    </p>
-
-                                    <DocSubSection title="Mobile-First Design">
-                                        <p>Built from the ground up for mobile devices:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Touch Interface:</strong> All controls optimized for touch interaction</li>
-                                            <li><strong>Responsive Layout:</strong> Adapts to all screen sizes and orientations</li>
-                                            <li><strong>Mobile Navigation:</strong> Intuitive navigation designed for mobile</li>
-                                            <li><strong>Performance:</strong> Optimized for mobile bandwidth and processing</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Mobile-Specific Features">
-                                        <p>Features designed specifically for mobile tournament management:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Photo Upload:</strong> Easy photo capture and upload from mobile cameras</li>
-                                            <li><strong>Score Entry:</strong> Quick score entry with mobile-optimized forms</li>
-                                            <li><strong>Player Check-in:</strong> Mobile check-in for tournament participants</li>
-                                            <li><strong>Real-time Updates:</strong> Push notifications for important events</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Performance Optimization">
-                                        <p>Mobile-specific performance enhancements:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Image Compression:</strong> Automatic compression for mobile uploads</li>
-                                            <li><strong>Lazy Loading:</strong> Load content as needed to save bandwidth</li>
-                                            <li><strong>Offline Support:</strong> Basic functionality without internet connection</li>
-                                            <li><strong>Battery Optimization:</strong> Efficient power usage during long tournaments</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Advanced Features Section */}
-                        {activeSection === 'advanced-features' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Advanced Features" id="advanced-features">
-                                    <p className="text-lg mb-6">
-                                        Explore advanced features that make Direktor the most powerful tournament management platform available.
-                                    </p>
-
-                                    <DocSubSection title="Export & Reporting">
-                                        <p>Comprehensive data export and reporting capabilities:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Tournament Reports:</strong> Detailed tournament summaries and statistics</li>
-                                            <li><strong>Player Reports:</strong> Individual player performance and history</li>
-                                            <li><strong>Data Export:</strong> Export data in multiple formats (CSV, JSON, PDF)</li>
-                                            <li><strong>Custom Reports:</strong> Create custom reports for specific needs</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Integration & APIs">
-                                        <p>Connect Direktor with other systems and services:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Rating Systems:</strong> Integration with NASPA, WESPA, and custom systems</li>
-                                            <li><strong>Tournament Software:</strong> Export data for other tournament software</li>
-                                            <li><strong>Communication Tools:</strong> Integration with email and messaging services</li>
-                                            <li><strong>Analytics Platforms:</strong> Connect with external analytics tools</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Security Section */}
-                        {activeSection === 'security' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Security & Privacy" id="security">
-                                    <p className="text-lg mb-6">
-                                        Direktor implements enterprise-grade security measures to protect your tournament data and player information.
-                                    </p>
-
-                                    <DocSubSection title="Data Protection">
-                                        <p>Comprehensive data security and privacy measures:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Encryption:</strong> All data encrypted in transit and at rest</li>
-                                            <li><strong>Access Control:</strong> Role-based access control for all users</li>
-                                            <li><strong>Audit Logging:</strong> Complete audit trail of all system activities</li>
-                                            <li><strong>Data Backup:</strong> Regular automated backups with point-in-time recovery</li>
-                                        </ul>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Privacy Compliance">
-                                        <p>Compliance with privacy regulations and best practices:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>GDPR Compliance:</strong> European privacy regulation compliance</li>
-                                            <li><strong>Data Minimization:</strong> Only collect necessary data</li>
-                                            <li><strong>User Consent:</strong> Clear consent for data collection and use</li>
-                                            <li><strong>Data Portability:</strong> Users can export their data</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Troubleshooting Section */}
-                        {activeSection === 'troubleshooting' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="Troubleshooting" id="troubleshooting">
-                                    <p className="text-lg mb-6">
-                                        Common issues and solutions to help you resolve problems quickly and get back to managing your tournament.
-                                    </p>
-
-                                    <DocSubSection title="Common Issues">
-                                        <div className="space-y-4">
-                                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Photo Upload Issues</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm">
-                                                    <li><strong>ZIP file not uploading:</strong> Check file size (max 50MB) and format (.zip only)</li>
-                                                    <li><strong>Photos not matching:</strong> Ensure filenames follow naming conventions</li>
-                                                    <li><strong>Upload errors:</strong> Check internet connection and try again</li>
-                                                </ul>
-                                            </div>
-                                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                                                <h5 className="font-semibold text-foreground mb-2">Tournament Management Issues</h5>
-                                                <ul className="list-disc pl-5 space-y-1 text-sm">
-                                                    <li><strong>Can't start tournament:</strong> Verify all players are added and rounds configured</li>
-                                                    <li><strong>Pairing errors:</strong> Check player count and pairing system settings</li>
-                                                    <li><strong>Score entry issues:</strong> Ensure games are properly created before entering scores</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Getting Help">
-                                        <p>When you need additional assistance:</p>
-                                        <ul className="list-disc pl-5 space-y-2">
-                                            <li><strong>Documentation:</strong> Check this guide for detailed information</li>
-                                            <li><strong>Community Support:</strong> Join our community forums for peer support</li>
-                                            <li><strong>Technical Support:</strong> Contact our support team for technical issues</li>
-                                            <li><strong>Feature Requests:</strong> Submit suggestions for new features</li>
-                                        </ul>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* API Reference Section */}
-                        {activeSection === 'api-reference' && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                            >
-                                <DocSection title="API Reference" id="api-reference">
-                                    <p className="text-lg mb-6">
-                                        Technical documentation for developers and advanced users who want to integrate with Direktor.
-                                    </p>
-
-                                    <DocSubSection title="Component Props">
-                                        <p>Key component interfaces and properties:</p>
-                                        <div className="bg-slate-900 border border-white/10 rounded-xl overflow-hidden">
-                                            <div className="px-4 py-2 border-b border-white/10 bg-white/5">
-                                                <h5 className="font-semibold text-emerald-400 text-sm">PhotoDatabaseManager Props</h5>
-                                            </div>
-                                            <pre className="text-sm bg-slate-950 p-4 overflow-x-auto text-slate-300">
-                                                {`interface PhotoDatabaseManagerProps {
-  isOpen: boolean;                    // Modal open state
-  onClose: () => void;               // Close handler
-  players: Player[];                  // Tournament players
-  tournamentId: number;               // Tournament ID
-  onPhotosUpdated?: () => void;      // Callback when photos updated
-}`}
-                                            </pre>
-                                        </div>
-                                    </DocSubSection>
-
-                                    <DocSubSection title="Database Schema">
-                                        <p>Key database tables and relationships:</p>
-                                        <div className="bg-slate-900 border border-white/10 rounded-xl overflow-hidden">
-                                            <div className="px-4 py-2 border-b border-white/10 bg-white/5">
-                                                <h5 className="font-semibold text-emerald-400 text-sm">Player Photos Table</h5>
-                                            </div>
-                                            <pre className="text-sm bg-slate-950 p-4 overflow-x-auto text-slate-300">
-                                                {`CREATE TABLE player_photos (
-    id BIGSERIAL PRIMARY KEY,
-    tournament_id BIGINT NOT NULL REFERENCES tournaments(id),
-    player_id BIGINT NOT NULL REFERENCES players(id),
-    photo_url TEXT NOT NULL,
-    filename TEXT NOT NULL,
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(tournament_id, player_id)
-);`}
-                                            </pre>
-                                        </div>
-                                    </DocSubSection>
-                                </DocSection>
-                            </motion.div>
-                        )}
-
-                        {/* Continue with other sections... */}
-                        {!['overview', 'getting-started', 'tournament-setup', 'player-management', 'photo-system', 'pairing-systems', 'scoring-results', 'dashboard', 'mobile-optimization', 'advanced-features', 'security', 'troubleshooting', 'api-reference'].includes(activeSection) && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5 }}
-                                className="text-center py-16"
-                            >
-                                <div className="w-16 h-16 rounded-xl bg-slate-800/50 border border-white/5 flex items-center justify-center mx-auto mb-6">
-                                    <Icon name="Construction" size={32} className="text-slate-400" />
+                                <div className="prose prose-invert prose-emerald max-w-none">
+                                    {DOCS_DATA.find(d => d.id === activeId)?.content}
                                 </div>
-                                <h2 className="text-2xl font-heading font-bold text-white mb-2">Section Under Development</h2>
-                                <p className="text-slate-400 max-w-md mx-auto">
-                                    This documentation section is being expanded with comprehensive details.
-                                    Check back soon for complete coverage of {(activeSection || 'overview').replace('-', ' ')}.
-                                </p>
                             </motion.div>
-                        )}
+                        </AnimatePresence>
                     </div>
                 </main>
+
+                <footer className="py-8 text-center text-xs text-slate-600 font-mono border-t border-white/5 mt-auto bg-[#020617]">
+                    <div className="flex items-center justify-center gap-2">
+                        <span>Architected by <strong className="text-slate-400">Emmanuel Enyi</strong></span>
+                        <img src="https://flagcdn.com/w20/ng.png" alt="Nigeria" className="w-4 h-auto opacity-80" />
+                    </div>
+                    <p className="mt-1 opacity-50">Lagos, Nigeria</p>
+                </footer>
             </div>
         </div>
     );

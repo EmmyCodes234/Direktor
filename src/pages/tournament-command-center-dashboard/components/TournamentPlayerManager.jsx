@@ -68,13 +68,34 @@ const TournamentPlayerManager = ({ tournamentId, players = [], divisions = [], o
     const handleUpdatePlayer = async (updates) => {
         if (!editingPlayer) return;
         try {
-            const { error } = await supabase
-                .from('tournament_players')
-                .update(updates)
-                .eq('tournament_id', tournamentId)
-                .eq('player_id', editingPlayer.player_id);
+            // Split updates for different tables
+            const tpUpdates = {};
+            const playerUpdates = {};
 
-            if (error) throw error;
+            if (updates.division !== undefined) tpUpdates.division = updates.division;
+            if (updates.status !== undefined) tpUpdates.status = updates.status;
+
+            if (updates.gender !== undefined) playerUpdates.gender = updates.gender;
+
+            // Update tournament_players
+            if (Object.keys(tpUpdates).length > 0) {
+                const { error: tpError } = await supabase
+                    .from('tournament_players')
+                    .update(tpUpdates)
+                    .eq('tournament_id', tournamentId)
+                    .eq('player_id', editingPlayer.player_id);
+                if (tpError) throw tpError;
+            }
+
+            // Update players (global profile)
+            if (Object.keys(playerUpdates).length > 0) {
+                const { error: pError } = await supabase
+                    .from('players')
+                    .update(playerUpdates)
+                    .eq('id', editingPlayer.player_id);
+                if (pError) throw pError;
+            }
+
             toast.success("Player updated");
             setEditingPlayer(null);
             if (onUpdate) onUpdate();
@@ -450,7 +471,8 @@ const AddPlayerModal = ({ isOpen, onClose, tournamentId, divisions, onAdd }) => 
 const EditPlayerModal = ({ player, onClose, divisions, onSave }) => {
     const [formData, setFormData] = useState({
         division: player.division || '',
-        status: player.status || 'active'
+        status: player.status || 'active',
+        gender: player.gender || ''
     });
 
     return (
@@ -459,6 +481,19 @@ const EditPlayerModal = ({ player, onClose, divisions, onSave }) => {
                 <h2 className="text-lg font-bold text-white mb-4">Edit {player.name}</h2>
 
                 <div className="space-y-4">
+                    <div>
+                        <label className="text-sm font-medium text-slate-400 mb-1.5 block">Gender (AI Pronouns)</label>
+                        <select
+                            value={formData.gender}
+                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                            className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-slate-200 outline-none focus:border-emerald-500/50"
+                        >
+                            <option value="">Unknown (They/Them)</option>
+                            <option value="Male">Male (He/Him)</option>
+                            <option value="Female">Female (She/Her)</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
                     <div>
                         <label className="text-sm font-medium text-slate-400 mb-1.5 block">Division</label>
                         <select

@@ -346,58 +346,7 @@ const PublicTournamentPairings = () => {
   const rounds = [...new Set(results.map(r => r.round))].sort((a, b) => a - b);
 
   return (
-    <div className="min-h-screen bg-background text-foreground tracking-normal">
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md py-3"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                className="hover:bg-secondary text-muted-foreground hover:text-foreground"
-              >
-                <Icon name="ArrowLeft" size={20} />
-              </Button>
-              <div>
-                <motion.h1
-                  className="text-lg font-heading font-bold text-foreground truncate max-w-[180px] sm:max-w-xs"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2, duration: 0.6 }}
-                >
-                  {tournament.name}
-                </motion.h1>
-              </div>
-            </div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-            >
-              <ShareButton
-                variant="ghost"
-                size="sm"
-                shareData={{
-                  type: 'pairings',
-                  data: { tournament: tournament.name },
-                  url: window.location.href
-                }}
-                platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
-                position="bottom-right"
-              />
-            </motion.div>
-          </div>
-        </div>
-      </motion.header>
-
-
-
+    <div className="min-h-screen bg-white text-slate-900 tracking-normal">
       {/* Banner */}
       <PublicTournamentBanner tournament={tournament} />
 
@@ -407,6 +356,35 @@ const PublicTournamentPairings = () => {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
       >
+        {/* Navigation Row */}
+        <div className="relative flex flex-col md:flex-row items-center justify-center mb-8">
+          <button
+            onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+            className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-sm font-medium mb-2 md:mb-0"
+          >
+            <Icon name="ArrowLeft" size={16} />
+            Back to Tournament
+          </button>
+          <div className="text-center">
+
+
+          </div>
+          <div className="hidden md:absolute md:right-0 md:flex">
+            <ShareButton
+              variant="ghost"
+              size="sm"
+              shareData={{
+                type: 'pairings',
+                data: { tournament: tournament.name },
+                url: window.location.href
+              }}
+              platforms={['twitter', 'facebook', 'whatsapp', 'copy']}
+              position="bottom-right"
+            />
+          </div>
+        </div>
+
+
 
 
         {/* Tournament Info Card */}

@@ -596,19 +596,19 @@ const PublicTournamentPage = () => {
     }, [players]);
 
     if (loading) return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
             <div className="text-center space-y-4">
-                <div className="h-8 w-8 bg-muted rounded animate-pulse mx-auto"></div>
-                <p className="text-muted-foreground text-sm">Loading Tournament Portal...</p>
+                <div className="h-8 w-8 bg-slate-200 rounded animate-pulse mx-auto"></div>
+                <p className="text-slate-500 text-sm">Loading Tournament Portal...</p>
             </div>
         </div>
     );
 
     if (!tournament) return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center p-4">
-            <Icon name="SearchX" size={48} className="text-destructive opacity-50 mb-4" />
-            <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground mb-2">Tournament Not Found</h1>
-            <p className="text-muted-foreground text-sm">The tournament you're looking for doesn't exist or has been removed.</p>
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center text-center p-4">
+            <Icon name="SearchX" size={48} className="text-red-500 opacity-50 mb-4" />
+            <h1 className="text-xl sm:text-2xl font-heading font-bold text-slate-900 mb-2">Tournament Not Found</h1>
+            <p className="text-slate-500 text-sm">The tournament you're looking for doesn't exist or has been removed.</p>
         </div>
     );
 
@@ -704,76 +704,71 @@ const PublicTournamentPage = () => {
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground tracking-normal selection:bg-primary/20">
-            <Toaster position="top-center" richColors theme="system" />
+        <div className="min-h-screen bg-white text-slate-900 tracking-normal selection:bg-emerald-100">
+            <Toaster position="top-center" richColors theme="light" />
             <PlayerStatsModal player={selectedPlayer} results={results} onClose={() => setSelectedPlayer(null)} onSelectPlayer={(name) => setSelectedPlayer(players.find(p => p.name === name))} players={players} />
             <AnimatePresence>
                 {showSubmissionModal && <ResultSubmissionModal tournament={tournament} players={players} onClose={() => setShowSubmissionModal(false)} />}
             </AnimatePresence>
 
             {/* Mobile Header - Minimal & Clean */}
-            <header className="fixed top-0 left-0 right-0 z-[50] bg-background/80 backdrop-blur-md border-b border-border">
+            <header className="fixed top-0 left-0 right-0 z-[50] bg-white/80 backdrop-blur-md border-b border-slate-200">
                 <div className="w-full px-4 py-3">
                     <div className="flex items-center justify-between">
                         <div className="flex-1"></div>
                         <div className="flex-1 text-center">
-                            <h1 className="text-lg font-heading font-bold text-foreground leading-tight truncate">{tournament.name}</h1>
-                            <p className="text-xs text-muted-foreground leading-relaxed truncate mt-0.5 font-medium">{tournament.venue} • {formattedDate}</p>
+                            <h1 className="text-lg font-heading font-bold text-slate-900 leading-tight truncate">{tournament.name}</h1>
+                            <p className="text-xs text-slate-500 leading-relaxed truncate mt-0.5 font-medium">{tournament.venue} • {formattedDate}</p>
                         </div>
                         <div className="absolute top-4 right-4 z-50 print:hidden hidden">
-                            {/* <ThemeToggle variant="simple" /> */}
+
                         </div>
                     </div>
                 </div>
             </header>
 
             {/* Mobile Bottom Navigation - Monochrome */}
-            < nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background/90 backdrop-blur-lg border-t border-border pb-safe" >
+            < nav className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-lg border-t border-slate-200 pb-safe" >
                 <div className="px-2 py-2">
-                    <div className={`grid gap-1 ${tournament.is_remote_submission_enabled ? 'grid-cols-6' : 'grid-cols-5'}`}>
+                    <div className={`grid gap-1 ${tournament.is_remote_submission_enabled ? 'grid-cols-5' : 'grid-cols-4'}`}>
                         <button
                             onClick={() => scrollToRef(standingsRef)}
-                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-secondary/50 active:bg-secondary transition-colors"
+                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <Icon name="Trophy" size={20} className="text-foreground mb-1" />
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Rank</span>
+                            <Icon name="Trophy" size={20} className="text-slate-700 mb-1" />
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Rank</span>
                         </button>
                         <button
                             onClick={() => scrollToRef(pairingsRef)}
-                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-secondary/50 active:bg-secondary transition-colors"
+                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <Icon name="Swords" size={20} className="text-foreground mb-1" />
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Pair</span>
+                            <Icon name="Swords" size={20} className="text-slate-700 mb-1" />
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Pair</span>
                         </button>
                         <button
                             onClick={() => scrollToRef(rosterRef)}
-                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-secondary/50 active:bg-secondary transition-colors"
+                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <Icon name="Users" size={20} className="text-foreground mb-1" />
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">List</span>
+                            <Icon name="Users" size={20} className="text-slate-700 mb-1" />
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">List</span>
                         </button>
                         <button
                             onClick={() => scrollToRef(statsRef)}
-                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-secondary/50 active:bg-secondary transition-colors"
+                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-slate-50 active:bg-slate-100 transition-colors"
                         >
-                            <Icon name="BarChart2" size={20} className="text-foreground mb-1" />
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Stat</span>
+                            <Icon name="BarChart2" size={20} className="text-slate-700 mb-1" />
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">Stat</span>
                         </button>
                         {tournament.is_remote_submission_enabled && (
                             <button
                                 onClick={() => setShowSubmissionModal(true)}
-                                className="flex flex-col items-center justify-center py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                className="flex flex-col items-center justify-center py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                             >
                                 <Icon name="Send" size={20} className="mb-1" />
                                 <span className="text-[10px] uppercase tracking-wider font-semibold">Post</span>
                             </button>
                         )}
-                        <button
-                            className="flex flex-col items-center justify-center py-2 rounded-md hover:bg-secondary/50 active:bg-secondary transition-colors"
-                        >
-                            <ThemeToggle variant="simple" className="!w-5 !h-5" />
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mt-1">Mode</span>
-                        </button>
+
                     </div>
                 </div>
             </nav >
@@ -784,7 +779,7 @@ const PublicTournamentPage = () => {
             </div >
 
             {/* Main Content */}
-            < main className="pt-32 pb-24 lg:pt-36 lg:pb-12 bg-background min-h-screen" >
+            < main className="pt-32 pb-24 lg:pt-36 lg:pb-12 bg-white min-h-screen" >
                 <PublicTournamentBanner tournament={tournament} />
                 <div className="w-full px-4 lg:px-8 max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">

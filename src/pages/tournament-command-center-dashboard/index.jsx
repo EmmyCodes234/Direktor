@@ -14,6 +14,7 @@ import ConfirmationModal from '../../components/ConfirmationModal.jsx';
 import AnnouncementsManager from './components/AnnouncementsManager';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
+import PublicLoadingScreen from '../../components/public/PublicLoadingScreen';
 
 // Hooks
 import useMediaQuery from '../../hooks/useMediaQuery';
@@ -85,7 +86,7 @@ const TournamentCommandCenterDashboard = () => {
   }, [confirmationState]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#020617]"><div className="animate-spin h-8 w-8 border-2 border-slate-700 border-t-emerald-500 rounded-full" /></div>;
+    return <PublicLoadingScreen variant="dark" />;
   }
 
   if (!tournamentInfo) return <div className="min-h-screen bg-[#020617] p-8 text-center text-slate-400">Tournament Not Found</div>;

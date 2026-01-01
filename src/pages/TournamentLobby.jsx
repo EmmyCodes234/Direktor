@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/ui/Header';
 import Icon from '../components/AppIcon';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { Separator } from '../components/ui/Separator';
 
 import Modal from '../components/ui/Modal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import TournamentCard from '../components/tournaments/TournamentCard';
+import DirectorProfileHeader from '../components/lobby/DirectorProfileHeader';
 
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,71 +19,42 @@ import { fetchUserTournaments, deleteTournament } from '../store/slices/tourname
 import { fetchUser, signOut } from '../store/slices/authSlice';
 import { useUser } from '../store/hooks';
 import { handleError } from '../utils/errorHandler';
-import { supabase } from '../supabaseClient';
-import { LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
-import LobbyHero from '../components/lobby/LobbyHero';
-import LobbyStats from '../components/lobby/LobbyStats';
+import { LAYOUT_TEMPLATES } from '../design-system';
+import PublicLoadingScreen from '../components/public/PublicLoadingScreen';
 
 const TournamentLobby = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useUser();
-  const { list: tournaments, loading, deleting } = useAppSelector(state => state.tournaments);
+  const { list: tournaments, loading } = useAppSelector(state => state.tournaments);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [tournamentToDelete, setTournamentToDelete] = useState(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-
     const initializeApp = async () => {
       try {
         let currentUserId = user?.id;
-
-        // If no user immediately available, try to fetch session
         if (!currentUserId) {
           try {
             const userData = await dispatch(fetchUser()).unwrap();
             currentUserId = userData?.id;
-          } catch (e) {
-            // User fetch failed or no session - fail gracefully
-            console.log('No active session found during init');
-          }
+          } catch (e) { console.log('No active session found during init'); }
         }
-
-        // If we have a user now, fetch their data
         if (currentUserId && mounted) {
           await dispatch(fetchUserTournaments(currentUserId)).unwrap();
         }
       } catch (error) {
         console.error('Initialization error:', error);
-        // Only redirect on specific auth errors, otherwise let UI handle empty state
-        if (error?.message?.includes('auth')) {
-          handleError(error, 'Session expired', { redirect: '/login' });
-        }
+        if (error?.message?.includes('auth')) handleError(error, 'Session expired', { redirect: '/login' });
       } finally {
         if (mounted) setIsInitializing(false);
       }
     };
-
     initializeApp();
-
     return () => { mounted = false; };
-  }, [dispatch]); // Run once on mount
-
-
-
-  const handleLogout = async () => {
-    setUserMenuOpen(false);
-    try {
-      await dispatch(signOut()).unwrap();
-      navigate('/');
-    } catch (error) {
-      handleError(error, 'Logout failed');
-    }
-  };
+  }, [dispatch]);
 
   const handleSelectTournament = (tournament) => {
     if (tournament.status === 'draft') {
@@ -107,7 +78,6 @@ const TournamentLobby = () => {
 
   const handleDeleteTournament = async () => {
     if (!tournamentToDelete || !user?.id) return;
-
     try {
       await dispatch(deleteTournament({
         id: tournamentToDelete.id,
@@ -120,70 +90,17 @@ const TournamentLobby = () => {
     }
   };
 
-
-
   if (loading || isInitializing) {
-    return (
-      <div className="dark min-h-screen bg-[#020617]">
-        <Header />
-        <main className={cn("relative safe-area-inset-bottom", LAYOUT_TEMPLATES.page.withHeader)}>
-          <div className={LAYOUT_TEMPLATES.container['2xl']}>
-            <div className={cn(LAYOUT_TEMPLATES.spacing.sectionLg)}>
-
-              {/* LobbyHero Skeleton */}
-              <div className="w-full h-80 rounded-3xl border border-slate-800 bg-slate-900/50 shadow-sm p-8 md:p-12 mb-12 flex flex-col justify-center space-y-6">
-                <div className="h-6 w-32 bg-slate-800 rounded animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-12 w-2/3 bg-slate-800 rounded animate-pulse" />
-                  <div className="h-12 w-1/2 bg-slate-800 rounded animate-pulse" />
-                </div>
-                <div className="flex gap-4 pt-4">
-                  <div className="h-12 w-40 bg-slate-800 rounded animate-pulse" />
-                  <div className="h-12 w-32 bg-slate-800/50 rounded animate-pulse" />
-                </div>
-              </div>
-
-              {/* LobbyStats Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-32 rounded-2xl border border-slate-800 bg-slate-900/50 shadow-sm p-6 flex flex-col justify-between">
-                    <div className="flex justify-between items-center">
-                      <div className="h-4 w-24 bg-slate-800 rounded animate-pulse" />
-                      <div className="h-8 w-8 bg-slate-800 rounded animate-pulse" />
-                    </div>
-                    <div className="h-8 w-16 bg-slate-800 rounded animate-pulse" />
-                  </div>
-                ))}
-              </div>
-
-              {/* Tournament List Skeleton */}
-              <div className="space-y-4">
-                <div className="h-8 w-48 bg-slate-800 rounded animate-pulse mb-6" />
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-64 rounded-xl border border-slate-800 bg-slate-900/50 shadow-sm p-6 space-y-4">
-                      <div className="h-6 w-3/4 bg-slate-800 rounded animate-pulse" />
-                      <div className="h-4 w-full bg-slate-800/50 rounded animate-pulse" />
-                      <div className="h-4 w-2/3 bg-slate-800/50 rounded animate-pulse" />
-                      <div className="pt-4 flex gap-2">
-                        <div className="h-8 w-20 bg-slate-800/30 rounded animate-pulse" />
-                        <div className="h-8 w-20 bg-slate-800/30 rounded animate-pulse" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    return <PublicLoadingScreen variant="dark" />;
   }
 
   const officialTournaments = tournaments.filter(t => t.status !== 'draft');
   const draftTournaments = tournaments.filter(t => t.status === 'draft');
-  const userName = user?.user_metadata?.full_name || user?.email;
+  const stats = {
+    total: tournaments.length,
+    active: officialTournaments.length,
+    drafts: draftTournaments.length
+  };
 
   return (
     <>
@@ -192,156 +109,108 @@ const TournamentLobby = () => {
         onCancel={() => setShowConfirmModal(false)}
         onConfirm={handleDeleteTournament}
         title="Delete Tournament"
-        message={`Are you sure you want to permanently delete "${tournamentToDelete?.name}"? All associated data will be lost and cannot be recovered.`}
+        message={`Are you sure you want to permanently delete "${tournamentToDelete?.name}"? All associated data will be lost.`}
         confirmText="Delete Tournament"
       />
 
-      <div className={cn("dark min-h-screen bg-[#020617]", LAYOUT_TEMPLATES.page.withHeader)}>
+      <div className="dark min-h-screen bg-[#030712] text-slate-200 font-sans selection:bg-emerald-500/30">
         <Toaster position="top-center" richColors />
         <Header />
 
-        {/* Hero Background - Monochrome */}
-        <div className="absolute top-0 left-0 right-0 h-96 bg-[#020617] border-b border-border/10" />
-
-        <main className={cn("relative safe-area-inset-bottom", LAYOUT_TEMPLATES.page.withHeader)}>
-          <div className={LAYOUT_TEMPLATES.container['2xl']}>
-            {/* Enhanced Hero Header Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(LAYOUT_TEMPLATES.spacing.sectionLg)}
-            >
-              <LobbyHero
-                userName={userName}
-                tournaments={tournaments}
-                onCreateClick={() => navigate('/tournament-setup-configuration')}
-              />
-
-              <LobbyStats
-                totalTournaments={tournaments.length}
-                activeCount={officialTournaments.length}
-                draftCount={draftTournaments.length}
-              />
-            </motion.div>
+        <main className="pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          {/* New Premium Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <DirectorProfileHeader
+              user={user}
+              stats={stats}
+              onCreateClick={() => navigate('/tournament-setup-configuration')}
+            />
+          </motion.div>
 
 
+          {/* Content Area */}
+          <div className="space-y-16">
 
-            {/* Draft Tournaments Section */}
+            {/* Drafts Section */}
             {draftTournaments.length > 0 && (
               <motion.section
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className={LAYOUT_TEMPLATES.spacing.sectionLg}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
               >
-                <Card className="bg-slate-900/30 border border-white/5 shadow-sm backdrop-blur-sm">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-slate-800 border border-slate-700">
-                        <Icon name="FileText" size={20} className="text-slate-300" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-white">Draft Tournaments</h2>
-                        <p className="text-sm text-slate-400">Continue setting up your tournaments</p>
-                      </div>
-                      <Badge variant="outline" className="ml-auto bg-slate-800 text-slate-300 border-slate-700">
-                        {draftTournaments.length}
-                      </Badge>
-                    </div>
-                  </CardHeader>
+                <div className="flex items-center gap-4 mb-6">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Icon name="FileEdit" className="text-slate-500" />
+                    Drafts
+                  </h2>
+                  <div className="h-px bg-slate-800 flex-1" />
+                </div>
 
-                  <CardContent>
-                    <div className={LAYOUT_TEMPLATES.grid['3']}>
-                      {draftTournaments.map((tourney, index) => (
-                        <TournamentCard
-                          key={tourney.id}
-                          tournament={tourney}
-                          variant="draft"
-                          index={index}
-                          onSelect={handleSelectTournament}
-                          onShare={handleShareTournament}
-                          onDelete={openDeleteConfirm}
-                        />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {draftTournaments.map((tourney, index) => (
+                    <TournamentCard
+                      key={tourney.id}
+                      tournament={tourney}
+                      variant="draft"
+                      index={index}
+                      onSelect={handleSelectTournament}
+                      onShare={handleShareTournament}
+                      onDelete={openDeleteConfirm}
+                    />
+                  ))}
+                </div>
               </motion.section>
             )}
 
-            {/* Active Tournaments Section */}
+            {/* Active Section */}
             <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
             >
-              <Card className="bg-slate-900/30 border border-white/5 shadow-sm backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <Icon name="Trophy" size={20} className="text-emerald-500" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-white">Active Tournaments</h2>
-                      <p className="text-sm text-slate-400">Manage your running and completed tournaments</p>
-                    </div>
-                    {officialTournaments.length > 0 && (
-                      <Badge variant="primary" className="ml-auto bg-emerald-500 text-white border-0">
-                        {officialTournaments.length}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
+              <div className="flex items-center gap-4 mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Icon name="Trophy" className="text-emerald-500" />
+                  Active Tournaments
+                </h2>
+                <div className="h-px bg-slate-800 flex-1" />
+              </div>
 
-                <CardContent>
-                  {officialTournaments.length > 0 ? (
-                    <div className={LAYOUT_TEMPLATES.grid['3']}>
-                      {officialTournaments.map((tourney, index) => (
-                        <TournamentCard
-                          key={tourney.id}
-                          tournament={tourney}
-                          variant="default"
-                          index={index}
-                          onSelect={handleSelectTournament}
-                          onShare={handleShareTournament}
-                          onDelete={openDeleteConfirm}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.7 }}
-                      className={cn("text-center", LAYOUT_TEMPLATES.spacing.sectionLg)}
-                    >
-                      <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
-                        <Icon name="Trophy" size={40} className="text-slate-500" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white mb-3">No tournaments yet</h3>
-                      <p className="text-slate-400 mb-8 max-w-md mx-auto">
-                        Create your first tournament to start managing Scrabble competitions with ease.
-                      </p>
-                      <Button
-                        onClick={() => navigate('/tournament-setup-configuration')}
-                        iconName="Plus"
-                        iconPosition="left"
-                        variant="primary"
-                        size="lg"
-                        className="px-8 py-3 text-lg bg-emerald-600 hover:bg-emerald-500 text-white"
-                      >
-                        Create Tournament
-                      </Button>
-                    </motion.div>
-                  )}
-                </CardContent>
-              </Card>
+              {officialTournaments.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {officialTournaments.map((tourney, index) => (
+                    <TournamentCard
+                      key={tourney.id}
+                      tournament={tourney}
+                      variant="default" // You might want to enhance 'default' card style if needed, but existing is likely good
+                      index={index}
+                      onSelect={handleSelectTournament}
+                      onShare={handleShareTournament}
+                      onDelete={openDeleteConfirm}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-12 text-center">
+                  <div className="inline-flex p-4 rounded-full bg-slate-800/50 mb-4">
+                    <Icon name="LayoutGrid" className="text-slate-600 w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-300">No active tournaments</h3>
+                  <p className="text-slate-500 mt-2 max-w-sm mx-auto">
+                    Once you publish a draft, it will appear here ready for management.
+                  </p>
+                </div>
+              )}
             </motion.section>
+
           </div>
+
         </main>
       </div>
-
-
     </>
   );
 };

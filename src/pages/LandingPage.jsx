@@ -7,9 +7,60 @@ import Icon from '../components/AppIcon';
 import { MobileOptimizer } from '../components/ui/MobileOptimizer';
 import { designTokens, LAYOUT_TEMPLATES, ANIMATION_TEMPLATES } from '../design-system';
 import { cn } from '../utils/cn';
-import { BentoGrid, BentoGridItem } from '../components/landing/BentoGrid';
-import { ProductMockup } from '../components/landing/ProductMockup';
+import { InfiniteMarquee } from '../components/landing/InfiniteMarquee';
 import PublicFooter from '../components/public/PublicFooter';
+
+
+// --- Advanced Animation Components ---
+
+const SpotlightCard = ({ children, className = "" }) => {
+    const mouseX = React.useRef(0);
+    const mouseY = React.useRef(0);
+    const cardRef = React.useRef(null);
+    const [isHovered, setIsHovered] = React.useState(false);
+
+    const handleMouseMove = ({ currentTarget, clientX, clientY }) => {
+        const { left, top } = currentTarget.getBoundingClientRect();
+        mouseX.current = clientX - left;
+        mouseY.current = clientY - top;
+        if (cardRef.current) {
+            cardRef.current.style.setProperty("--mouse-x", `${mouseX.current}px`);
+            cardRef.current.style.setProperty("--mouse-y", `${mouseY.current}px`);
+        }
+    };
+
+    return (
+        <div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className={cn(
+                "group/spotlight relative rounded-3xl border border-white/10 bg-slate-900/50 overflow-hidden",
+                className
+            )}
+        >
+            <div
+                className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover/spotlight:opacity-100"
+                style={{
+                    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.15), transparent 40%)`,
+                }}
+            />
+            <div
+                className="pointer-events-none absolute -inset-px opacity-0 transition duration-300 group-hover/spotlight:opacity-100"
+                style={{
+                    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.4), transparent 40%)`,
+                    maskImage: "linear-gradient(to bottom, black, black)",
+                    WebkitMaskImage: "linear-gradient(to bottom, black, black)",
+                    zIndex: 1
+                }} // Border Glow
+            />
+            <div className="relative z-10 h-full">
+                {children}
+            </div>
+        </div>
+    );
+};
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -86,18 +137,9 @@ const LandingPage = () => {
                 />
 
                 {/* 3D Product Mockup - Floating & Glowing */}
-                <section className="px-4 -mt-20 relative z-10 mb-32">
-                    <motion.div
-                        initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ duration: 1 }}
-                        viewport={{ once: true }}
-                        className="max-w-6xl mx-auto"
-                    >
-                        <div className="rounded-xl border border-white/10 bg-[#020617]/50 backdrop-blur-xl shadow-2xl shadow-emerald-500/10 overflow-hidden ring-1 ring-white/5">
-                            <ProductMockup />
-                        </div>
-                    </motion.div>
+                {/* Bi-directional Marquee Animation */}
+                <section className="relative z-10 mb-20 border-y border-slate-800/50 bg-slate-950/50 backdrop-blur-sm">
+                    <InfiniteMarquee />
                 </section>
 
 
@@ -118,36 +160,56 @@ const LandingPage = () => {
                         </motion.div>
                     </div>
 
-                    <BentoGrid>
-                        <BentoGridItem
-                            title="AI-Powered Pairings"
-                            description="Automatically generate balanced pairings using Swiss or Round Robin algorithms. Supports Gibsonization and class avoidance."
-                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center border border-slate-700/50"><Icon name="Network" className="w-16 h-16 opacity-20 text-emerald-500" /></div>}
-                            icon={<Icon name="Network" className="h-4 w-4 text-emerald-500" />}
-                            className="md:col-span-2"
-                        />
-                        <BentoGridItem
-                            title="Real-Time Standings"
-                            description="Live leaderboards that update instantly as results are entered. Shareable links for players and spectators."
-                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center border border-slate-700/50"><Icon name="BarChart3" className="w-16 h-16 opacity-20 text-emerald-500" /></div>}
-                            icon={<Icon name="BarChart3" className="h-4 w-4 text-emerald-500" />}
-                            className="md:col-span-1"
-                        />
-                        <BentoGridItem
-                            title="Player Management"
-                            description="Comprehensive profiles, rating history, and automated conflict detection. Import rosters via CSV or NASPA ID."
-                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center border border-slate-700/50"><Icon name="Users" className="w-16 h-16 opacity-20 text-emerald-500" /></div>}
-                            icon={<Icon name="Users" className="h-4 w-4 text-emerald-500" />}
-                            className="md:col-span-1"
-                        />
-                        <BentoGridItem
-                            title="Automated Reporting"
-                            description="One-click submission to rating agencies. Detailed statistical breakdowns and prize distribution calculation."
-                            header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center border border-slate-700/50"><Icon name="FileText" className="w-16 h-16 opacity-20 text-emerald-500" /></div>}
-                            icon={<Icon name="FileText" className="h-4 w-4 text-emerald-500" />}
-                            className="md:col-span-2"
-                        />
-                    </BentoGrid>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4 relative z-20">
+                        {[
+                            {
+                                icon: "Zap",
+                                title: "Zero Latency",
+                                desc: "Websocket-powered real-time updates ensure every result syncs instantly across all devices. Experience the speed of thought.",
+                                color: "text-amber-400",
+                                gradient: "from-amber-500/20 to-transparent"
+                            },
+                            {
+                                icon: "ShieldCheck",
+                                title: "Integrity Verification",
+                                desc: "Automated conflict detection and cryptographic result signing guarantee tournament fairness. Trust is built-in.",
+                                color: "text-emerald-400",
+                                gradient: "from-emerald-500/20 to-transparent"
+                            },
+                            {
+                                icon: "Globe",
+                                title: "Global Scale",
+                                desc: "Built on edge infrastructure to handle thousands of players and millions of requests seamlessly. World-class performance.",
+                                color: "text-blue-400",
+                                gradient: "from-blue-500/20 to-transparent"
+                            }
+                        ].map((feature, i) => (
+                            <SpotlightCard key={i} className="h-full">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    viewport={{ once: true }}
+                                    className="relative p-8 h-full flex flex-col"
+                                >
+                                    {/* Background Gradient Mesh */}
+                                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${feature.gradient} blur-[60px] rounded-full pointer-events-none`} />
+
+                                    <div className="mb-6 p-4 rounded-2xl bg-slate-950/50 border border-white/5 w-fit shadow-lg shadow-black/20 backdrop-blur-sm group-hover/spotlight:scale-110 transition-transform duration-500">
+                                        <Icon name={feature.icon} className={`w-8 h-8 ${feature.color}`} />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-3 group-hover/spotlight:text-emerald-300 transition-colors">{feature.title}</h3>
+                                    <p className="text-slate-400 leading-relaxed text-sm flex-1">
+                                        {feature.desc}
+                                    </p>
+
+                                    <div className="mt-6 pt-6 border-t border-white/5 flex items-center text-sm font-medium text-emerald-500 opacity-0 -translate-x-4 group-hover/spotlight:opacity-100 group-hover/spotlight:translate-x-0 transition-all duration-300">
+                                        Learn more <Icon name="ArrowRight" className="w-4 h-4 ml-2" />
+                                    </div>
+                                </motion.div>
+                            </SpotlightCard>
+                        ))}
+                    </div>
                 </section>
 
                 <PublicFooter />

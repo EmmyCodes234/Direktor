@@ -112,10 +112,11 @@ const INITIAL_HISTORY = [
 const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onResultSubmit, onUpdateTournament, onClose }) => {
     const [history, setHistory] = useState(INITIAL_HISTORY);
     const [input, setInput] = useState('');
-    const [mode, setMode] = useState('COMMAND'); // 'COMMAND', 'SCORES', 'EDIT_SINGLE'
+    const [mode, setMode] = useState('COMMAND'); // 'COMMAND', 'SCORES', 'EDIT_SINGLE', 'MANUAL_PAIRING'
     const [activeRound, setActiveRound] = useState(null);
     const [editingMatchId, setEditingMatchId] = useState(null);
     const [roundMatches, setRoundMatches] = useState([]);
+    const [isProcessing, setIsProcessing] = useState(false);
     const inputRef = useRef(null);
     const scrollRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -449,6 +450,155 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             return;
         }
 
+        if (mode === 'MANUAL_PAIRING') {
+            if (trimmed.toLowerCase() === 'exit' || trimmed.toLowerCase() === 'done') {
+                setMode('COMMAND');
+                setActiveRound(null);
+                addToHistory('Exited Manual Pairing Mode.', 'system');
+                return;
+            }
+
+            // Parse Manual Pairing Input: "PlayerA PlayerB"
+            // Support formats: "P1, P2" or "P1 vs P2" or "P1 P2"
+            let p1Query = '';
+            let p2Query = '';
+
+            // 1. Check for Comma
+            if (trimmed.includes(',')) {
+                const parts = trimmed.split(',');
+                if (parts.length >= 2) {
+                    p1Query = parts[0].trim();
+                    p2Query = parts[1].trim();
+                }
+            }
+            // 2. Check for " vs "
+            else if (trimmed.toLowerCase().includes(' vs ')) {
+                const parts = trimmed.split(/\s+vs\s+/i);
+                if (parts.length >= 2) {
+                    p1Query = parts[0].trim();
+                    p2Query = parts[1].trim();
+                }
+            }
+            // 3. Space separated (heuristic: split at valid name boundaries? Hard.)
+            // Assumption: User entered "Name1 Name2". 
+            // If Names have spaces (e.g. "Van Damme"), this breaks.
+            // fallback: Split by first space if 2 words? 
+            // Or try to match longest prefix from start?
+            else {
+                const parts = trimmed.split(/\s+/);
+                if (parts.length === 2) {
+                    p1Query = parts[0];
+                    p2Query = parts[1];
+                } else {
+                    // Try to see if we can fuzzy match the whole string against 2 names? No.
+                    // Let's assume for now 2 words = 2 names if no comma.
+                    // If > 2 words, we can't guess easily without commas.
+                    addToHistory('Ambiguous input. Please use comma for multi-word names (e.g. "John Doe, Jane").', 'warning');
+                    return;
+                }
+            }
+
+            if (!p1Query || !p2Query) {
+                addToHistory('Invalid format. Use: "Player1, Player2" or "P1 P2"', 'error');
+                return;
+            }
+
+            // Fuzzy resolve
+            const findFuzzy = (query) => {
+                const q = normalizeStrict(query);
+                if (!q) return null;
+
+                // 1. Exact/Strict
+                const exact = players.find(p => normalizeStrict(p.name) === q || normalizeStrict(p.first_name) === q);
+                if (exact) return exact;
+
+                // 2. StartsWith
+                const starts = players.find(p => normalizeStrict(p.name).startsWith(q) || normalizeStrict(p.first_name).startsWith(q));
+                if (starts) return starts;
+
+                // 3. Jaro/Includes
+                // Sort candidates by match quality
+                const candidates = players.map(p => {
+                    const n = normalizeStrict(p.name);
+                    const fn = normalizeStrict(p.first_name);
+                    let score = 0;
+                    if (n.includes(q)) score += 0.5;
+                    if (fn.includes(q)) score += 0.5;
+                    // Jaro
+                    const j1 = jaroWinkler(n, q);
+                    const j2 = jaroWinkler(fn, q);
+                    score += Math.max(j1, j2);
+                    return { p, score };
+                }).filter(x => x.score > 0.6).sort((a, b) => b.score - a.score);
+
+                return candidates.length > 0 ? candidates[0].p : null;
+            };
+
+            const p1 = findFuzzy(p1Query);
+            const p2 = findFuzzy(p2Query);
+
+            if (!p1) {
+                addToHistory(`Player not found: "${p1Query}"`, 'error');
+                return;
+            }
+            if (!p2) {
+                addToHistory(`Player not found: "${p2Query}"`, 'error');
+                return;
+            }
+
+            if (p1.player_id === p2.player_id) {
+                addToHistory('Cannot pair player with themselves.', 'error');
+                return;
+            }
+
+            // Check if already paired in THIS round
+            const existing = tournamentInfo.pairing_schedule?.[activeRound] || [];
+            const isP1Paired = existing.some(m => m.player1?.player_id === p1.player_id || m.player2?.player_id === p1.player_id);
+            const isP2Paired = existing.some(m => m.player1?.player_id === p2.player_id || m.player2?.player_id === p2.player_id);
+
+            if (isP1Paired) {
+                addToHistory(`${p1.name} is already paired in Round ${activeRound}.`, 'error');
+                return;
+            }
+            if (isP2Paired) {
+                addToHistory(`${p2.name} is already paired in Round ${activeRound}.`, 'error');
+                return;
+            }
+
+            // Add Pairing
+            addToHistory(`Paired: ${p1.name} vs ${p2.name}`, 'success');
+
+            // Update State & DB
+            onUpdateTournament(prev => {
+                const oldRound = prev.pairing_schedule?.[activeRound] || [];
+                const maxTable = Math.max(0, ...oldRound.map(m => typeof m.table === 'number' ? m.table : 0));
+
+                const newMatch = {
+                    table: maxTable + 1,
+                    round: activeRound,
+                    player1: { ...p1, starts: true },
+                    player2: { ...p2, starts: false }
+                };
+
+                const newSchedule = {
+                    ...(prev.pairing_schedule || {}),
+                    [activeRound]: [...oldRound, newMatch]
+                };
+
+                // DB Sync
+                supabase.from('tournaments')
+                    .update({ pairing_schedule: newSchedule })
+                    .eq('id', tournamentInfo.id)
+                    .then(res => {
+                        if (res.error) toast.error('Failed to save manual pairing');
+                        else toast.success('Manual Pairing Saved');
+                    });
+
+                return { ...prev, pairing_schedule: newSchedule };
+            });
+            return;
+        }
+
         const { command, args } = resolveCommand(trimmed);
 
 
@@ -456,19 +606,83 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             case 'help':
                 addToHistory('Available commands:', 'system');
                 addToHistory('  scores <round>                - Enter result entry mode', 'info');
+                addToHistory('  man <round>                   - Manual Pairing Mode', 'info');
                 addToHistory('  miss                          - List pending matches (in SCORES mode)', 'info');
                 addToHistory('  missing <round>               - List pending matches (in COMMAND mode)', 'info');
                 addToHistory('  rosters                       - View player roster', 'info');
                 addToHistory('  sw <round> <base> <repeats>   - Generate Swiss Pairings', 'info');
                 addToHistory('  koth <repeats> <base>         - Generate KOTH Pairings', 'info');
                 addToHistory('  rr <repeats>                  - Generate Round Robin', 'info');
+                addToHistory('  quart <type> <rep> <src>      - Generate Quartile Pairings (Alias: q)', 'info');
                 addToHistory('  sp <round>                    - Show Pairings for round', 'info');
+                addToHistory('  upr <round>                   - Unpair a round', 'info');
                 addToHistory('  st                            - Show Standings (Current)', 'info');
                 addToHistory('  rs <round>                    - Show Standings for Round', 'info');
                 addToHistory('  sc                            - Show Scorecards', 'info');
                 addToHistory('  stats                         - Update/Recalc Stats', 'info');
+                addToHistory('  ratings <round>               - Calculate Glicko ratings', 'info');
                 addToHistory('  clear                         - Clear screen', 'info');
                 addToHistory('  exit                          - Close console', 'info');
+                break;
+
+            case 'ratings':
+                // Check if admin capability exists later or assume accessible for dashboard user
+                if (!args[0]) {
+                    addToHistory('Usage: ratings <round_number> or <start>-<end>', 'error');
+                    break;
+                }
+
+                let startRound, endRound;
+                if (args[0].includes('-')) {
+                    const parts = args[0].split('-');
+                    startRound = parseInt(parts[0]);
+                    endRound = parseInt(parts[1]);
+                } else {
+                    startRound = parseInt(args[0]);
+                    endRound = startRound;
+                }
+
+                if (isNaN(startRound) || isNaN(endRound)) {
+                    addToHistory('Invalid round number(s).', 'error');
+                    break;
+                }
+
+                setIsProcessing(true);
+
+                try {
+                    const { processRoundRatings } = await import('../../../services/ratingService');
+
+                    for (let r = startRound; r <= endRound; r++) {
+                        addToHistory(`Processing Round ${r}...`, 'info');
+                        const result = await processRoundRatings(tournamentInfo.id, r);
+
+                        // Show verbose logs if available
+                        if (result.logs && result.logs.length > 0) {
+                            result.logs.forEach(log => {
+                                let type = 'info';
+                                if (log.startsWith('[Error]')) type = 'error';
+                                if (log.startsWith('[Success]')) type = 'success';
+                                if (log.startsWith('[Debug]')) type = 'warning';
+                                addToHistory(log, type);
+                            });
+                        }
+
+                        if (result.success) {
+                            addToHistory(`Round ${r}: Updated ${result.updated} players.`, 'success');
+                        } else {
+                            addToHistory(`Round ${r} Failed: ${result.message || 'Unknown error'}`, 'error');
+                            // If a round fails in a chain, we should probably stop to preserve integrity
+                            addToHistory('Batch processing stopped due to error.', 'error');
+                            break;
+                        }
+                    }
+                    addToHistory('Batch processing complete.', 'success');
+
+                } catch (err) {
+                    addToHistory(`Error: ${err.message}`, 'error');
+                } finally {
+                    setIsProcessing(false);
+                }
                 break;
 
             case 'clear':
@@ -506,47 +720,66 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             case 'leaderboard': // was st
             case 'rs': // Round Standings (not mapped, kept as is)
 
-                const targetRound = (command === 'st' || command === 'leaderboard')
-                    ? (tournamentInfo.currentRound || 1)
-                    : parseInt(args[0]);
-                if (command === 'rs' && isNaN(targetRound)) {
-                    addToHistory('Usage: rs <round>', 'error');
+                if (!args[0] && command === 'rs') {
+                    addToHistory('Usage: rs <round> or <start>-<end>', 'error');
                     break;
                 }
 
-                addToHistory(`Round ${targetRound} Standings`, 'system');
-                addToHistory('', 'info');
-                addToHistory('Rnk Won-Lost Sprd Player                   Last Game', 'info');
-
-                // Calculate standings for the specific round or use live ranked players
-                let sortedStandings;
-                if (command === 'rs') {
-                    const filteredResults = results.filter(r => r.round <= targetRound);
-                    // We need to use the original players list for calculation, not the already ranked one to avoid seed confusion
-                    // But 'players' here is actually rankedPlayers from index.jsx. 
-                    // Let's assume we want to recalculate based on the results.
-                    sortedStandings = calculateStandings(players, filteredResults, matches, tournamentInfo);
+                // Parse Range or Single Round
+                let stStart, stEnd;
+                if (command === 'st' || command === 'leaderboard') {
+                    stStart = tournamentInfo.currentRound || 1;
+                    stEnd = stStart;
                 } else {
-                    // st command uses the already ranked players passed from parent
-                    sortedStandings = [...players].sort((a, b) => a.rank - b.rank);
+                    if (args[0].includes('-')) {
+                        const parts = args[0].split('-');
+                        stStart = parseInt(parts[0]);
+                        stEnd = parseInt(parts[1]);
+                    } else {
+                        stStart = parseInt(args[0]);
+                        stEnd = stStart;
+                    }
                 }
 
-                sortedStandings.forEach((p, idx) => {
-                    const rnk = String(idx + 1).padStart(3);
-                    const w = p.wins || 0;
-                    const l = p.losses || 0;
-                    const t = p.ties || 0;
-                    const adjWins = w + (t * 0.5);
-                    const adjLosses = l + (t * 0.5);
-                    const record = (t > 0
-                        ? `${adjWins.toFixed(1)}-${adjLosses.toFixed(1)}`
-                        : `${adjWins}-${adjLosses}`).padEnd(8);
-                    const sprd = (p.spread >= 0 ? '+' : '') + String(p.spread).padStart(4);
-                    const playerStr = `${p.name} (#${p.rank})`.padEnd(25);
-                    const lastGame = getLastGame(p.player_id, targetRound);
+                if (isNaN(stStart) || isNaN(stEnd)) {
+                    addToHistory('Invalid round number(s).', 'error');
+                    break;
+                }
 
-                    addToHistory(`${rnk} ${record} ${sprd} ${playerStr} ${lastGame}`, 'info');
-                });
+                for (let r = stStart; r <= stEnd; r++) {
+                    const targetRound = r;
+                    addToHistory(`Round ${targetRound} Standings`, 'system');
+                    addToHistory('', 'info');
+                    addToHistory('Rnk Won-Lost Sprd Player                   Last Game', 'info');
+
+                    // Calculate standings for the specific round or use live ranked players
+                    let sortedStandings;
+                    if (command === 'rs') {
+                        const filteredResults = results.filter(res => res.round <= targetRound);
+                        sortedStandings = calculateStandings(players, filteredResults, matches, tournamentInfo);
+                    } else {
+                        // st command uses the already ranked players passed from parent
+                        sortedStandings = [...players].sort((a, b) => a.rank - b.rank);
+                    }
+
+                    sortedStandings.forEach((p, idx) => {
+                        const rnk = String(idx + 1).padStart(3);
+                        const w = p.wins || 0;
+                        const l = p.losses || 0;
+                        const t = p.ties || 0;
+                        const adjWins = w + (t * 0.5);
+                        const adjLosses = l + (t * 0.5);
+                        const record = (t > 0
+                            ? `${adjWins.toFixed(1)}-${adjLosses.toFixed(1)}`
+                            : `${adjWins}-${adjLosses}`).padEnd(8);
+                        const sprd = (p.spread >= 0 ? '+' : '') + String(p.spread).padStart(4);
+                        const playerStr = `${p.name} (#${p.rank})`.padEnd(25);
+                        const lastGame = getLastGame(p.player_id, targetRound);
+
+                        addToHistory(`${rnk} ${record} ${sprd} ${playerStr} ${lastGame}`, 'info');
+                    });
+                    addToHistory('----------------------------------------', 'info');
+                }
                 break;
 
             case 'matchlog': // was sc
@@ -659,30 +892,44 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             case 'sp': // Show Pairings
 
                 if (args.length === 0) {
-                    addToHistory('Usage: sp <round>', 'error');
-                    return;
+                    addToHistory('Usage: sp <round> or <start>-<end>', 'error');
+                    break;
                 }
-                const spRound = parseInt(args[0]);
-                if (isNaN(spRound)) {
-                    addToHistory('Invalid round number.', 'error');
-                    return;
-                }
-                const showMatches = getMatchesForRound(spRound);
-                if (showMatches.length === 0) {
-                    addToHistory(`No pairings found for Round ${spRound}.`, 'warning');
-                } else {
-                    addToHistory(`Round ${spRound} Ranked Pairings`, 'system');
-                    addToHistory('', 'info');
-                    addToHistory('Board Who Plays Whom', 'info');
-                    showMatches.forEach((m, idx) => {
-                        const p1Name = getPlayerName(m.player1_id);
-                        const p2Name = getPlayerName(m.player2_id);
-                        const p1Seed = getPlayerSeed(m.player1_id);
-                        const p2Seed = getPlayerSeed(m.player2_id);
-                        const board = String(idx + 1).padStart(4);
 
-                        addToHistory(`${board}  ${p1Name} (#${p1Seed}) *first* vs. ${p2Name} (#${p2Seed}).`, 'info');
-                    });
+                let spStart, spEnd;
+                if (args[0].includes('-')) {
+                    const parts = args[0].split('-');
+                    spStart = parseInt(parts[0]);
+                    spEnd = parseInt(parts[1]);
+                } else {
+                    spStart = parseInt(args[0]);
+                    spEnd = spStart;
+                }
+
+                if (isNaN(spStart) || isNaN(spEnd)) {
+                    addToHistory('Invalid round number(s).', 'error');
+                    break;
+                }
+
+                for (let r = spStart; r <= spEnd; r++) {
+                    const showMatches = getMatchesForRound(r);
+                    if (showMatches.length === 0) {
+                        addToHistory(`No pairings found for Round ${r}.`, 'warning');
+                    } else {
+                        addToHistory(`Round ${r} Ranked Pairings`, 'system');
+                        addToHistory('', 'info');
+                        addToHistory('Board Who Plays Whom', 'info');
+                        showMatches.forEach((m, idx) => {
+                            const p1Name = getPlayerName(m.player1_id);
+                            const p2Name = getPlayerName(m.player2_id);
+                            const p1Seed = getPlayerSeed(m.player1_id);
+                            const p2Seed = getPlayerSeed(m.player2_id);
+                            const board = String(idx + 1).padStart(4);
+
+                            addToHistory(`${board}  ${p1Name} (#${p1Seed}) *first* vs. ${p2Name} (#${p2Seed}).`, 'info');
+                        });
+                        addToHistory('----------------------------------------', 'info');
+                    }
                 }
                 break;
 
@@ -875,6 +1122,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory(`[OK] Generated ${individualPairings.length} matches for Round ${trrRound}.`, 'success');
                 break;
 
+            case 'quart':
             case 'q': // Quartile Pairing: q [type] [repeats] [source]
                 // Parse Args
                 if (args.length < 3) {
@@ -1223,6 +1471,77 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 }
                 break;
 
+            case 'commentary':
+            case 'comm': // Alias
+                if (args.length === 0) {
+                    addToHistory('Usage: commentary <round>', 'error');
+                    return;
+                }
+                const commRound = parseInt(args[0]);
+                if (isNaN(commRound)) {
+                    addToHistory('Invalid round number.', 'error');
+                    return;
+                }
+
+                // 1. Gather Data
+                addToHistory(`[AI] Gathering data for Round ${commRound}...`, 'system');
+
+                // Get results UP TO this round for standings context
+                const resultsSoFar = results.filter(r => r.round <= commRound);
+                if (resultsSoFar.length === 0) {
+                    addToHistory(`No results found up to Round ${commRound}.`, 'error');
+                    return;
+                }
+
+                // Calculate standings at that point
+                const commStandings = calculateStandings(players, resultsSoFar, [], tournamentInfo);
+
+                // Get specific round results for "Key Matchups" usage
+                const commRoundResults = resultsSoFar.filter(r => r.round === commRound);
+
+                // Format top matches for the service
+                // Find top 10 logic or just grab the ones played by top ranked players?
+                // The service expects [{ p1, p2, winner, score }]
+                // Let's grab pairings involving top 10 seeds or top 10 current ranks
+                const topRankIds = new Set(commStandings.slice(0, 8).map(p => p.player_id));
+                const highlightMatches = commRoundResults.filter(r =>
+                    topRankIds.has(r.player1_id) || topRankIds.has(r.player2_id)
+                ).map(r => {
+                    const p1 = players.find(p => p.player_id === r.player1_id)?.name || 'Unknown';
+                    const p2 = players.find(p => p.player_id === r.player2_id)?.name || 'Unknown';
+                    const w = r.score1 > r.score2 ? p1 : p2;
+                    return { p1, p2, winner: w, score: `${r.score1}-${r.score2}` };
+                });
+
+                // 2. Call AI
+                addToHistory(`[AI] Generating commentary with Cerebras...`, 'info');
+                try {
+                    const report = await CerebrasService.generateDetailedRoundReport(commStandings, commRound, highlightMatches);
+
+                    if (report && !report.error && report.summary !== 'No content generated') {
+                        // 3. Save to DB
+                        const { error: dbError } = await supabase
+                            .from('round_commentaries')
+                            .upsert({
+                                tournament_id: tournamentInfo.id,
+                                round: commRound,
+                                content: report,
+                                created_at: new Date()
+                            }, { onConflict: 'tournament_id, round' });
+
+                        if (dbError) throw dbError;
+
+                        addToHistory(`[SUCCESS] Commentary for Round ${commRound} generated and saved!`, 'success');
+                        addToHistory(`Summary: ${report.summary}`, 'info');
+                    } else {
+                        addToHistory(`[AI] Generation failed or returned empty.`, 'error');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    addToHistory(`[ERR] Failed: ${err.message}`, 'error');
+                }
+                break;
+
             case 'insights':
                 if (args.length === 0) {
                     addToHistory('Usage: insights [round | player <name>]', 'info');
@@ -1383,6 +1702,102 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 performDeletes(); // async call
                 break;
 
+            case 'upr': // unpair round <round>
+                if (args.length < 1) {
+                    addToHistory('Usage: upr <round>', 'error');
+                    break;
+                }
+                const uprRoundStr = args[0];
+                const uprRound = parseInt(uprRoundStr);
+
+                if (isNaN(uprRound)) {
+                    addToHistory('Invalid round number.', 'error');
+                    break;
+                }
+
+                // Check if round has ANY completed results
+                const hasResults = results.some(r => r.round === uprRound);
+                if (hasResults) {
+                    addToHistory(`Cannot unpair Round ${uprRound}. Results exist. Delete them first using 'delete' command or clear the round.`, 'error');
+                    break;
+                }
+
+                // Check if round exists in schedule
+                const currentSchedule = tournamentInfo.pairing_schedule || {};
+                // Note: pairing_schedule keys are strings in JSON, but we use integer access usually.
+                // Let's check if there are matches for this round in the schedule map
+                if (!currentSchedule[uprRound]) {
+                    addToHistory(`Round ${uprRound} is not paired or not found in schedule.`, 'warning');
+                    // Continue anyway? Use force? No, just return.
+                    break;
+                }
+
+                // Proceed to unpair
+                // We update local state via onUpdateTournament which will merge the changes
+                onUpdateTournament(prev => {
+                    const newSchedule = { ...prev.pairing_schedule };
+                    delete newSchedule[uprRound];
+
+                    // Determine new current round.
+                    // If we unpair the CURRENT round, we step back.
+                    // If we unpair a FUTURE round, current round stays same.
+                    // If we unpair a PAST round (but no results?), we stay same?
+                    // Safe bet: If uprRound == prev.current_round, step back.
+                    let newCurrentRound = prev.currentRound;
+                    if (prev.currentRound === uprRound) {
+                        newCurrentRound = Math.max(0, uprRound - 1);
+                    }
+
+                    // Async Update DB
+                    supabase.from('tournaments')
+                        .update({
+                            pairing_schedule: newSchedule,
+                            current_round: newCurrentRound
+                        })
+                        .eq('id', tournamentInfo.id)
+                        .then(res => {
+                            if (res.error) {
+                                toast.error("Unpair Failed");
+                                addToHistory(`[ERR] Database update failed: ${res.error.message}`, 'error');
+                            } else {
+                                toast.success(`Round ${uprRound} Unpaired`);
+                            }
+                        });
+
+                    return {
+                        ...prev,
+                        pairing_schedule: newSchedule,
+                        currentRound: newCurrentRound
+                    };
+                });
+
+                addToHistory(`Round ${uprRound} pairings removed.`, 'success');
+                break;
+
+            case 'man': // manual pairing
+                if (args.length < 1) {
+                    addToHistory('Usage: man <round>', 'error');
+                    break;
+                }
+                const manRound = parseInt(args[0]);
+                if (isNaN(manRound)) {
+                    addToHistory('Invalid round number.', 'error');
+                    break;
+                }
+
+                setActiveRound(manRound);
+                setMode('MANUAL_PAIRING');
+                addToHistory(`ENTERING MANUAL PAIRING MODE FOR ROUND ${manRound}`, 'success');
+                addToHistory('Enter pairings as: "Player1, Player2" (use comma)', 'system');
+                addToHistory('Type "exit" or "done" to finish.', 'system');
+
+                // Show existing
+                const existingMan = (tournamentInfo.pairing_schedule?.[manRound] || []).length;
+                if (existingMan > 0) {
+                    addToHistory(`(Round ${manRound} has ${existingMan} existing pairings)`, 'info');
+                }
+                break;
+
             case 'rosters':
                 const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ? tournamentInfo.divisions : [{ name: 'Open' }];
                 let totalPlayers = 0;
@@ -1459,6 +1874,42 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             addToHistory(`Generating ${command.toUpperCase()} pairings for Round ${targetRound}...`, 'system');
 
             // --- Pairing Logic Wrapper ---
+
+            // Check for conflict
+            const existingPairings = tournamentInfo.pairing_schedule?.[targetRound] || [];
+            let appendMode = false;
+            const pairedPlayerIds = new Set();
+            let startTable = 1;
+
+            if (existingPairings.length > 0) {
+                addToHistory(`Round ${targetRound} has ${existingPairings.length} existing pairings.`, 'warning');
+                addToHistory('[A]ppend to existing or [O]verwrite? (a/o)', 'warning');
+
+                const choice = await new Promise(resolve => {
+                    confirmationResolver.current = resolve;
+                });
+
+                if (choice === 'a' || choice === 'append') {
+                    appendMode = true;
+                    addToHistory('Appending to existing pairings...', 'info');
+                    // Index existing players
+                    existingPairings.forEach(p => {
+                        pairedPlayerIds.add(String(p.player1?.player_id || p.player1?.id));
+                        if (p.player2 && !p.player2.isBye) pairedPlayerIds.add(String(p.player2.player_id || p.player2.id));
+                    });
+                    // Find max table
+                    const tables = existingPairings.map(p => typeof p.table === 'number' ? p.table : 0);
+                    if (tables.length > 0) startTable = Math.max(...tables) + 1;
+
+                } else if (choice === 'o' || choice === 'overwrite') {
+                    addToHistory('Overwriting existing pairings.', 'info');
+                    // Default behavior (overwrite)
+                } else {
+                    addToHistory('Operation Valid. Cancelled.', 'error'); // Typo in prompt logic? No, just cancel.
+                    return;
+                }
+            }
+
             // 1. Prepare Data
             const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ?
                 tournamentInfo.divisions : [{ name: 'Open' }];
@@ -1467,14 +1918,15 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
 
             let newSchedule = { ...(tournamentInfo.pairing_schedule || {}) };
             let totalPairs = 0;
-            let allRoundPairings = []; // Accumulator
-            let tableOffset = 1; // Running Table Counter
+            let allRoundPairings = []; // Accumulator for NEW pairings
+            let tableOffset = startTable; // Running Table Counter
 
             // Process by division
             for (const division of divisions) {
                 const divisionPlayers = players.filter(p =>
                     (p.division === division.name || (divisions.length === 1 && division.name === 'Open')) &&
-                    !p.withdrawn && p.status !== 'paused'
+                    !p.withdrawn && p.status !== 'paused' &&
+                    !pairedPlayerIds.has(String(p.player_id || p.id))
                 );
 
                 if (divisionPlayers.length === 0) continue;
@@ -1573,13 +2025,16 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 // We don't do the single-round assignment.
             } else {
                 // Standard Single Round Assignment
-                newSchedule[targetRound] = allRoundPairings.map((p, i) => ({
+                // If Append Mode, we need to merge with existing
+                const currentForRound = appendMode ? (existingPairings || []) : [];
+
+                newSchedule[targetRound] = [...currentForRound, ...allRoundPairings.map((p, i) => ({
                     ...p,
                     round: targetRound,
                     table_number: p.table,
                     player1_id: p.player1.player_id,
                     player2_id: p.player2?.player_id
-                }));
+                }))];
             }
 
 
@@ -1960,7 +2415,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
-            if (mode === 'COMMAND') {
+            if (mode === 'COMMAND' || mode === 'MANUAL_PAIRING') {
                 handleCommand(input);
             } else if (mode === 'EDIT_SINGLE') {
                 handleEditEntry(input);

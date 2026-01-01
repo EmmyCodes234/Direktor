@@ -3,16 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/ui/Header';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import FileUpload from '../components/ui/FileUpload';
+import { countries } from '../utils/countries';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import { motion } from 'framer-motion';
 import { useOnboarding } from '../components/onboarding/OnboardingProvider';
+import { useAppDispatch } from '../store/hooks';
+import { setUser as setAuthUser } from '../store/slices/authSlice';
 
 const ProfileSettings = () => {
     const navigate = useNavigate();
+    const dispatch = useAppDispatch();
     const { resetOnboarding } = useOnboarding();
     const [user, setUser] = useState(null);
     const [fullName, setFullName] = useState('');
+    const [countryCode, setCountryCode] = useState('');
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [previewAvatar, setPreviewAvatar] = useState(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -21,6 +30,8 @@ const ProfileSettings = () => {
             if (session?.user) {
                 setUser(session.user);
                 setFullName(session?.user?.user_metadata?.full_name || '');
+                setCountryCode(session?.user?.user_metadata?.country || '');
+                setPreviewAvatar(session?.user?.user_metadata?.avatar_url || null);
             } else {
                 navigate('/login');
             }
@@ -28,19 +39,53 @@ const ProfileSettings = () => {
         fetchUser();
     }, [navigate]);
 
+    const handleAvatarChange = (file) => {
+        if (file) {
+            setAvatarFile(file);
+            setPreviewAvatar(URL.createObjectURL(file));
+        }
+    };
+
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setLoading(true);
         try {
+            let avatarUrl = user.user_metadata?.avatar_url;
+
+            if (avatarFile) {
+                const fileExt = avatarFile.name.split('.').pop();
+                const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('avatars')
+                    .upload(fileName, avatarFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('avatars')
+                    .getPublicUrl(fileName);
+
+                avatarUrl = publicUrl;
+            }
+
             const { data, error } = await supabase.auth.updateUser({
-                data: { full_name: fullName }
+                data: {
+                    full_name: fullName,
+                    country: countryCode ? countryCode.toLowerCase() : null,
+                    avatar_url: avatarUrl
+                }
             });
 
             if (error) throw error;
 
+            if (data?.user) {
+                dispatch(setAuthUser(data.user));
+            }
+
             toast.success("Profile updated successfully!");
         } catch (error) {
             toast.error(error.message);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -83,6 +128,44 @@ const ProfileSettings = () => {
                         {/* Profile Card */}
                         <div className="bg-slate-900/50 backdrop-blur-md border border-white/10 rounded-2xl p-8 shadow-xl">
                             <form onSubmit={handleUpdateProfile} className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium leading-none text-slate-200">
+                                        Profile Picture
+                                    </label>
+                                    <div className="flex items-center gap-6">
+                                        <div className="relative">
+                                            <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-700 bg-slate-800">
+                                                {previewAvatar ? (
+                                                    <img
+                                                        src={previewAvatar}
+                                                        alt="Profile"
+                                                        className="w-full h-full object-cover"
+                                                        onError={() => setPreviewAvatar(null)}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold text-2xl">
+                                                        {fullName ? fullName.charAt(0).toUpperCase() : '?'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <FileUpload
+                                                accept="image/*"
+                                                maxSize={5 * 1024 * 1024} // 5MB
+                                                maxFiles={1}
+                                                onChange={(file) => handleAvatarChange(file)}
+                                                showPreview={false}
+                                                className="w-full"
+                                                size="sm"
+                                            />
+                                            <p className="text-xs text-slate-500 mt-2">
+                                                Recommended: Square JPG, PNG. Max 5MB.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <Input
                                     label="Email Address"
                                     name="email"
@@ -102,6 +185,18 @@ const ProfileSettings = () => {
                                     required
                                     className="bg-slate-900/50 border-slate-700 text-white focus:border-emerald-500"
                                 />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Select
+                                        label="Country"
+                                        options={countries}
+                                        value={countryCode}
+                                        onChange={setCountryCode}
+                                        searchable
+                                        placeholder="Select your country"
+                                        className="bg-slate-900/50 border-slate-700 text-white"
+                                        description="Used for your flag badge."
+                                    />
+                                </div>
                                 <div className="pt-4 flex flex-col sm:flex-row justify-end gap-4">
                                     <Button
                                         variant="outline"

@@ -45,6 +45,8 @@ import PublicLowSpreads from "pages/PublicLowSpreads";
 import PublicGiantKillers from "pages/PublicGiantKillers";
 import PublicRoundScores from "pages/PublicRoundScores";
 import RemoteResultsSubmission from "pages/RemoteResultsSubmission";
+import PublicRoundCommentary from "pages/PublicRoundCommentary";
+import PublicRoundRatings from "pages/PublicRoundRatings";
 
 const Routes = () => {
   return (
@@ -79,6 +81,8 @@ const Routes = () => {
           <Route path="/tournament/:tournamentSlug/match-log" element={<PublicTournamentScorecards />} />
           <Route path="/tournament/:tournamentSlug/live-streamboard" element={<PublicEnhancedScoreboard />} />
           <Route path="/tournament/:tournamentSlug/insights" element={<PublicRoundInsights />} />
+          <Route path="/tournament/:tournamentSlug/commentary/:round" element={<PublicRoundCommentary />} />
+          <Route path="/tournament/:tournamentSlug/ratings/:round" element={<PublicRoundRatings />} />
 
           {/* Admin/Dashboard Routes */}
           <Route path="/tournament/:tournamentSlug/dashboard" element={<TournamentCommandCenterDashboard />} />

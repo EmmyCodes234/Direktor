@@ -86,10 +86,11 @@ const PublicHighCombinedScore = () => {
                     <h2 className="text-xl md:text-2xl font-bold font-serif text-center">Shootouts</h2>
                 </div>
 
-                <div className="overflow-x-auto shadow-sm border border-gray-100 rounded-lg">
-                    <table className="w-full text-xs md:text-sm border-collapse font-sans min-w-[600px]">
+                {/* Desktop View */}
+                <div className="hidden md:block overflow-x-auto shadow-sm border border-gray-100 rounded-lg">
+                    <table className="w-full text-sm border-collapse font-sans">
                         <thead>
-                            <tr className="text-center font-bold text-xs md:text-base border-b border-gray-200 bg-gray-50">
+                            <tr className="text-center font-bold text-base border-b border-gray-200 bg-gray-50">
                                 <th className="p-2 pb-3 w-16">Round</th>
                                 <th className="p-2 pb-3">Combined<br />Score</th>
                                 <th className="p-2 pb-3">Winning<br />Score</th>
@@ -121,6 +122,28 @@ const PublicHighCombinedScore = () => {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="md:hidden space-y-3">
+                    {statsData.map((match, idx) => (
+                        <div key={match.id || idx} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                            <div className="flex justify-between items-center mb-2 border-b border-gray-100 pb-2">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Round {match.round}</span>
+                                <span className="text-lg font-mono font-bold text-slate-900">{match.combined} <span className="text-xs text-gray-400 font-sans font-normal ml-1">pts</span></span>
+                            </div>
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-medium text-slate-900 truncate pr-2">{match.winnerName}</span>
+                                    <span className="font-mono font-bold text-green-700">{match.winnerScore}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 truncate pr-2">{match.loserName}</span>
+                                    <span className="font-mono font-medium text-red-600">{match.loserScore}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

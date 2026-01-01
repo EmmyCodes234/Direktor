@@ -110,42 +110,35 @@ const PublicTournamentScorecards = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background font-sans">
+        <div className="min-h-screen bg-white text-slate-900 font-sans">
             <PublicTournamentBanner tournament={tournament} />
 
             <div className="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
-                {/* Header */}
-                <div className="flex flex-col items-center justify-center text-center gap-4 mb-8">
-                    <div className="w-full">
-                        <div className="flex justify-between items-center mb-6 no-print">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <Icon name="ArrowLeft" size={20} />
-                            </Button>
-                        </div>
-                        <h2 className="text-2xl md:text-3xl font-bold text-black mb-1 font-heading uppercase tracking-tight">
-                            Player Scorecards
-                        </h2>
-                        <p className="text-muted-foreground text-lg font-medium">
-                            {tournament?.name}
-                        </p>
+                {/* Navigation Row */}
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-8">
+                    <button
+                        onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+                        className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-sm font-medium mb-2 md:mb-0"
+                    >
+                        <Icon name="ArrowLeft" size={16} />
+                        Back to Tournament
+                    </button>
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-slate-900 font-heading uppercase tracking-tight">Player Scorecards</h2>
+                        <p className="text-muted-foreground text-lg font-medium">{tournament?.name}</p>
                     </div>
-                </div>
-
-                {/* Search */}
-                <div className="relative mb-6">
-                    <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Search players..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-base"
-                    />
+                    <div className="md:absolute md:right-0 mt-4 md:mt-0">
+                        <div className="relative">
+                            <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search players..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm w-48 sm:w-64"
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 {/* Scorecards List */}

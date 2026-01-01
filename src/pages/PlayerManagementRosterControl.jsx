@@ -43,7 +43,7 @@ const PlayerManagementRosterControl = () => {
         const { data, error } = await supabase
             .from('tournament_players')
             .select(`
-                status, wins, losses, ties, spread, seed, rank, team_id,
+                status, wins, losses, ties, spread, seed, rank, team_id, class,
                 players (*)
             `)
             .eq('tournament_id', tournamentId);
@@ -230,7 +230,8 @@ const PlayerManagementRosterControl = () => {
                 name: updatedPlayerData.name,
                 email: updatedPlayerData.email,
                 rating: updatedPlayerData.rating,
-                photo_url: photoUrl
+                photo_url: photoUrl,
+                gender: updatedPlayerData.gender
             })
             .eq('id', updatedPlayerData.id);
 
@@ -242,9 +243,8 @@ const PlayerManagementRosterControl = () => {
         }
     };
 
-    const handleAddPlayer = async (e) => {
-        e.preventDefault();
-        const playerName = formData.name;
+    const handleAddPlayer = async (name, rating) => {
+        const playerName = name;
         if (!playerName) return;
 
         const { data: existingPlayer } = await supabase
@@ -259,7 +259,7 @@ const PlayerManagementRosterControl = () => {
         } else {
             const { data: newPlayer, error: newPlayerError } = await supabase
                 .from('players')
-                .insert({ name: playerName, rating: formData.rating || null }) // Include rating if new
+                .insert({ name: playerName, rating: rating || null })
                 .select('id')
                 .single();
             if (newPlayerError) {
@@ -269,6 +269,14 @@ const PlayerManagementRosterControl = () => {
             playerId = newPlayer.id;
         }
 
+        // Auto-determine class
+        let assignedClass = null;
+        if (rating && tournamentInfo.class_definitions) {
+            const numRating = parseInt(rating);
+            const def = tournamentInfo.class_definitions.find(d => numRating >= d.min && numRating <= d.max);
+            if (def) assignedClass = def.name;
+        }
+
         const { error: joinError } = await supabase
             .from('tournament_players')
             .insert({
@@ -276,7 +284,8 @@ const PlayerManagementRosterControl = () => {
                 player_id: playerId,
                 seed: players.length + 1,
                 rank: players.length + 1,
-                division: formData.division || null, // Add division if provided
+                division: formData.division || null,
+                class: assignedClass,
                 match_wins: 0,
                 match_losses: 0
             });
@@ -293,7 +302,7 @@ const PlayerManagementRosterControl = () => {
 
     // --- 3. UI Event Handlers ---
 
-    const resetForm = () => setFormData({ name: '', rating: '', division: '', club: '' });
+    const resetForm = () => setFormData({ name: '', rating: '', division: '', club: '', gender: '' });
 
     const openEditModal = (player) => {
         setPlayerToEdit(player);
@@ -302,7 +311,8 @@ const PlayerManagementRosterControl = () => {
             name: player.name,
             rating: player.rating || '',
             division: player.division || '',
-            club: player.club || ''
+            club: player.club || '',
+            gender: player.gender || ''
         });
         setIsEditModalOpen(true);
     };
@@ -368,10 +378,36 @@ const PlayerManagementRosterControl = () => {
             name: formData.name,
             rating: formData.rating,
             division: formData.division,
-            club: formData.club
+            club: formData.club,
+            gender: formData.gender
         }, null);
         setIsEditModalOpen(false);
     };
+
+    // ... (retaining the Effects and UI but focusing on the Edit Modal render below)
+
+    // Inside Edit Modal render:
+    /*
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-medium mb-1">Gender (AI Pronouns)</label>
+                <select
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                >
+                    <option value="">Unknown</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div>
+                 <label className="block text-sm font-medium mb-1">Rating</label>
+                 ...
+            </div>
+        </div>
+    */
+
 
     // --- 4. Effects & Computing ---
 
@@ -381,7 +417,7 @@ const PlayerManagementRosterControl = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('tournaments')
-                .select('id, pairing_schedule, slug, divisions')
+                .select('id, pairing_schedule, slug, divisions, class_definitions')
                 .eq('slug', tournamentSlug)
                 .single();
 
@@ -503,9 +539,9 @@ const PlayerManagementRosterControl = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${player.status === 'paused' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' :
-                                                    !player.withdrawn
-                                                        ? 'bg-green-500/10 text-green-600 border-green-500/20'
-                                                        : 'bg-red-500/10 text-red-600 border-red-500/20'
+                                                !player.withdrawn
+                                                    ? 'bg-green-500/10 text-green-600 border-green-500/20'
+                                                    : 'bg-red-500/10 text-red-600 border-red-500/20'
                                                 }`}>
                                                 {player.status === 'paused' ? 'Paused' : (!player.withdrawn ? 'Active' : 'Withdrawn')}
                                             </div>
@@ -627,6 +663,19 @@ const PlayerManagementRosterControl = () => {
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Gender (AI Pronouns)</label>
+                        <select
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            value={formData.gender}
+                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                        >
+                            <option value="">Unknown</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>

@@ -183,9 +183,9 @@ const PublicTournamentRoster = () => {
 
     if (!tournament) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-xl font-heading font-bold text-foreground mb-2">Tournament Not Found</h2>
+                    <h2 className="text-xl font-heading font-bold text-slate-900 mb-2">Tournament Not Found</h2>
                 </div>
             </div>
         );
@@ -193,54 +193,41 @@ const PublicTournamentRoster = () => {
 
     return (
         <div className="min-h-screen bg-white text-black font-serif">
-            {/* Header */}
-            <motion.header
-                className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur-sm py-2 print:hidden"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-            >
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-                            className="hover:bg-gray-100 text-gray-600 hover:text-black"
-                        >
-                            <Icon name="ArrowLeft" size={20} />
-                            <span className="ml-2">Back to Tournament</span>
-                        </Button>
-
-                        <div className="flex gap-2">
-                            {/* Simple minimal search input in header to keep clean */}
-                            <div className="relative">
-                                <Icon name="Search" className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Search..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-8 pr-3 py-1 bg-gray-50 border border-gray-200 rounded text-sm w-32 focus:w-48 transition-all focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
+            <PublicTournamentBanner tournament={tournament} />
+            <main className="w-full px-4 sm:px-6 lg:px-8 py-8 text-center max-w-7xl mx-auto">
+                {/* Navigation Row */}
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-8">
+                    <button
+                        onClick={() => navigate(`/tournament/${tournamentSlug}`)}
+                        className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-sm font-medium mb-2 md:mb-0"
+                    >
+                        <Icon name="ArrowLeft" size={16} />
+                        Back to Tournament
+                    </button>
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-slate-900 font-heading">Player Rosters</h2>
+                        <div className="text-lg font-medium text-gray-500">Division A</div>
+                    </div>
+                    <div className="md:absolute md:right-0 mt-4 md:mt-0">
+                        <div className="relative">
+                            <Icon name="Search" className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-8 pr-3 py-1 bg-gray-50 border border-gray-200 rounded text-sm w-48 transition-all focus:outline-none focus:border-blue-500"
+                            />
                         </div>
                     </div>
                 </div>
-            </motion.header>
 
-            <PublicTournamentBanner tournament={tournament} />
-
-            <main className="w-full px-4 sm:px-6 lg:px-8 py-8 text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="inline-block text-left"
+                    className="inline-block text-left w-full"
                 >
-                    <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold mb-1">Player Rosters</h2>
-                        <div className="text-xl font-medium text-gray-800">Division A</div>
-                    </div>
 
                     <div className="overflow-visible">
                         <table className="w-full text-left border-collapse min-w-[300px]">

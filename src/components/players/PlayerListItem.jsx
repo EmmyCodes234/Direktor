@@ -13,11 +13,11 @@ const PlayerListItem = ({ player, onEdit, onRemove, onWithdraw, isSelected, onSe
   return (
     <div className={`flex items-center p-4 transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/10'}`}>
       <div className="flex items-center space-x-4 flex-1">
-        
+
         {player.photo_url ? (
-          <img 
-            src={player.photo_url} 
-            alt={player.name} 
+          <img
+            src={player.photo_url}
+            alt={player.name}
             className="w-10 h-10 rounded-full object-cover"
             onError={(e) => {
               console.warn(`Failed to load player photo for ${player.name}:`, e.target.src);
@@ -31,12 +31,19 @@ const PlayerListItem = ({ player, onEdit, onRemove, onWithdraw, isSelected, onSe
         )}
 
         <div>
-          <h3 className="font-medium text-foreground">{player.name}</h3>
+          <h3 className="font-medium text-foreground flex items-center gap-2">
+            {player.name}
+            {player.class && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-widest">
+                {player.class}
+              </span>
+            )}
+          </h3>
           {teamName && (
-              <div className="flex items-center space-x-1 text-xs text-accent">
-                  <Icon name="Shield" size={12} />
-                  <span>{teamName}</span>
-              </div>
+            <div className="flex items-center space-x-1 text-xs text-accent">
+              <Icon name="Shield" size={12} />
+              <span>{teamName}</span>
+            </div>
           )}
           <div className={`flex items-center space-x-1 text-sm mt-1 ${statusInfo.color}`}>
             <Icon name={statusInfo.icon} size={14} />
