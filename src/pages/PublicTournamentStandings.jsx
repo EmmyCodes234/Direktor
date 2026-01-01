@@ -335,8 +335,8 @@ const PublicTournamentStandings = () => {
                         <h2 className="text-2xl md:text-3xl font-bold text-black mb-1 font-heading uppercase tracking-tight">
                             {selectedRound ? `Round ${selectedRound} Standings` : 'Tournament Standings'}
                         </h2>
-                        <p className="text-slate-500 text-lg font-medium">
-                            {tournament.name}
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">
+                            Current rankings and performance summary.
                         </p>
                     </div>
                     <div className="hidden md:absolute md:right-0 md:flex">

@@ -130,7 +130,7 @@ const PublicTournamentPrizes = () => {
                     </button>
                     <div className="text-center">
                         <h2 className="text-3xl font-bold text-slate-900 font-heading">Prizes</h2>
-                        <p className="text-base text-slate-500">Prize distribution and award details</p>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">Prize distribution and award details.</p>
                     </div>
                     <div className="hidden md:absolute md:right-0 md:flex">
                         <ShareButton

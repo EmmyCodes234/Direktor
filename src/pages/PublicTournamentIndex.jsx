@@ -107,7 +107,8 @@ const PublicTournamentIndex = () => {
             <PublicTournamentBanner tournament={tournament} />
 
             <div className="py-6 max-w-3xl mx-auto">
-                <h2 className="text-2xl font-bold mb-6 text-center">Event Coverage Index</h2>
+                <h2 className="text-2xl font-bold mb-1 text-center">Event Coverage Index</h2>
+                <p className="text-center text-xs md:text-sm text-gray-500 mb-6 font-sans">Directory of all tournament reports and live coverage.</p>
 
                 {/* Global Links - TSH Style Column */}
                 <div className="flex flex-col items-center space-y-1 mb-12">

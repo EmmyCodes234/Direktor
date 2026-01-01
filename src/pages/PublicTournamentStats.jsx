@@ -458,7 +458,10 @@ const PublicTournamentStats = () => {
                         </Button>
                     )}
 
-                    <h1 className="text-xl md:text-2xl font-bold font-serif">{report?.title || 'Tournament Data'}</h1>
+                    <div className="text-center">
+                        <h1 className="text-xl md:text-2xl font-bold font-serif">{report?.title || 'Tournament Data'}</h1>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">Overall tournament statistics and records.</p>
+                    </div>
                 </div>
 
                 {report?.isGeneral && (

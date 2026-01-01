@@ -125,10 +125,10 @@ const RemoteResultsSubmission = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <div className="h-8 w-8 bg-muted rounded animate-pulse mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="h-8 w-8 bg-gray-200 rounded animate-pulse mx-auto"></div>
+          <p className="text-gray-500">Loading...</p>
         </div>
       </div>
     );
@@ -151,19 +151,18 @@ const RemoteResultsSubmission = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-card border-b border-border/20 p-4">
+      <header className="bg-white p-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <Button
             variant="ghost"
             onClick={() => navigate(`/tournament/${tournamentSlug}`)}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           >
             <Icon name="ArrowLeft" size={20} />
             <span>Back to Tournament</span>
           </Button>
-          <h1 className="text-xl font-bold text-foreground">Submit Results</h1>
           <div className="w-24"></div>
         </div>
       </header>
@@ -171,11 +170,11 @@ const RemoteResultsSubmission = () => {
       {/* Main Content */}
       <main className="p-4">
         <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardContent className="p-6">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="p-6">
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-foreground mb-2">Submit Match Result</h2>
-                <p className="text-muted-foreground">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Submit Match Result</h2>
+                <p className="text-slate-500">
                   Submit the result of a completed match for {tournament?.name}
                 </p>
               </div>
@@ -184,27 +183,27 @@ const RemoteResultsSubmission = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-card border border-border rounded-lg shadow-sm"
+                  className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm"
                 >
                   <div className="flex items-center space-x-2">
-                    <Icon name="CheckCircle" size={20} className="text-foreground" />
-                    <span className="text-foreground font-medium">Result submitted successfully!</span>
+                    <Icon name="CheckCircle" size={20} className="text-green-600" />
+                    <span className="text-green-800 font-medium">Result submitted successfully!</span>
                   </div>
                 </motion.div>
               )}
 
               {error && (
-                <div className="mb-6 p-4 bg-card border border-border rounded-lg shadow-sm">
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg shadow-sm">
                   <div className="flex items-center space-x-2">
-                    <Icon name="AlertCircle" size={20} className="text-muted-foreground" />
-                    <span className="text-muted-foreground font-medium">{error}</span>
+                    <Icon name="AlertCircle" size={20} className="text-red-500" />
+                    <span className="text-red-700 font-medium">{error}</span>
                   </div>
                 </div>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
                     Round
                   </label>
                   <Input
@@ -214,31 +213,35 @@ const RemoteResultsSubmission = () => {
                     placeholder="Enter round number"
                     min="1"
                     required
+                    className="!bg-white !border-gray-300 !text-slate-900 placeholder:text-gray-400"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Player 1
                     </label>
-                    <select
-                      value={player1}
-                      onChange={(e) => setPlayer1(e.target.value)}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                    >
-                      <option value="">Select Player 1</option>
-                      {players.map(player => (
-                        <option key={player.id} value={player.id}>
-                          {player.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={player1}
+                        onChange={(e) => setPlayer1(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 appearance-none"
+                        required
+                      >
+                        <option value="">Select Player 1</option>
+                        {players.map(player => (
+                          <option key={player.id} value={player.id}>
+                            {player.name}
+                          </option>
+                        ))}
+                      </select>
+                      <Icon name="ChevronDown" size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Player 1 Score
                     </label>
                     <Input
@@ -248,32 +251,36 @@ const RemoteResultsSubmission = () => {
                       placeholder="Score"
                       min="0"
                       required
+                      className="!bg-white !border-gray-300 !text-slate-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Player 2
                     </label>
-                    <select
-                      value={player2}
-                      onChange={(e) => setPlayer2(e.target.value)}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                    >
-                      <option value="">Select Player 2</option>
-                      {players.map(player => (
-                        <option key={player.id} value={player.id}>
-                          {player.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={player2}
+                        onChange={(e) => setPlayer2(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 appearance-none"
+                        required
+                      >
+                        <option value="">Select Player 2</option>
+                        {players.map(player => (
+                          <option key={player.id} value={player.id}>
+                            {player.name}
+                          </option>
+                        ))}
+                      </select>
+                      <Icon name="ChevronDown" size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Player 2 Score
                     </label>
                     <Input
@@ -283,6 +290,7 @@ const RemoteResultsSubmission = () => {
                       placeholder="Score"
                       min="0"
                       required
+                      className="!bg-white !border-gray-300 !text-slate-900 placeholder:text-gray-400"
                     />
                   </div>
                 </div>
@@ -290,7 +298,7 @@ const RemoteResultsSubmission = () => {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full"
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white"
                 >
                   {submitting ? (
                     <div className="flex items-center space-x-2">
@@ -302,8 +310,8 @@ const RemoteResultsSubmission = () => {
                   )}
                 </Button>
               </form>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </main>
     </div>

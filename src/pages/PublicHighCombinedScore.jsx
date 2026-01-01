@@ -83,7 +83,10 @@ const PublicHighCombinedScore = () => {
                     <Link to={`/tournament/${tournamentSlug}`} className="static md:absolute md:left-0 text-blue-700 hover:underline flex items-center gap-1 text-xs md:text-sm font-serif">
                         <Icon name="ArrowLeft" className="w-3 h-3 md:w-4 md:h-4" /> Back to Tournament
                     </Link>
-                    <h2 className="text-xl md:text-2xl font-bold font-serif text-center">Shootouts</h2>
+                    <div className="text-center">
+                        <h2 className="text-xl md:text-2xl font-bold font-serif">Shootouts</h2>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">Highest total combined scores in a single game.</p>
+                    </div>
                 </div>
 
                 {/* Desktop View */}

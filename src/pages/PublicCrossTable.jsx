@@ -211,21 +211,24 @@ const PublicCrossTable = () => {
             <PublicTournamentBanner tournament={tournament} />
 
             <div className="w-full px-2 py-4">
-                <div className="relative flex items-center justify-center mb-6 px-4">
-                    <Link to={`/tournament/${tournamentSlug}`} className="absolute left-4 text-blue-700 hover:underline flex items-center gap-1 text-sm font-serif">
+                <div className="relative flex flex-col md:flex-row items-center justify-center mb-6 px-4 gap-4 md:gap-0">
+                    <Link to={`/tournament/${tournamentSlug}`} className="relative md:absolute left-0 md:left-4 text-blue-700 hover:underline flex items-center gap-1 text-sm font-serif">
                         <Icon name="ArrowLeft" className="w-4 h-4" /> Back to Tournament
                     </Link>
-                    <h2 className="text-2xl font-bold font-serif">Cross Table</h2>
+                    <div className="text-center">
+                        <h2 className="text-xl md:text-2xl font-bold font-serif">Cross Table</h2>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">Comprehensive grid showing match results between every player.</p>
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse font-sans min-w-max">
                         <thead>
                             <tr>
-                                <th className="p-2 text-left min-w-[150px] sticky left-0 bg-white z-20 font-bold text-xl font-serif">Player</th>
+                                <th className="p-1 md:p-2 text-left min-w-[120px] md:min-w-[150px] sticky left-0 bg-white z-20 font-bold text-sm md:text-xl font-serif shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Player</th>
                                 {Array.from({ length: tournament?.rounds || 8 }, (_, i) => (
-                                    <th key={i} className="p-2 text-center min-w-[100px] font-bold text-xl font-serif">
-                                        Round {i + 1}
+                                    <th key={i} className="p-1 md:p-2 text-center min-w-[80px] md:min-w-[100px] font-bold text-sm md:text-xl font-serif">
+                                        R{i + 1}
                                     </th>
                                 ))}
                             </tr>
@@ -233,36 +236,36 @@ const PublicCrossTable = () => {
                         <tbody>
                             {wallChartData.map((player, idx) => (
                                 <tr key={player.id || idx}>
-                                    <td className="p-2 sticky left-0 bg-white z-10 font-normal text-lg truncate max-w-[200px] border-b border-gray-100 font-serif">
+                                    <td className="p-1 md:p-2 sticky left-0 bg-white z-10 font-normal text-xs md:text-lg truncate max-w-[120px] md:max-w-[200px] border-b border-gray-100 font-serif shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                         {player.rank}. {player.name}
                                     </td>
 
                                     {player.results.map((res, i) => (
                                         <td key={i} className={`p-0 align-middle ${res ? res.bgColor : 'bg-gray-50'}`}>
                                             {res ? (
-                                                <div className="flex flex-col items-center justify-center py-2 h-[85px] w-[100px] leading-snug">
+                                                <div className="flex flex-col items-center justify-center py-1 md:py-2 h-[75px] md:h-[85px] w-[80px] md:w-[100px] leading-tight md:leading-snug">
                                                     {/* Line 1: Score */}
-                                                    <div className="text-sm font-medium text-gray-900">
+                                                    <div className="text-xs md:text-sm font-medium text-gray-900">
                                                         {res.myScore}-{res.oppScore}
                                                     </div>
 
                                                     {/* Line 2: Rank vs OppRank (Underlined Blue) */}
-                                                    <div className="text-sm text-blue-800 underline decoration-blue-800/50 decoration-1">
-                                                        {res.myRank} vs. {res.oppRank}
+                                                    <div className="text-[10px] md:text-sm text-blue-800 underline decoration-blue-800/50 decoration-1">
+                                                        {res.myRank} vs {res.oppRank}
                                                     </div>
 
                                                     {/* Line 3: Running Record */}
-                                                    <div className="text-sm text-gray-800">
+                                                    <div className="text-[10px] md:text-sm text-gray-800">
                                                         {res.recordDisplay}
                                                     </div>
 
                                                     {/* Line 4: Spread (Round = Cumulative) */}
-                                                    <div className="text-[11px] font-medium text-gray-700">
-                                                        {res.roundSpread} = {res.cumulativeSpread}
+                                                    <div className="text-[9px] md:text-[11px] font-medium text-gray-700">
+                                                        {res.roundSpread}={res.cumulativeSpread}
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="h-[85px] w-[100px] flex items-center justify-center text-gray-300">-</div>
+                                                <div className="h-[75px] md:h-[85px] w-[80px] md:w-[100px] flex items-center justify-center text-gray-300">-</div>
                                             )}
                                         </td>
                                     ))}

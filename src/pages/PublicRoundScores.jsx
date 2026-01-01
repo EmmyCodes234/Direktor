@@ -109,10 +109,11 @@ const PublicRoundScores = () => {
                         <Icon name="ArrowLeft" className="w-3 h-3 md:w-4 md:h-4" /> Back to Round Index
                     </Link>
 
-                    <div className="flex items-center gap-2 mx-auto">
+                    <div className="flex flex-col items-center gap-1 mx-auto">
                         <h2 className="text-xl md:text-2xl font-bold font-serif text-center min-w-[140px]">
                             Round {selectedRound} Scores
                         </h2>
+                        <p className="text-xs md:text-sm text-gray-500 font-sans">Detailed scores and results from the latest round.</p>
                     </div>
                     {/* Spacer for centering */}
                     <div className="hidden md:block w-24"></div>

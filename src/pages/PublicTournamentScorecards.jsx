@@ -113,7 +113,7 @@ const PublicTournamentScorecards = () => {
         <div className="min-h-screen bg-white text-slate-900 font-sans">
             <PublicTournamentBanner tournament={tournament} />
 
-            <div className="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Navigation Row */}
                 <div className="relative flex flex-col md:flex-row items-center justify-center mb-8">
                     <button
@@ -125,7 +125,7 @@ const PublicTournamentScorecards = () => {
                     </button>
                     <div className="text-center">
                         <h2 className="text-3xl font-bold text-slate-900 font-heading uppercase tracking-tight">Player Scorecards</h2>
-                        <p className="text-muted-foreground text-lg font-medium">{tournament?.name}</p>
+                        <p className="text-xs md:text-sm text-gray-500 mt-1 font-sans">Individual match records and performance stats.</p>
                     </div>
                     <div className="md:absolute md:right-0 mt-4 md:mt-0">
                         <div className="relative">
@@ -160,8 +160,8 @@ const PublicTournamentScorecards = () => {
                                         isExpanded && "bg-gray-50 border-b border-gray-100"
                                     )}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
                                             {player.photo_url ? (
                                                 <img src={player.photo_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
@@ -169,10 +169,10 @@ const PublicTournamentScorecards = () => {
                                             )}
                                         </div>
                                         <div>
-                                            <div className="font-bold text-blue-900 leading-tight">
-                                                {player.name} <span className="text-xs font-normal text-gray-400 ml-1">(#{player.seed})</span>
+                                            <div className="font-bold text-lg md:text-xl text-blue-900 leading-tight">
+                                                {player.name} <span className="text-sm font-normal text-gray-400 ml-1">(#{player.seed})</span>
                                             </div>
-                                            <div className="text-xs text-gray-500 font-medium">
+                                            <div className="text-xs md:text-sm text-gray-500 font-medium">
                                                 {stats.games} Games Played
                                             </div>
                                         </div>
