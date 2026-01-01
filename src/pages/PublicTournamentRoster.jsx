@@ -230,23 +230,23 @@ const PublicTournamentRoster = () => {
                 >
 
                     <div className="overflow-visible">
-                        <table className="w-full text-left border-collapse min-w-[300px]">
+                        <table className="w-full text-left border-collapse">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="py-3 px-4 font-bold text-gray-600 w-16 text-center text-sm uppercase tracking-wider">#</th>
-                                    <th className="py-3 px-4 font-bold text-gray-600 w-24 text-right text-sm uppercase tracking-wider">Rating</th>
-                                    <th className="py-3 px-4 font-bold text-gray-600 w-24 text-center text-sm uppercase tracking-wider">Photo</th>
-                                    <th className="py-3 px-4 font-bold text-gray-600 text-left text-sm uppercase tracking-wider">Player</th>
+                                    <th className="py-2 px-2 md:py-3 md:px-4 font-bold text-gray-600 w-12 md:w-16 text-center text-xs md:text-sm uppercase tracking-wider">#</th>
+                                    <th className="py-2 px-2 md:py-3 md:px-4 font-bold text-gray-600 text-left text-xs md:text-sm uppercase tracking-wider">Player</th>
+                                    <th className="py-2 px-2 md:py-3 md:px-4 font-bold text-gray-600 w-16 md:w-24 text-right text-xs md:text-sm uppercase tracking-wider">Rating</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
                                 {filteredAndSortedPlayers.map((player, index) => (
                                     <tr key={player.id} className="hover:bg-blue-50/30 transition-colors">
-                                        <td className="py-3 px-4 text-center text-gray-500 font-medium">{player.seed || index + 1}</td>
-                                        <td className="py-3 px-4 text-right text-gray-700 font-mono font-medium">{player.rating || 0}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            <div className="flex justify-center">
-                                                <Avatar size="md" className="h-10 w-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                                        <td className="py-2 px-2 md:py-3 md:px-4 text-center text-gray-500 font-medium text-xs md:text-sm">
+                                            {player.seed || index + 1}
+                                        </td>
+                                        <td className="py-2 px-2 md:py-3 md:px-4">
+                                            <div className="flex items-center gap-2 md:gap-3">
+                                                <Avatar className="h-8 w-8 md:h-10 md:w-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm flex-shrink-0">
                                                     {player?.photo_url ? (
                                                         <AvatarImage
                                                             src={player.photo_url}
@@ -255,13 +255,16 @@ const PublicTournamentRoster = () => {
                                                         />
                                                     ) : null}
                                                     <AvatarFallback className="bg-gray-100 text-gray-400">
-                                                        <User size={18} />
+                                                        <User size={16} className="md:w-5 md:h-5" />
                                                     </AvatarFallback>
                                                 </Avatar>
+                                                <span className="text-sm md:text-lg text-gray-900 font-medium break-words leading-tight">
+                                                    {formatName(player.name)}
+                                                </span>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 whitespace-nowrap text-lg text-gray-900 font-medium">
-                                            {formatName(player.name)}
+                                        <td className="py-2 px-2 md:py-3 md:px-4 text-right text-gray-700 font-mono font-medium text-xs md:text-base">
+                                            {player.rating || 0}
                                         </td>
                                     </tr>
                                 ))}
