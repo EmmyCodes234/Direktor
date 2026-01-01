@@ -52,7 +52,11 @@ const COMMAND_MAP = {
     // Match Log (Scorecard)
     'ml': 'matchlog',
     'sc': 'matchlog',
-    'scorecard': 'matchlog'
+    'scorecard': 'matchlog',
+
+    // Export
+    'tou': 'export',
+    'download': 'export'
 };
 
 /**

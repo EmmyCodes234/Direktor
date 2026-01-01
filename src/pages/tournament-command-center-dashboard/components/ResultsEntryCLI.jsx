@@ -13,6 +13,7 @@ import { supabase } from '../../../supabaseClient';
 
 // Mock data helpers (replace with hooks later)
 import { resolveCommand } from '../../../utils/commandAliaser';
+import { generateTouExport } from '../../../utils/tshExport';
 import CerebrasService from '../../../services/cerebrasInsightService';
 
 // --- String Helpers ---
@@ -683,6 +684,21 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 } finally {
                     setIsProcessing(false);
                 }
+                break;
+
+
+
+            case 'export':
+                addToHistory('Generating tournament file (.tou)...', 'system');
+
+                await generateTouExport(tournamentInfo, players, results, addToHistory);
+
+
+
+
+
+
+
                 break;
 
             case 'clear':
