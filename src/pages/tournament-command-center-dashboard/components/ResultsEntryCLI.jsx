@@ -14,6 +14,7 @@ import { supabase } from '../../../supabaseClient';
 // Mock data helpers (replace with hooks later)
 import { resolveCommand } from '../../../utils/commandAliaser';
 import { generateTouExport } from '../../../utils/tshExport';
+import { generateSwissPairings } from '../../../utils/pairingLogic';
 import CerebrasService from '../../../services/cerebrasInsightService';
 
 // --- String Helpers ---
@@ -611,6 +612,10 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory('  miss                          - List pending matches (in SCORES mode)', 'info');
                 addToHistory('  missing <round>               - List pending matches (in COMMAND mode)', 'info');
                 addToHistory('  rosters                       - View player roster', 'info');
+                addToHistory('  withdraw <player>             - Withdraw player (Alias: off)', 'info');
+                addToHistory('  rejoin <player>               - Rejoin player (Alias: on)', 'info');
+                addToHistory('  floss <round> <player>        - Assign Forfeit Loss to player', 'info');
+                addToHistory('  dry <round>                   - Simulate remaining rounds (Dry Run)', 'info');
                 addToHistory('  sw <round> <base> <repeats>   - Generate Swiss Pairings', 'info');
                 addToHistory('  koth <repeats> <base>         - Generate KOTH Pairings', 'info');
                 addToHistory('  rr <repeats>                  - Generate Round Robin', 'info');
@@ -623,7 +628,307 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory('  stats                         - Update/Recalc Stats', 'info');
                 addToHistory('  ratings <round>               - Calculate Glicko ratings', 'info');
                 addToHistory('  clear                         - Clear screen', 'info');
+                addToHistory('  export                        - Export .TOU file', 'info');
                 addToHistory('  exit                          - Close console', 'info');
+                break;
+
+            case 'dry':
+                // Usage: dry [start_round]
+                const dryStartArg = parseInt(args[0]);
+                let dryStartRound = (tournamentInfo.currentRound || 0);
+
+                if (!isNaN(dryStartArg) && dryStartArg > 0) {
+                    dryStartRound = dryStartArg;
+                }
+
+                const totalRounds = tournamentInfo.settings?.rounds || tournamentInfo.rounds || 10;
+
+                if (dryStartRound >= totalRounds) {
+                    addToHistory(`Tournament finished or invalid start round (${dryStartRound} >= ${totalRounds}).`, 'warning');
+                    break;
+                }
+
+                addToHistory(`Starting Dry Run Simulation from Round ${dryStartRound + 1} to ${totalRounds}...`, 'system');
+                addToHistory('WARNING: This generates random data. Type "clear" to clear logs if needed.', 'warning');
+
+                try {
+                    // Clone data for simulation
+                    let simResults = [...(results || [])];
+                    const simPlayers = players.map(p => ({ ...p, wins: 0, ties: 0, spread: 0 }));
+
+                    for (let r = dryStartRound + 1; r <= totalRounds; r++) {
+                        addToHistory(`Simulating Round ${r}...`, 'info');
+
+                        // 1. Calculate Stats based on CURRENT simResults
+                        simPlayers.forEach(p => {
+                            p.wins = 0; p.ties = 0; p.spread = 0;
+                            simResults.forEach(res => {
+                                if (res.round >= r) return;
+                                if (res.player1_id === p.player_id || res.player1_id === p.id) {
+                                    if (res.score1 > res.score2) p.wins++;
+                                    else if (res.score1 === res.score2) p.ties++;
+                                    p.spread += (res.score1 - res.score2);
+                                } else if (res.player2_id === p.player_id || res.player2_id === p.id) {
+                                    if (res.score2 > res.score1) p.wins++;
+                                    else if (res.score2 === res.score1) p.ties++;
+                                    p.spread += (res.score2 - res.score1);
+                                }
+                            });
+                        });
+
+                        // 2. Generate Pairings
+                        const previousMatchups = new Set();
+                        simResults.forEach(res => {
+                            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
+                            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
+                        });
+
+                        const activeSimPlayers = simPlayers.filter(p => !p.withdrawn && p.status !== 'withdrawn' && p.status !== 'paused');
+                        // Use Swiss by default for simulation
+                        const pairings = generateSwissPairings(activeSimPlayers, previousMatchups, simResults);
+
+                        // 3. Generate Random Results
+                        const roundResults = [];
+
+                        for (const p of pairings) {
+                            if (p.table === 'BYE' || p.player2.name === 'BYE') {
+                                const p1 = p.player1;
+                                roundResults.push({
+                                    tournament_id: tournamentInfo.id,
+                                    round: r,
+                                    player1_id: p1.player_id || p1.id,
+                                    player2_id: null,
+                                    score1: 350,
+                                    score2: 0,
+                                    player1_name: p1.name,
+                                    player2_name: 'BYE',
+                                    verified: true
+                                });
+                            } else {
+                                const p1 = p.player1;
+                                const p2 = p.player2;
+
+                                const rating1 = p1.rating || 1200;
+                                const rating2 = p2.rating || 1200;
+                                const p1WinProb = 0.5 + ((rating1 - rating2) / 2000); // 100 diff = 0.55
+
+                                const rand = Math.random();
+                                let s1, s2;
+
+                                if (rand < p1WinProb) {
+                                    s1 = 300 + Math.floor(Math.random() * 150);
+                                    s2 = s1 - (10 + Math.floor(Math.random() * 100));
+                                } else {
+                                    s2 = 300 + Math.floor(Math.random() * 150);
+                                    s1 = s2 - (10 + Math.floor(Math.random() * 100));
+                                }
+
+                                roundResults.push({
+                                    tournament_id: tournamentInfo.id,
+                                    round: r,
+                                    player1_id: p1.player_id || p1.id,
+                                    player2_id: p2.player_id || p2.id,
+                                    score1: s1,
+                                    score2: s2,
+                                    player1_name: p1.name,
+                                    player2_name: p2.name,
+                                    verified: true
+                                });
+                            }
+                        }
+
+                        simResults.push(...roundResults);
+
+                        // Batch insert
+                        const { error: resErr } = await supabase.from('results').insert(roundResults);
+                        if (resErr) {
+                            addToHistory(`Error saving Round ${r}: ${resErr.message}`, 'error');
+                            break;
+                        }
+                    }
+
+                    addToHistory('Simulation Complete. Updating Tournament State...', 'system');
+
+                    // Update Tournament Current Round to Final
+                    await supabase.from('tournaments')
+                        .update({ current_round: totalRounds })
+                        .eq('id', tournamentInfo.id);
+
+                    onUpdateTournament(prev => ({ ...prev, currentRound: totalRounds })); // Trigger refresh
+
+                } catch (e) {
+                    addToHistory(`Simulation Failed: ${e.message}`, 'error');
+                }
+                break;
+
+
+            case 'off':
+            case 'withdraw':
+                // Usage: withdraw <player_id_or_name>
+                if (!args[0]) {
+                    addToHistory('Usage: withdraw <player>', 'error');
+                    break;
+                }
+                const wPlayer = players.find(p =>
+                    String(p.id) === args[0] ||
+                    String(p.player_id) === args[0] ||
+                    normalizeStrict(p.name).includes(normalizeStrict(args.join(' ')))
+                );
+
+                if (!wPlayer) {
+                    addToHistory(`Player not found: ${args.join(' ')}`, 'error');
+                } else {
+                    addToHistory(`Withdrawing ${wPlayer.name}...`, 'info');
+                    const { error } = await supabase
+                        .from('tournament_players')
+                        .update({ status: 'withdrawn' })
+                        .eq('tournament_id', tournamentInfo.id)
+                        .eq('player_id', wPlayer.player_id || wPlayer.id); // Handle both id fields
+
+                    if (error) {
+                        addToHistory(`Failed: ${error.message}`, 'error');
+                    } else {
+                        addToHistory('Player updated to Withdrawn.', 'success');
+                        onUpdateTournament(prev => ({ ...prev })); // Force refresh trigger
+                    }
+                }
+                break;
+
+            case 'on':
+            case 'rejoin':
+                // Usage: rejoin <player_id_or_name>
+                if (!args[0]) {
+                    addToHistory('Usage: rejoin <player>', 'error');
+                    break;
+                }
+                const rPlayer = players.find(p =>
+                    String(p.id) === args[0] ||
+                    String(p.player_id) === args[0] ||
+                    normalizeStrict(p.name).includes(normalizeStrict(args.join(' ')))
+                );
+
+                if (!rPlayer) {
+                    addToHistory(`Player not found: ${args.join(' ')}`, 'error');
+                } else {
+                    addToHistory(`Rejoining ${rPlayer.name}...`, 'info');
+                    const { error } = await supabase
+                        .from('tournament_players')
+                        .update({ status: 'active' })
+                        .eq('tournament_id', tournamentInfo.id)
+                        .eq('player_id', rPlayer.player_id || rPlayer.id);
+
+                    if (error) {
+                        addToHistory(`Failed: ${error.message}`, 'error');
+                    } else {
+                        addToHistory('Player updated to Active.', 'success');
+                        onUpdateTournament(prev => ({ ...prev }));
+                    }
+                }
+                break;
+
+            case 'floss':
+                // Usage: floss <round> <player> [spread]
+                // Example: floss 3 105 50
+                // Logic: Find match in round 3 where player 105 is playing. Mark 105 as Loser (score 0?), Opponent as Winner (score 50?).
+                if (args.length < 2) {
+                    addToHistory('Usage: floss <round> <player> [spread]', 'error');
+                    break;
+                }
+
+                const fRound = parseInt(args[0]);
+                const fTargetArg = args[1];
+                const fSpread = parseInt(args[2]) || 50; // Default spread 50?
+
+                if (isNaN(fRound)) {
+                    addToHistory('Invalid round.', 'error');
+                    break;
+                }
+
+                const fPlayer = players.find(p =>
+                    String(p.id) === fTargetArg ||
+                    String(p.player_id) === fTargetArg ||
+                    normalizeStrict(p.name).includes(normalizeStrict(fTargetArg))
+                );
+
+                if (!fPlayer) {
+                    addToHistory(`Player not found: ${fTargetArg}`, 'error');
+                    break;
+                }
+
+                // Find Match
+                // Matches are in 'results' for past rounds OR 'matches' (if not finalized?)
+                // Actually 'results' usually stores confirmed round outcomes.
+                // 'tournamentInfo.pairing_schedule[round]' holds the pairing.
+
+                const roundSchedule = tournamentInfo.pairing_schedule?.[fRound] || [];
+                const targetMatch = roundSchedule.find(m =>
+                    (m.player1?.player_id === fPlayer.player_id || m.player1?.player_id === fPlayer.id) ||
+                    (m.player2?.player_id === fPlayer.player_id || m.player2?.player_id === fPlayer.id)
+                );
+
+                if (!targetMatch) {
+                    addToHistory(`No match found for ${fPlayer.name} in Round ${fRound}.`, 'warning');
+                    break;
+                }
+
+                // Determine P1/P2 roles
+                const isP1 = (targetMatch.player1?.player_id === fPlayer.player_id || targetMatch.player1?.player_id === fPlayer.id);
+                // Assign Scores: Loser = 0 (or -spread?), Winner = spread?
+                // TSH "Forfeit Loss" usually means 0-X? Or user said "appropriate spreads".
+                // Let's assume Winner gets +Spread, Loser gets 0? Or Winner=Spread, Loser=-Spread?
+                // Standard: Winner = +Spread, Loser = 0.
+
+                // If it's a Bye?
+                if (targetMatch.player2?.isBye || targetMatch.player1?.isBye) {
+                    addToHistory(`${fPlayer.name} has a BYE in Round ${fRound}.`, 'warning');
+                    break;
+                }
+
+                const score1 = isP1 ? 0 : fSpread;
+                const score2 = isP1 ? fSpread : 0;
+
+                // Submit Result
+                // We use onResultSubmit logic reuse? Or direct DB?
+                // onResultSubmit expects { matchId (if exists), round, scores... }
+                // But pairing_schedule doesn't always have DB match IDs until results are saved.
+                // We better use direct result insertion/upsert like the ScoreEntryModal.
+
+                try {
+                    const resultPayload = {
+                        tournament_id: tournamentInfo.id,
+                        round: fRound,
+                        player1_id: targetMatch.player1.player_id || targetMatch.player1.id,
+                        player2_id: targetMatch.player2.player_id || targetMatch.player2.id,
+                        score1: score1,
+                        score2: score2,
+                        verified: true,
+                        is_forfeit: true // maybe add metadata?
+                    };
+
+                    addToHistory(`Assigning Forfeit: ${fPlayer.name} (L) vs ${isP1 ? targetMatch.player2.name : targetMatch.player1.name} (W)`, 'info');
+
+                    // Check if result exists to update
+                    const existingRes = results.find(r =>
+                        r.round === fRound &&
+                        r.player1_id === resultPayload.player1_id &&
+                        r.player2_id === resultPayload.player2_id
+                    );
+
+                    if (existingRes) {
+                        const { error } = await supabase.from('results').update(resultPayload).eq('id', existingRes.id);
+                        if (error) throw error;
+                    } else {
+                        const { error } = await supabase.from('results').insert(resultPayload);
+                        if (error) throw error;
+                    }
+
+                    addToHistory(`Result recorded: ${score1}-${score2}`, 'success');
+                    // Refresh
+                    onUpdateTournament(prev => ({ ...prev }));
+                } catch (e) {
+                    addToHistory(`Error saving result: ${e.message}`, 'error');
+                }
+
                 break;
 
             case 'ratings':
