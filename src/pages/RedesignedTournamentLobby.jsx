@@ -34,7 +34,7 @@ const TournamentLobby = () => {
           return;
         }
         setUser(user);
-        
+
         // Fetch tournaments
         await fetchTournaments(user.id);
       } catch (error) {
@@ -51,12 +51,11 @@ const TournamentLobby = () => {
   const fetchTournaments = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('tournaments')
+        .rpc('get_managed_tournaments')
         .select(`
           *,
           tournament_players(count)
         `)
-        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -188,11 +187,11 @@ const TournamentLobby = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <Header />
-      
+
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.05),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))]" />
-      
-              <div className="relative pt-16 pb-12">
+
+      <div className="relative pt-16 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Enhanced Header Section */}
           <motion.div
@@ -214,7 +213,7 @@ const TournamentLobby = () => {
                   Manage your tournaments, track progress, and create memorable competitive experiences.
                 </p>
               </div>
-              
+
               {/* Primary Actions */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
@@ -241,35 +240,35 @@ const TournamentLobby = () => {
           {/* Quick Stats Cards */}
           <StatsGrid
             stats={[
-              { 
+              {
                 key: 'total',
-                label: 'Total Tournaments', 
-                value: statusCounts.all, 
-                icon: 'Trophy', 
+                label: 'Total Tournaments',
+                value: statusCounts.all,
+                icon: 'Trophy',
                 color: 'from-blue-500 to-cyan-500',
                 description: 'All tournaments'
               },
-              { 
+              {
                 key: 'active',
-                label: 'Active', 
-                value: statusCounts.active, 
-                icon: 'Play', 
+                label: 'Active',
+                value: statusCounts.active,
+                icon: 'Play',
                 color: 'from-green-500 to-emerald-500',
                 description: 'Currently running'
               },
-              { 
+              {
                 key: 'completed',
-                label: 'Completed', 
-                value: statusCounts.completed, 
-                icon: 'CheckCircle', 
+                label: 'Completed',
+                value: statusCounts.completed,
+                icon: 'CheckCircle',
                 color: 'from-purple-500 to-pink-500',
                 description: 'Finished tournaments'
               },
-              { 
+              {
                 key: 'drafts',
-                label: 'Drafts', 
-                value: statusCounts.draft, 
-                icon: 'FileText', 
+                label: 'Drafts',
+                value: statusCounts.draft,
+                icon: 'FileText',
                 color: 'from-orange-500 to-red-500',
                 description: 'In preparation'
               }
@@ -312,7 +311,7 @@ const TournamentLobby = () => {
                 icon="Trophy"
                 title={filter === 'all' ? 'No tournaments yet' : `No ${filter} tournaments`}
                 description={
-                  filter === 'all' 
+                  filter === 'all'
                     ? 'Create your first tournament to get started with managing competitive Scrabble events.'
                     : `You don't have any ${filter} tournaments at the moment.`
                 }
@@ -377,7 +376,7 @@ const TournamentLobby = () => {
                       <span>Delete Tournament</span>
                     </CardTitle>
                     <CardDescription>
-                      Are you sure you want to permanently delete "{tournamentToDelete?.name}"? 
+                      Are you sure you want to permanently delete "{tournamentToDelete?.name}"?
                       All associated data will be lost and cannot be recovered.
                     </CardDescription>
                   </CardHeader>

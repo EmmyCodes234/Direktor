@@ -246,12 +246,12 @@ const PublicTournamentRoster = () => {
                                         </td>
                                         <td className="py-2 px-2 md:py-3 md:px-4">
                                             <div className="flex items-center gap-2 md:gap-3">
-                                                <Avatar className="h-8 w-8 md:h-10 md:w-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm flex-shrink-0">
+                                                <Avatar className="h-8 w-8 md:h-10 md:w-10 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden shadow-sm flex-shrink-0 transition-transform duration-300 ease-in-out hover:scale-[3] hover:z-50 hover:rounded-sm hover:shadow-xl cursor-pointer origin-left">
                                                     {player?.photo_url ? (
                                                         <AvatarImage
                                                             src={player.photo_url}
                                                             alt={player.name}
-                                                            className="object-cover"
+                                                            className="object-cover w-full h-full"
                                                         />
                                                     ) : null}
                                                     <AvatarFallback className="bg-gray-100 text-gray-400">

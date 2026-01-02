@@ -14,7 +14,7 @@ import { supabase } from '../../../supabaseClient';
 // Mock data helpers (replace with hooks later)
 import { resolveCommand } from '../../../utils/commandAliaser';
 import { generateTouExport } from '../../../utils/tshExport';
-import { generateSwissPairings } from '../../../utils/pairingLogic';
+
 import CerebrasService from '../../../services/cerebrasInsightService';
 
 // --- String Helpers ---
@@ -123,6 +123,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
     const scrollRef = useRef(null);
     const fileInputRef = useRef(null);
     const confirmationResolver = useRef(null);
+    const cliSettings = useRef({ max_consecutive: 0, rr_consecutive: 1 });
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -571,20 +572,75 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             addToHistory(`Paired: ${p1.name} vs ${p2.name}`, 'success');
 
             // Update State & DB
+            const oldRound = tournamentInfo.pairing_schedule?.[activeRound] || [];
+
+            // 1. Identify Used Tables
+            const usedTables = new Set();
+            oldRound.forEach(m => {
+                if (m.table_number) usedTables.add(m.table_number);
+                if (m.table) usedTables.add(m.table);
+            });
+
+            // 2. Determine Target Table
+            const reserved = cliSettings.current.reserved_tables || {};
+            let targetTable = null;
+
+            if (reserved[p1.player_id]) targetTable = reserved[p1.player_id];
+            else if (reserved[p2.player_id]) targetTable = reserved[p2.player_id];
+
+            // Helper to find lowest free table
+            const findFreeTable = () => {
+                let t = 1;
+                while (usedTables.has(t)) t++;
+                return t;
+            };
+
+            let matchesToUpdate = [...oldRound];
+
+            if (targetTable) {
+                // Check collision
+                if (usedTables.has(targetTable)) {
+                    // Collision! Find who is there
+                    const collisionIndex = matchesToUpdate.findIndex(m => m.table === targetTable || m.table_number === targetTable);
+                    if (collisionIndex !== -1) {
+                        const newTableForExisting = findFreeTable();
+                        usedTables.add(newTableForExisting); // Mark used
+
+                        // Update existing match
+                        const existingMatch = { ...matchesToUpdate[collisionIndex] };
+                        existingMatch.table = newTableForExisting;
+                        existingMatch.table_number = newTableForExisting;
+                        matchesToUpdate[collisionIndex] = existingMatch;
+
+                        addToHistory(`[SWAP] Table ${targetTable} is reserved. Moved existing match to Table ${newTableForExisting}.`, 'warning');
+                    }
+                }
+                // Assign
+            } else {
+                // No reservation, find next free
+                targetTable = findFreeTable();
+            }
+
+            // 3. Create New Match
+            let tempMatch = {
+                table: targetTable,
+                round: activeRound,
+                player1: p1,
+                player2: p2,
+                player1_id: p1.player_id, // Ensure flattened IDs exist
+                player2_id: p2.player_id
+            };
+
+            // Apply 'assignStarts' logic to determine who goes first based on H2H/Stats
+            const [finalMatch] = assignStarts([tempMatch], players, results || []);
+
+            // Add to list
+            matchesToUpdate.push(finalMatch);
+
             onUpdateTournament(prev => {
-                const oldRound = prev.pairing_schedule?.[activeRound] || [];
-                const maxTable = Math.max(0, ...oldRound.map(m => typeof m.table === 'number' ? m.table : 0));
-
-                const newMatch = {
-                    table: maxTable + 1,
-                    round: activeRound,
-                    player1: { ...p1, starts: true },
-                    player2: { ...p2, starts: false }
-                };
-
                 const newSchedule = {
                     ...(prev.pairing_schedule || {}),
-                    [activeRound]: [...oldRound, newMatch]
+                    [activeRound]: matchesToUpdate
                 };
 
                 // DB Sync
@@ -593,11 +649,13 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     .eq('id', tournamentInfo.id)
                     .then(res => {
                         if (res.error) toast.error('Failed to save manual pairing');
+
                         else toast.success('Manual Pairing Saved');
                     });
 
                 return { ...prev, pairing_schedule: newSchedule };
             });
+            return;
             return;
         }
 
@@ -620,6 +678,9 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory('  koth <repeats> <base>         - Generate KOTH Pairings', 'info');
                 addToHistory('  rr <repeats>                  - Generate Round Robin', 'info');
                 addToHistory('  quart <type> <rep> <src>      - Generate Quartile Pairings (Alias: q)', 'info');
+                addToHistory('  abs                           - Assign BYEs to all unpaired players', 'info');
+                addToHistory('  delpair <table>               - Delete pairing at specific table (Current Round)', 'info');
+                addToHistory('  set <param> <val>             - Update CLI settings (max_consecutive, rr_consecutive)', 'info');
                 addToHistory('  sp <round>                    - Show Pairings for round', 'info');
                 addToHistory('  upr <round>                   - Unpair a round', 'info');
                 addToHistory('  st                            - Show Standings (Current)', 'info');
@@ -630,6 +691,129 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory('  clear                         - Clear screen', 'info');
                 addToHistory('  export                        - Export .TOU file', 'info');
                 addToHistory('  exit                          - Close console', 'info');
+                break;
+
+            case 'set':
+                if (args.length < 2) {
+                    addToHistory('Usage: set <param> <value>', 'error');
+                    addToHistory('Params: max_consecutive (int), rr_consecutive (int)', 'info');
+                    break;
+                }
+                const param = args[0].toLowerCase();
+                const val = parseInt(args[1]);
+                if (isNaN(val)) {
+                    addToHistory('Value must be a number.', 'error');
+                    break;
+                }
+
+                if (param === 'max_consecutive') {
+                    cliSettings.current.max_consecutive = val;
+                    addToHistory(`Setting updated: max_consecutive = ${val}`, 'success');
+                } else if (param === 'rr_consecutive') {
+                    cliSettings.current.rr_consecutive = val;
+                    addToHistory(`Setting updated: rr_consecutive = ${val}`, 'success');
+                } else {
+                    addToHistory(`Unknown parameter: ${param}`, 'error');
+                }
+                break;
+
+            case 'abs': // Assign Byes to Singles
+                // Logic: Find all active players NOT present in pairing_schedule[currentRound]
+                // Assign them a BYE pairing (350-0)
+                const absRound = tournamentInfo.currentRound;
+                if (!absRound) {
+                    addToHistory('No active round found.', 'error');
+                    break;
+                }
+                addToHistory(`Assigning Byes to unpaired players in Round ${absRound}...`, 'system');
+
+                const currentSched = tournamentInfo.pairing_schedule?.[absRound] || [];
+                const pairedIds = new Set();
+                currentSched.forEach(m => {
+                    if (m.player1?.player_id) pairedIds.add(m.player1.player_id);
+                    if (m.player2?.player_id) pairedIds.add(m.player2.player_id);
+                });
+
+                const unpaired = players.filter(p =>
+                    !p.withdrawn &&
+                    p.status !== 'withdrawn' &&
+                    p.status !== 'paused' &&
+                    !pairedIds.has(p.player_id)
+                );
+
+                if (unpaired.length === 0) {
+                    addToHistory('No unpaired players found.', 'warning');
+                    break;
+                }
+
+                const newByes = [];
+                let maxTbl = Math.max(0, ...currentSched.map(m => typeof m.table === 'number' ? m.table : 0));
+
+                unpaired.forEach(p => {
+                    newByes.push({
+                        table: 'BYE', // or ++maxTbl if we want table numbers
+                        round: absRound,
+                        player1: p,
+                        player2: { name: 'BYE', isBye: true }
+                    });
+                    addToHistory(`Assigned BYE to ${p.name}`, 'info');
+                });
+
+                // Confirm with user? No, direct action.
+
+                onUpdateTournament(prev => {
+                    const existing = prev.pairing_schedule?.[absRound] || [];
+                    const updatedSched = {
+                        ...(prev.pairing_schedule || {}),
+                        [absRound]: [...existing, ...newByes]
+                    };
+
+                    supabase.from('tournaments')
+                        .update({ pairing_schedule: updatedSched })
+                        .eq('id', tournamentInfo.id)
+                        .then(); // fire and forget
+
+                    return { ...prev, pairing_schedule: updatedSched };
+                });
+                addToHistory(`Assigned ${newByes.length} Byes.`, 'success');
+                break;
+
+            case 'delpair': // delpair <table>
+                if (!args[0]) {
+                    addToHistory('Usage: delpair <table>', 'error');
+                    break;
+                }
+                const delTableArg = args[0]; // could be "1" or "BYE"
+                const dpRoundDel = tournamentInfo.currentRound;
+
+                const dpSched = tournamentInfo.pairing_schedule?.[dpRoundDel] || [];
+
+                // Find index
+                const dpIndex = dpSched.findIndex(m => String(m.table) === String(delTableArg) || String(m.table_number) === String(delTableArg));
+
+                if (dpIndex === -1) {
+                    addToHistory(`Table ${delTableArg} not found in Round ${dpRoundDel}.`, 'error');
+                    break;
+                }
+
+                const dpMatch = dpSched[dpIndex];
+                addToHistory(`Deleting pairing: ${dpMatch.player1?.name} vs ${dpMatch.player2?.name}`, 'warning');
+
+                const newDpSched = [...dpSched];
+                newDpSched.splice(dpIndex, 1);
+
+                onUpdateTournament(prev => {
+                    const updated = {
+                        ...(prev.pairing_schedule || {}),
+                        [dpRoundDel]: newDpSched
+                    };
+                    supabase.from('tournaments')
+                        .update({ pairing_schedule: updated })
+                        .eq('id', tournamentInfo.id)
+                        .then();
+                    return { ...prev, pairing_schedule: updated };
+                });
+                addToHistory('Pairing deleted.', 'success');
                 break;
 
             case 'dry':
@@ -1239,15 +1423,15 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     } else {
                         addToHistory(`Round ${r} Ranked Pairings`, 'system');
                         addToHistory('', 'info');
-                        addToHistory('Board Who Plays Whom', 'info');
+                        addToHistory('Table Who Plays Whom', 'info');
                         showMatches.forEach((m, idx) => {
                             const p1Name = getPlayerName(m.player1_id);
                             const p2Name = getPlayerName(m.player2_id);
                             const p1Seed = getPlayerSeed(m.player1_id);
                             const p2Seed = getPlayerSeed(m.player2_id);
-                            const board = String(idx + 1).padStart(4);
+                            const table = String(idx + 1).padStart(4);
 
-                            addToHistory(`${board}  ${p1Name} (#${p1Seed}) *first* vs. ${p2Name} (#${p2Seed}).`, 'info');
+                            addToHistory(`${table}  ${p1Name} (#${p1Seed}) *first* vs. ${p2Name} (#${p2Seed}).`, 'info');
                         });
                         addToHistory('----------------------------------------', 'info');
                     }
@@ -2023,6 +2207,116 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 performDeletes(); // async call
                 break;
 
+            case 'reserve': // reserve <table> <player>
+                if (args.length < 2) {
+                    addToHistory('Usage: reserve <table> <player>', 'error');
+                    break;
+                }
+                const resTable = parseInt(args[0]);
+                const resPlayerName = args.slice(1).join(' ');
+
+                if (isNaN(resTable)) {
+                    addToHistory('Invalid table number.', 'error');
+                    break;
+                }
+
+                const resPlayer = players.find(p =>
+                    normalizeStrict(p.name).includes(normalizeStrict(resPlayerName))
+                );
+
+                if (!resPlayer) {
+                    addToHistory(`Player "${resPlayerName}" not found.`, 'error');
+                    break;
+                }
+
+                if (!cliSettings.current.reserved_tables) cliSettings.current.reserved_tables = {};
+                cliSettings.current.reserved_tables[resPlayer.player_id] = resTable;
+
+                addToHistory(`Reserved Table ${resTable} for ${resPlayer.name}.`, 'success');
+                break;
+
+            case 'movediv': // movediv <player> <new_div>
+                if (args.length < 2) {
+                    addToHistory('Usage: movediv <player> <new_division>', 'error');
+                    break;
+                }
+                const newDiv = args[args.length - 1];
+                const movePlayerName = args.slice(0, args.length - 1).join(' ');
+
+                const movePlayer = players.find(p =>
+                    normalizeStrict(p.name).includes(normalizeStrict(movePlayerName))
+                );
+
+                if (!movePlayer) {
+                    addToHistory(`Player "${movePlayerName}" not found.`, 'error');
+                    break;
+                }
+
+                // Update Player
+                const updatedDivPlayers = players.map(p =>
+                    p.player_id === movePlayer.player_id ? { ...p, division: newDiv } : p
+                );
+
+                // Assuming onUpdateMatches or similar up-prop exists, but mostly we treat 'players' as prop.
+                // We need to update DB.
+                supabase.from('tournament_players')
+                    .update({ division: newDiv })
+                    .eq('player_id', movePlayer.player_id)
+                    .eq('tournament_id', tournamentInfo.id)
+                    .then(({ error }) => {
+                        if (error) addToHistory(`Failed to move division: ${error.message}`, 'error');
+                        else {
+                            addToHistory(`Moved ${movePlayer.name} to division "${newDiv}".`, 'success');
+                            // We can't easily force-refresh parents here without a reload trigger, 
+                            // but if 'players' prop updates from subscription it will reflect.
+                        }
+                    });
+                break;
+
+            case 'delpair': // delpair <round> <table>
+                if (args.length < 2) {
+                    addToHistory('Usage: delpair <round> <table>', 'error');
+                    break;
+                }
+                const dpRound = parseInt(args[0]);
+                const dpTable = parseInt(args[1]);
+                if (isNaN(dpRound) || isNaN(dpTable)) {
+                    addToHistory('Invalid round or table number.', 'error');
+                    break;
+                }
+
+                // Get Schedule
+                const sched = tournamentInfo.pairing_schedule?.[dpRound];
+                if (!sched) {
+                    addToHistory(`No schedule found for Round ${dpRound}.`, 'error');
+                    break;
+                }
+
+                // Check matches
+                const matchIndex = sched.findIndex(m => m.table === dpTable || m.table_number === dpTable);
+                if (matchIndex === -1) {
+                    addToHistory(`No pairing found on Table ${dpTable} in Round ${dpRound}.`, 'error');
+                    break;
+                }
+
+                // Remove
+                const removed = sched[matchIndex];
+                const newSchedDP = [...sched];
+                newSchedDP.splice(matchIndex, 1);
+
+                // Save
+                onUpdateTournament(prev => {
+                    const newS = { ...prev.pairing_schedule, [dpRound]: newSchedDP };
+                    supabase.from('tournaments')
+                        .update({ pairing_schedule: newS })
+                        .eq('id', tournamentInfo.id)
+                        .then();
+                    return { ...prev, pairing_schedule: newS };
+                });
+
+                addToHistory(`Deleted pairing on Table ${dpTable}: ${getPlayerName(removed.player1_id)} vs ${getPlayerName(removed.player2_id)}`, 'success');
+                break;
+
             case 'upr': // unpair round <round>
                 if (args.length < 1) {
                     addToHistory('Usage: upr <round>', 'error');
@@ -2114,9 +2408,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
 
                 // Show existing
                 const existingMan = (tournamentInfo.pairing_schedule?.[manRound] || []).length;
-                if (existingMan > 0) {
-                    addToHistory(`(Round ${manRound} has ${existingMan} existing pairings)`, 'info');
-                }
+
                 break;
 
             case 'rosters':
@@ -2167,233 +2459,192 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
         let targetRound, baseRound, repeats;
         let pairings = [];
 
+        // Find max round with results to check validity
+        const maxResultRound = results.reduce((max, r) => Math.max(max, r.round || 0), 0);
+
         try {
             if (command === 'sw') {
                 if (args.length < 3) throw new Error("Usage: sw <target_round> <base_round> <repeats>");
                 targetRound = parseInt(args[0]);
                 baseRound = parseInt(args[1]);
-                repeats = parseInt(args[2]); // Not heavily used in logic yet but parsed
+                repeats = parseInt(args[2]);
+
+                // Prompt check logic (Simulated here via warning/error for CLI simplicity)
+                if (baseRound < maxResultRound) {
+                    // Ideally we'd await a prompt, but CLI structure here is async.
+                    // For now, let's warn and allow user to bypass or block.
+                    // The user requested: "prompt if there are more recent rounds completed"
+                    if (!window.confirm(`WARNING: You are generating pairings based on Round ${baseRound}, but Round ${maxResultRound} has results. Continue?`)) {
+                        addToHistory('Operation cancelled by user.', 'warning');
+                        return;
+                    }
+                }
 
             } else if (command === 'koth') {
                 if (args.length < 2) throw new Error("Usage: koth <repeats> <base>");
                 repeats = parseInt(args[0]);
                 baseRound = parseInt(args[1]);
-                targetRound = baseRound + 1; // Implied next round
+                targetRound = baseRound + 1;
+
+                if (baseRound < maxResultRound) {
+                    if (!window.confirm(`WARNING: Base Round ${baseRound} is older than Latest Result (Round ${maxResultRound}). Continue?`)) {
+                        addToHistory('Operation cancelled.', 'warning');
+                        return;
+                    }
+                }
 
             } else if (command === 'rr') {
-                targetRound = tournamentInfo.currentRound || 1; // Default to current
+                targetRound = tournamentInfo.currentRound || 1;
                 repeats = args.length > 0 ? parseInt(args[0]) : 1;
-                // RR usually generates schedule for ALL rounds, or next X rounds.
-                // Assuming standard RR generation for remaining? Or single round?
-                // TSH 'rr' often generates the whole table. 
-                // Let's assume it generates pairings for the valid next round(s).
-                // For simplicity in this step, let's pair the *current* target round using RR logic/lookup.
+                // RR Generation
             }
 
             if (isNaN(targetRound)) throw new Error("Invalid round number.");
 
-            addToHistory(`Generating ${command.toUpperCase()} pairings for Round ${targetRound}...`, 'system');
+            const totalRounds = tournamentInfo.total_rounds || 100;
+            if (targetRound > totalRounds) {
+                addToHistory(`Cannot generate Round ${targetRound}. Max rounds is ${totalRounds}.`, 'error');
+                return;
+            }
 
-            // --- Pairing Logic Wrapper ---
+            addToHistory(`[SYSTEM] Generating ${command.toUpperCase()} Pairings for Round ${targetRound}...`, 'system');
 
-            // Check for conflict
-            const existingPairings = tournamentInfo.pairing_schedule?.[targetRound] || [];
-            let appendMode = false;
-            const pairedPlayerIds = new Set();
-            let startTable = 1;
+            // --- Pairing Logic ---
+            const previousMatchups = new Set();
+            results.forEach(res => {
+                previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
+                previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
+            });
 
-            if (existingPairings.length > 0) {
-                addToHistory(`Round ${targetRound} has ${existingPairings.length} existing pairings.`, 'warning');
-                addToHistory('[A]ppend to existing or [O]verwrite? (a/o)', 'warning');
+            const activePool = players.filter(p => !p.withdrawn && p.status !== 'withdrawn' && p.status !== 'paused');
+            const reservedTables = cliSettings.current.reserved_tables || {};
 
-                const choice = await new Promise(resolve => {
-                    confirmationResolver.current = resolve;
+            if (command === 'rr') {
+                // Use new RR logic with Repeats & Consecutive Config
+                const rrConsecutive = cliSettings.current.rr_consecutive || 1;
+                // Pass reservedTables if RR logic supports it (will add support)
+                const rrSchedules = generateRoundRobinSchedule(activePool, repeats, rrConsecutive, reservedTables);
+
+                // rrSchedules contains Rounds -> Pairings.
+                // We likely need to apply them to the schedule. 
+                // Wait, generateRoundRobinSchedule returns { 1: [], 2: [] ... } based on relative index 1..N.
+                // We need to map them to targetRound, targetRound+1...
+
+                let applyRound = targetRound;
+
+                // We need to loop through the generated round keys
+                const generatedRoundKeys = Object.keys(rrSchedules).sort((a, b) => a - b);
+
+                let newSched = { ...(tournamentInfo.pairing_schedule || {}) };
+                let maxR = 0;
+
+                generatedRoundKeys.forEach(rKey => {
+                    if (applyRound > totalRounds) return; // Cap
+
+                    const roundPairs = rrSchedules[rKey];
+                    // Assign Starts
+                    const finalizedPairs = assignStarts(roundPairs, players, results);
+
+                    // Helper to map
+                    const mappedPairs = finalizedPairs.map((p, i) => ({
+                        ...p,
+                        round: applyRound,
+                        table_number: typeof p.table === 'number' ? p.table : i + 1,
+                        player1_id: p.player1.player_id,
+                        player2_id: p.player2?.player_id
+                    }));
+
+                    newSched[applyRound] = mappedPairs;
+                    addToHistory(`Generated Round ${applyRound} (RR)`, 'info');
+                    maxR = applyRound;
+                    applyRound++;
                 });
 
-                if (choice === 'a' || choice === 'append') {
-                    appendMode = true;
-                    addToHistory('Appending to existing pairings...', 'info');
-                    // Index existing players
-                    existingPairings.forEach(p => {
-                        pairedPlayerIds.add(String(p.player1?.player_id || p.player1?.id));
-                        if (p.player2 && !p.player2.isBye) pairedPlayerIds.add(String(p.player2.player_id || p.player2.id));
-                    });
-                    // Find max table
-                    const tables = existingPairings.map(p => typeof p.table === 'number' ? p.table : 0);
-                    if (tables.length > 0) startTable = Math.max(...tables) + 1;
+                // Save All
+                onUpdateTournament(prev => {
+                    supabase.from('tournaments')
+                        .update({ pairing_schedule: newSched, current_round: maxR })
+                        .eq('id', tournamentInfo.id).then();
+                    return { ...prev, pairing_schedule: newSched, currentRound: maxR };
+                });
+                return; // RR handles its own save loop
 
-                } else if (choice === 'o' || choice === 'overwrite') {
-                    addToHistory('Overwriting existing pairings.', 'info');
-                    // Default behavior (overwrite)
-                } else {
-                    addToHistory('Operation Valid. Cancelled.', 'error'); // Typo in prompt logic? No, just cancel.
-                    return;
-                }
+            } else if (command === 'sw') {
+                // Swiss
+                // Calculate Standings up to baseRound
+                // Filter results <= baseRound
+                const baseResults = results.filter(r => r.round <= baseRound);
+
+                const simPlayers = activePool.map(p => ({ ...p, wins: 0, ties: 0, spread: 0 }));
+                simPlayers.forEach(p => {
+                    baseResults.forEach(res => {
+                        if (res.player1_id === p.player_id) {
+                            if (res.score1 > res.score2) p.wins++;
+                            else if (res.score1 === res.score2) p.ties++;
+                            p.spread += (res.score1 - res.score2);
+                        } else if (res.player2_id === p.player_id) {
+                            if (res.score2 > res.score1) p.wins++;
+                            else if (res.score2 === res.score1) p.ties++;
+                            p.spread += (res.score2 - res.score1);
+                        }
+                    });
+                });
+
+                const maxCons = cliSettings.current.max_consecutive || 0;
+                pairings = generateSwissPairings(simPlayers, previousMatchups, baseResults, targetRound, maxCons, reservedTables);
+
+            } else if (command === 'koth') {
+                const kothResults = results.filter(r => r.round <= baseRound);
+                const partialStandings = calculateStandings(players, kothResults, [], tournamentInfo);
+                const rankedActive = partialStandings.filter(p => !p.withdrawn && p.status !== 'paused');
+
+                pairings = generateKingOfTheHillPairings(rankedActive, previousMatchups, kothResults, targetRound, reservedTables);
             }
 
-            // 1. Prepare Data
-            const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ?
-                tournamentInfo.divisions : [{ name: 'Open' }];
+            // Save Single Round (SW/KOTH)
+            // ... (Save logic)
+            // Need to apply table numbers if missing
+            pairings.forEach((p, i) => { if (!p.table) p.table = i + 1; });
 
-            const allResultsSoFar = results || [];
+            // Assign Starts (redundant if gen function did it, but safe)
+            pairings = assignStarts(pairings, players, results);
 
-            let newSchedule = { ...(tournamentInfo.pairing_schedule || {}) };
-            let totalPairs = 0;
-            let allRoundPairings = []; // Accumulator for NEW pairings
-            let tableOffset = startTable; // Running Table Counter
-
-            // Process by division
-            for (const division of divisions) {
-                const divisionPlayers = players.filter(p =>
-                    (p.division === division.name || (divisions.length === 1 && division.name === 'Open')) &&
-                    !p.withdrawn && p.status !== 'paused' &&
-                    !pairedPlayerIds.has(String(p.player_id || p.id))
-                );
-
-                if (divisionPlayers.length === 0) continue;
-
-                addToHistory(`[SYSTEM] Pairing Division: ${division.name} (${divisionPlayers.length} players)...`, 'info');
-
-                let generatedPairs = [];
-
-                if (command === 'sw') {
-                    // Need 'previousMatchups' set
-                    let previousMatchups = new Set();
-                    if (repeats === 0) {
-                        allResultsSoFar.forEach(res => {
-                            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
-                            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
-                        });
-                    }
-                    generatedPairs = generateSwissPairings(divisionPlayers, previousMatchups, allResultsSoFar);
-
-                } else if (command === 'koth') {
-                    let previousMatchups = new Set();
-                    if (repeats === 0) {
-                        allResultsSoFar.forEach(res => {
-                            previousMatchups.add(`${res.player1_id}-${res.player2_id}`);
-                            previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
-                        });
-                    }
-                    generatedPairs = generateKingOfTheHillPairings(divisionPlayers, previousMatchups, allResultsSoFar, targetRound);
-
-                } else if (command === 'rr') {
-                    // Full Round Robin Generation
-                    // targetRound logic: RR usually starts from Round 1 or current?
-                    // Let's assume we allow appending or overwriting.
-                    // Ideally RR generates the COMPLETE schedule for the division.
-
-                    const count = divisionPlayers.length;
-
-                    try {
-                        const rrMap = generateRoundRobinSchedule(divisionPlayers, repeats);
-
-                        // Process the map
-                        Object.entries(rrMap).forEach(([rndKey, pairs]) => {
-                            const rNum = parseInt(rndKey);
-
-                            // Assign Tables
-                            pairs.forEach(p => {
-                                p.table = tableOffset++;
-                                p.division = division.name;
-                            });
-
-                            // Format
-                            const formatted = pairs.map((p, i) => ({
-                                ...p,
-                                round: rNum, // Explicit round
-                                table_number: p.table,
-                                player1_id: p.player1.player_id,
-                                player2_id: p.player2?.player_id
-                            }));
-
-                            // Save to newSchedule
-                            // If multiple divisions, we append to existing checks
-                            if (!newSchedule[rNum]) newSchedule[rNum] = [];
-
-                            // We should ideally *clear* the round if it's the first division being processed? 
-                            // But we lack context of "first division" here easily without index.
-                            // Assuming we are building from 'prev' (which is passed in top).
-                            // We should probably allow appending.
-
-                            newSchedule[rNum] = [...(newSchedule[rNum] || []), ...formatted];
-                            totalPairs += formatted.length;
-                        });
-
-                        generatedPairs = []; // Prevent standard save logic from intervening
-
-                    } catch (e) {
-                        addToHistory(`Error generating RR: ${e.message}`, 'error');
-                    }
-                }
-
-                // Standard Save Accumulation (Skipped for RR if pairs cleared)
-                if (generatedPairs.length > 0) {
-                    // Re-assign Tables using global offset
-                    generatedPairs.forEach(p => {
-                        p.table = tableOffset++;
-                        p.division = division.name;
-                    });
-
-                    allRoundPairings.push(...generatedPairs);
-                    totalPairs += generatedPairs.length;
-                }
-            }
-
-            // Save Logic
-            if (command === 'rr') {
-                // RR has already populated 'newSchedule' with multiple rounds.
-                // We don't do the single-round assignment.
-            } else {
-                // Standard Single Round Assignment
-                // If Append Mode, we need to merge with existing
-                const currentForRound = appendMode ? (existingPairings || []) : [];
-
-                newSchedule[targetRound] = [...currentForRound, ...allRoundPairings.map((p, i) => ({
+            // DB Update
+            onUpdateTournament(prev => {
+                const newSched = { ...(prev.pairing_schedule || {}) };
+                newSched[targetRound] = pairings.map(p => ({
                     ...p,
                     round: targetRound,
                     table_number: p.table,
                     player1_id: p.player1.player_id,
                     player2_id: p.player2?.player_id
-                }))];
-            }
+                }));
 
+                supabase.from('tournaments')
+                    .update({ pairing_schedule: newSched, current_round: targetRound })
+                    .eq('id', tournamentInfo.id).then(res => {
+                        if (res.error) toast.error('Save Failed');
+                        else toast.success(`Round ${targetRound} Generated`);
+                    });
 
-            // Persist (Update Tournament Info -> Triggers Save in Dashboard/Hook)
-            // We need to update `pairing_schedule`
-            // NOTE: This updates LOCAL state. The Hook `useTournamentActions` or `TournamentControl` logic 
-            // typically syncs this to DB. 
-            // We called `onUpdateTournament(prev => ...)`
-            onUpdateTournament(prev => {
-                const updated = {
-                    ...prev,
-                    pairing_schedule: newSchedule,
-                    currentRound: targetRound // Advance round? Or just set pairings?
-                    // Usually generating pairings implies setting up that round.
-                };
-                // We should probably trigger a DB update here if onUpdateTournament doesn't auto-save.
-                // In `TournamentCommandCenterDashboard`, `setTournamentInfo` just updates state.
-                // We need to trigger a save.
-                // Ideally `onUpdateTournament` handles persistence or we call a separate save.
-                // CLI implies "Do It".
-                savePairingsToDB(updated); // Helper to call generic save?
-                // Wait, we don't have a direct save function passed.
-                // We might rely on the side-effect or we need to pass `saveTournament`?
-                // For now, updating context might reflect in UI, but likely won't persist to DB unless User clicks "Save" 
-                // or we trigger it.
-                // Let's assume for this task updating state is Step 1.
-                // We might need to inject `savePairings` function.
-
-                return updated;
+                return { ...prev, pairing_schedule: newSched, currentRound: targetRound };
             });
 
-            addToHistory(`Success. Generated ${totalPairs} matches for Round ${targetRound}.`, 'success');
-            addToHistory(`Type "sp ${targetRound}" to view.`, 'system');
+            addToHistory(`Round ${targetRound} Pairings Generated.`, 'success');
 
-        } catch (err) {
-            addToHistory(`Error: ${err.message}`, 'error');
+            // Log Notes
+            pairings.forEach(p => {
+                if (p.note) {
+                    addToHistory(`> Table ${p.table}: ${p.note}`, 'warning');
+                }
+            });
+
+        } catch (e) {
+            addToHistory(`Error: ${e.message}`, 'error');
         }
     };
+
+
 
     // Helper to persist (Mocking the requirement -> Real app needs this passed down)
     const savePairingsToDB = async (updatedTournament) => {

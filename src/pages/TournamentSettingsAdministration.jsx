@@ -17,6 +17,7 @@ import PromotionEventsHistory from '../components/players/PromotionEventsHistory
 import LadderSystemConfigSection from '../components/settings/LadderSystemConfigSection';
 import SettingsNavigation from '../components/settings/SettingsNavigation';
 import ClassConfigurationSection from '../components/settings/ClassConfigurationSection';
+import CollaboratorManager from '../components/tournament/CollaboratorManager';
 import { supabase } from '../supabaseClient';
 import { toast, Toaster } from 'sonner';
 import Icon from '../components/AppIcon';
@@ -170,6 +171,7 @@ const TournamentSettingsAdministration = () => {
     const { tournamentSlug } = useParams();
     const navigate = useNavigate();
     const [tournamentInfo, setTournamentInfo] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
     const [bannerFile, setBannerFile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -194,21 +196,19 @@ const TournamentSettingsAdministration = () => {
                 navigate('/login');
                 return;
             }
+            setCurrentUser(user);
 
             const { data, error } = await supabase
-                .from('tournaments')
-                .select('*')
+                .rpc('get_managed_tournaments')
                 .eq('slug', tournamentSlug)
                 .single();
+
             if (error) {
-                toast.error("Failed to load tournament settings.");
+                console.error("Settings Load Error:", error);
+                toast.error("Tournament not found or access denied.");
+                navigate('/lobby');
+                return;
             } else {
-                // Security check: Ensure user owns this tournament
-                if (data.user_id !== user.id) {
-                    toast.error("You don't have permission to access this tournament's settings.");
-                    navigate('/lobby');
-                    return;
-                }
                 setTournamentInfo(data);
 
                 // Fetch players for photo database
@@ -388,7 +388,7 @@ const TournamentSettingsAdministration = () => {
                     <p className="text-slate-500">Manage rules, visibility, and tournament details.</p>
                 </div>
 
-                <form onSubmit={handleSaveSettings} className="space-y-6">
+                <form id="settings-form" onSubmit={handleSaveSettings} className="space-y-6">
                     {/* General Settings */}
                     <Card className="bg-slate-900/40 border border-slate-800 shadow-none">
                         <CardHeader className="pb-4 border-b border-slate-800">
@@ -584,25 +584,33 @@ const TournamentSettingsAdministration = () => {
                         onChange={(newDefs) => handleSettingsChange('class_definitions', newDefs)}
                     />
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-between pt-4 pb-12">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleDeleteTournament}
-                            className="text-red-500 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50"
-                        >
-                            Delete Tournament
-                        </Button>
-                        <Button
-                            type="submit"
-                            className="w-32 bg-emerald-600 hover:bg-emerald-500 text-white"
-                            loading={saving}
-                        >
-                            Save Changes
-                        </Button>
-                    </div>
                 </form>
+
+                {/* Collaborators - Outside the main form to avoid nesting */}
+                <CollaboratorManager
+                    tournamentId={tournamentInfo?.id}
+                    isOwner={tournamentInfo?.user_id === (supabase.auth.currentUser?.id || currentUser?.id)}
+                />
+
+                {/* Actions */}
+                <div className="flex items-center justify-between pt-4 pb-12">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleDeleteTournament}
+                        className="text-red-500 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50"
+                    >
+                        Delete Tournament
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="settings-form"
+                        className="w-32 bg-emerald-600 hover:bg-emerald-500 text-white"
+                        loading={saving}
+                    >
+                        Save Changes
+                    </Button>
+                </div>
             </main>
         </div>
     );

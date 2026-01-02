@@ -1,0 +1,26 @@
+﻿--- Running Unit Tests for Pairing Logic ---
+
+Testing assignStarts...
+Γ£à PASS: Alice (0 starts) vs Bob (1 start) -> Alice starts
+Γ£à PASS: Tie starts: Seed 1 vs Seed 3 -> Seed 1 starts
+Γ£à PASS: H2H Balance: Alice started before -> Bob starts now
+
+Testing generateSwissPairings (Max Consecutive)...
+Γ£à PASS: Standard Swiss avoids rematch (1 vs 2) when others avail
+Γ£à PASS: MaxConsecutive=2 allows rematch in Round 2
+Γ£à PASS: MaxConsecutive=1 blocking rematch 1 vs 2
+
+Testing Reserved Tables...
+Γ£à PASS: Alice gets Reserved Table 10
+Γ£à PASS: Other players do NOT get Table 10
+
+Testing Unrated Bye Logic...
+Γ£à PASS: Round 1: Rated Player (Alice) takes Bye prefers over Unrated
+Γ£à PASS: Round 2: Lowest Rank (Charlie) gets Bye
+
+Testing Round Robin & Offsets...
+Γ£à PASS: RR (4 players) generates 3 rounds
+Γ£à PASS: RR generates valid object
+Γ£à PASS: RR Round 1 has 2 pairings
+
+--- Tests Complete ---

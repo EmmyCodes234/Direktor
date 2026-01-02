@@ -6,47 +6,50 @@ export const fetchUserTournaments = createAsyncThunk(
   'tournaments/fetchUserTournaments',
   async (userId) => {
     console.log('Fetching tournaments for user:', userId);
-    
+
     if (!userId) {
       console.error('No userId provided to fetchUserTournaments');
       throw new Error('User ID is required to fetch tournaments');
     }
 
-    // First, try to fetch tournaments with user_id
-    const { data: userTournaments, error: userError } = await supabase
-      .from('tournaments')
-      .select('*')
-      .eq('user_id', userId)
+    // Fetch managed tournaments (Owned + Shared) via RPC
+    const { data: managedTournaments, error: managedError } = await supabase
+      .rpc('get_managed_tournaments')
       .order('created_at', { ascending: false });
-    
-    if (userError) {
-      console.error('Error fetching tournaments with user_id:', userError);
-      throw userError;
+
+    if (managedError) {
+      console.error('Error fetching managed tournaments via RPC:', managedError);
+      // Fallback or throw? If RPC missing, this throws.
+      // If we assume migration is applied, throw.
+      throw managedError;
     }
-    
-    console.log(`Found ${userTournaments?.length || 0} tournaments with user_id ${userId}:`, userTournaments);
-    
+
+    console.log(`Found ${managedTournaments?.length || 0} managed tournaments`);
+
     // Also check for tournaments without user_id (legacy data)
     const { data: legacyTournaments, error: legacyError } = await supabase
       .from('tournaments')
       .select('*')
       .is('user_id', null)
       .order('created_at', { ascending: false });
-    
+
     if (legacyError) {
       console.error('Error fetching legacy tournaments:', legacyError);
     } else {
       console.log(`Found ${legacyTournaments?.length || 0} legacy tournaments without user_id:`, legacyTournaments);
     }
-    
-    // Combine both results
+
+    // Combine both results, deduplicating just in case
     const allTournaments = [
-      ...(userTournaments || []),
+      ...(managedTournaments || []),
       ...(legacyTournaments || [])
     ];
-    
-    console.log(`Total tournaments found: ${allTournaments.length}`);
-    return allTournaments;
+
+    // Simple dedupe by ID
+    const uniqueTournaments = Array.from(new Map(allTournaments.map(t => [t.id, t])).values());
+
+    console.log(`Total tournaments found: ${uniqueTournaments.length}`);
+    return uniqueTournaments;
   }
 );
 
@@ -68,7 +71,7 @@ export const fetchTournamentBySlug = createAsyncThunk(
       `)
       .eq('slug', slug)
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -82,7 +85,7 @@ export const createTournament = createAsyncThunk(
       .insert(tournamentData)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -97,7 +100,7 @@ export const updateTournament = createAsyncThunk(
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -111,7 +114,7 @@ export const deleteTournament = createAsyncThunk(
       .delete()
       .eq('id', id)
       .eq('user_id', userId);
-    
+
     if (error) throw error;
     return id;
   }
@@ -226,11 +229,11 @@ const tournamentsSlice = createSlice({
   },
 });
 
-export const { 
-  clearError, 
-  setCurrentTournament, 
+export const {
+  clearError,
+  setCurrentTournament,
   clearCurrentTournament,
-  updateTournamentInList 
+  updateTournamentInList
 } = tournamentsSlice.actions;
 
 export default tournamentsSlice.reducer; 
