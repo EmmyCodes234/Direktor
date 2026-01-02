@@ -15,6 +15,7 @@ import AnnouncementsManager from './components/AnnouncementsManager';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 import PublicLoadingScreen from '../../components/public/PublicLoadingScreen';
+import VolunteerScoreEntry from './VolunteerScoreEntry';
 
 // Hooks
 import useMediaQuery from '../../hooks/useMediaQuery';
@@ -22,14 +23,17 @@ import useTournamentData from '../../hooks/dashboard/useTournamentData';
 import useStandingsCalculator from '../../hooks/dashboard/useStandingsCalculator';
 import useTournamentActions from '../../hooks/dashboard/useTournamentActions';
 import { cn } from '../../utils/cn';
+import DirectorChatWidget from '../../components/chat/DirectorChatWidget';
+import { useUser } from '../../store/hooks';
 
 const TournamentCommandCenterDashboard = () => {
   const { tournamentSlug } = useParams();
   const navigate = useNavigate();
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const user = useUser();
 
   // 1. Data Fetching
-  const { tournamentInfo, setTournamentInfo, players, setPlayers, results, setResults, matches, setMatches, teams, pendingResults, setPendingResults, loading, refresh } = useTournamentData(tournamentSlug);
+  const { tournamentInfo, setTournamentInfo, players, setPlayers, results, setResults, matches, setMatches, teams, pendingResults, setPendingResults, loading, refresh, userRole } = useTournamentData(tournamentSlug);
 
   // 2. Logic / Actions
   // 2. Logic / Actions
@@ -90,6 +94,10 @@ const TournamentCommandCenterDashboard = () => {
   }
 
   if (!tournamentInfo) return <div className="min-h-screen bg-[#020617] p-8 text-center text-slate-400">Tournament Not Found</div>;
+
+  if (userRole === 'volunteer') {
+    return <VolunteerScoreEntry tournamentId={tournamentInfo.id} user={user} />;
+  }
 
   return (
     <div className="h-screen max-h-screen bg-[#020617] text-slate-200 flex flex-col font-mono selection:bg-emerald-500/30 selection:text-emerald-200 overflow-hidden">
@@ -271,6 +279,9 @@ const TournamentCommandCenterDashboard = () => {
           <span>© 2026 DIREKTOR CORP</span>
         </div>
       </footer>
+
+      {/* Director Chat Widget */}
+      {tournamentInfo && <DirectorChatWidget tournamentId={tournamentInfo.id} currentUser={user} />}
     </div>
   );
 };

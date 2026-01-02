@@ -176,11 +176,11 @@ const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setRes
     const completeRound = useCallback(async () => {
         setIsSubmitting(true);
         try {
-            const currentRound = tournamentInfo.currentRound || 1;
+            const currentRound = tournamentInfo.current_round || 1;
             const totalRounds = tournamentInfo.rounds;
             const isFinal = currentRound >= totalRounds;
 
-            const payload = isFinal ? { status: 'completed' } : { currentRound: currentRound + 1 };
+            const payload = isFinal ? { status: 'completed' } : { current_round: currentRound + 1 };
 
             const { data, error } = await supabase.from('tournaments').update(payload).eq('id', tournamentInfo.id).select().single();
             if (error) throw error;

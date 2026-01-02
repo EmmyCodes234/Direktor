@@ -48,6 +48,7 @@ import RemoteResultsSubmission from "pages/RemoteResultsSubmission";
 import PublicRoundCommentary from "pages/PublicRoundCommentary";
 import PublicRoundRatings from "pages/PublicRoundRatings";
 
+
 const Routes = () => {
   return (
     <BrowserRouter>
@@ -103,6 +104,7 @@ const Routes = () => {
           <Route path="/tournament/:tournamentSlug/low-spreads" element={<PublicLowSpreads />} />
           <Route path="/tournament/:tournamentSlug/giant-killers" element={<PublicGiantKillers />} />
           <Route path="/tournament/:tournamentSlug/scores" element={<PublicRoundScores />} />
+
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

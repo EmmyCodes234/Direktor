@@ -98,8 +98,19 @@ const TournamentCard = ({
                 {tournamentName}
               </h3>
 
-              {/* Status Badge */}
-              <StatusBadge status={tournament.status} />
+              {/* Badges */}
+              <div className="flex items-center gap-2 mt-2">
+                {tournament.is_shared && (
+                  <Badge
+                    variant="outline"
+                    className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200"
+                  >
+                    <Icon name="Users" size={12} />
+                    Shared
+                  </Badge>
+                )}
+                <StatusBadge status={tournament.status} />
+              </div>
             </div>
 
             {/* Draft Indicator Icon */}

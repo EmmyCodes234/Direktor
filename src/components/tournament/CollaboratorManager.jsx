@@ -9,6 +9,7 @@ import Icon from '../../components/AppIcon';
 const CollaboratorManager = ({ tournamentId, isOwner }) => {
     const [collaborators, setCollaborators] = useState([]);
     const [inviteEmail, setInviteEmail] = useState('');
+    const [selectedRole, setSelectedRole] = useState('editor');
     const [loading, setLoading] = useState(true);
     const [inviting, setInviting] = useState(false);
 
@@ -52,7 +53,7 @@ const CollaboratorManager = ({ tournamentId, isOwner }) => {
                 .insert([{
                     tournament_id: tournamentId,
                     email: inviteEmail.trim(),
-                    role: 'editor'
+                    role: selectedRole
                 }])
                 .select()
                 .single();
@@ -113,14 +114,24 @@ const CollaboratorManager = ({ tournamentId, isOwner }) => {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleInvite} className="flex gap-2 mb-6">
-                    <input
-                        type="email"
-                        placeholder="Enter email address"
-                        className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        required
-                    />
+                    <div className="flex flex-1 gap-2">
+                        <input
+                            type="email"
+                            placeholder="Enter email address"
+                            className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            required
+                        />
+                        <select
+                            value={selectedRole}
+                            onChange={(e) => setSelectedRole(e.target.value)}
+                            className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            <option value="editor">Editor (Full Access)</option>
+                            <option value="volunteer">Volunteer (Scores Only)</option>
+                        </select>
+                    </div>
                     <Button type="submit" disabled={inviting || !inviteEmail}>
                         {inviting ? 'Adding...' : 'Add'}
                     </Button>
@@ -140,7 +151,9 @@ const CollaboratorManager = ({ tournamentId, isOwner }) => {
                                     </div>
                                     <div>
                                         <div className="text-sm font-medium">{c.email}</div>
-                                        <div className="text-xs text-muted-foreground capitalize">{c.role}</div>
+                                        <div className="text-xs text-muted-foreground capitalize">
+                                            {c.role === 'volunteer' ? 'Volunteer (Restricted)' : 'Editor (Admin)'}
+                                        </div>
                                     </div>
                                 </div>
                                 <Button

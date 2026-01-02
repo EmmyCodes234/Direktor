@@ -61,12 +61,16 @@ const TournamentLobby = () => {
       if (error) throw error;
 
       // Process tournaments to add computed fields
-      const processedTournaments = data.map(tournament => ({
-        ...tournament,
-        player_count: tournament.tournament_players?.[0]?.count || 0,
-        director_name: user?.user_metadata?.full_name || user?.email,
-        director_avatar: user?.user_metadata?.avatar_url
-      }));
+      const processedTournaments = data.map(tournament => {
+        const isShared = tournament.user_id !== userId;
+        return {
+          ...tournament,
+          is_shared: isShared,
+          player_count: tournament.tournament_players?.[0]?.count || 0,
+          director_name: isShared ? 'Shared Tournament' : (user?.user_metadata?.full_name || user?.email),
+          director_avatar: isShared ? null : user?.user_metadata?.avatar_url
+        };
+      });
 
       setTournaments(processedTournaments);
     } catch (error) {
@@ -136,6 +140,8 @@ const TournamentLobby = () => {
             return tournament.status === 'completed';
           case 'draft':
             return tournament.status === 'draft';
+          case 'shared':
+            return tournament.is_shared;
           default:
             return true;
         }
@@ -163,7 +169,8 @@ const TournamentLobby = () => {
       all: tournaments.length,
       active: tournaments.filter(t => ['active', 'in_progress'].includes(t.status)).length,
       completed: tournaments.filter(t => t.status === 'completed').length,
-      draft: tournaments.filter(t => t.status === 'draft').length
+      draft: tournaments.filter(t => t.status === 'draft').length,
+      shared: tournaments.filter(t => t.is_shared).length
     };
   };
 
@@ -265,12 +272,12 @@ const TournamentLobby = () => {
                 description: 'Finished tournaments'
               },
               {
-                key: 'drafts',
-                label: 'Drafts',
-                value: statusCounts.draft,
-                icon: 'FileText',
-                color: 'from-orange-500 to-red-500',
-                description: 'In preparation'
+                key: 'shared',
+                label: 'Shared',
+                value: statusCounts.shared,
+                icon: 'Users',
+                color: 'from-yellow-500 to-orange-500',
+                description: 'Collaborating'
               }
             ]}
             columns={4}
@@ -284,6 +291,7 @@ const TournamentLobby = () => {
               { key: 'all', label: 'All', count: statusCounts.all },
               { key: 'active', label: 'Active', count: statusCounts.active },
               { key: 'completed', label: 'Completed', count: statusCounts.completed },
+              { key: 'shared', label: 'Shared', count: statusCounts.shared },
               { key: 'draft', label: 'Drafts', count: statusCounts.draft }
             ]}
             activeFilter={filter}

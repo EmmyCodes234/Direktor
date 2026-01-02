@@ -130,7 +130,7 @@ const TournamentCard = ({
                   <CardTitle className="text-lg font-semibold truncate group-hover:text-primary transition-colors pr-2">
                     {tournament.name}
                   </CardTitle>
-                  
+
                   {/* Action Buttons */}
                   <div className={cn(
                     "flex items-center space-x-1 transition-opacity duration-200",
@@ -157,17 +157,24 @@ const TournamentCard = ({
 
                 {/* Status and Mode Badges */}
                 <div className="flex items-center space-x-2">
+                  {tournament.is_shared && (
+                    <Badge variant="warning" className="flex items-center space-x-1 border-yellow-500/50 text-yellow-500 bg-yellow-500/10 px-2 py-0.5">
+                      <Icon name="Users" size={12} />
+                      <span>Shared</span>
+                    </Badge>
+                  )}
+
                   <Badge variant={statusConfig.variant} className="flex items-center space-x-1">
                     <Icon name={statusConfig.icon} size={12} />
                     <span>{statusConfig.label}</span>
                   </Badge>
-                  
+
                   <Badge variant="outline" className="text-xs">
-                    {tournament.mode === 'individual' ? 'Individual' : 
-                     tournament.mode === 'team' ? 'Team' : 
-                     tournament.mode === 'swiss' ? 'Swiss' : 'Individual'}
+                    {tournament.mode === 'individual' ? 'Individual' :
+                      tournament.mode === 'team' ? 'Team' :
+                        tournament.mode === 'swiss' ? 'Swiss' : 'Individual'}
                   </Badge>
-                  
+
                   {tournament.is_public && (
                     <Badge variant="info" className="text-xs">
                       <Icon name="Globe" size={10} className="mr-1" />
@@ -196,7 +203,7 @@ const TournamentCard = ({
                 </div>
                 <div className="text-xs text-muted-foreground">Players</div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-foreground">
                   {tournament.current_round || 0}
@@ -205,7 +212,7 @@ const TournamentCard = ({
                   {tournament.total_rounds ? `of ${tournament.total_rounds}` : 'Rounds'}
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
                   {tournament.completed_games || 0}
@@ -222,7 +229,7 @@ const TournamentCard = ({
                 <Icon name="Calendar" size={14} className="mr-2 flex-shrink-0" />
                 <span>Created {formatDate(tournament.created_at)}</span>
               </div>
-              
+
               {tournament.start_date && (
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Icon name="Clock" size={14} className="mr-2 flex-shrink-0" />
@@ -232,7 +239,7 @@ const TournamentCard = ({
                   </span>
                 </div>
               )}
-              
+
               {tournament.location && (
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Icon name="MapPin" size={14} className="mr-2 flex-shrink-0" />

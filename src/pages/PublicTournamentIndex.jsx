@@ -114,6 +114,7 @@ const PublicTournamentIndex = () => {
                 <div className="flex flex-col items-center space-y-1 mb-12">
                     <LinkItem href={`/tournament/${tournamentSlug}/field`}>Field</LinkItem>
                     <LinkItem href={`/tournament/${tournamentSlug}/live-streamboard`}>Live Streamboard</LinkItem>
+
                     <LinkItem href={`/tournament/${tournamentSlug}/submit-result`}>Submit Result</LinkItem>
 
                     <div className="h-4"></div> {/* Spacing as requested */}

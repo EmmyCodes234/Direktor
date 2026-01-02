@@ -94,12 +94,20 @@ const TournamentLobby = () => {
     return <PublicLoadingScreen variant="dark" />;
   }
 
-  const officialTournaments = tournaments.filter(t => t.status !== 'draft');
-  const draftTournaments = tournaments.filter(t => t.status === 'draft');
+  const processedTournaments = tournaments.map(t => ({
+    ...t,
+    is_shared: user?.id && t.user_id !== user.id
+  }));
+
+  const sharedTournaments = processedTournaments.filter(t => t.is_shared);
+  const officialTournaments = processedTournaments.filter(t => !t.is_shared && t.status !== 'draft');
+  const draftTournaments = processedTournaments.filter(t => !t.is_shared && t.status === 'draft');
+
   const stats = {
-    total: tournaments.length,
+    total: processedTournaments.length,
     active: officialTournaments.length,
-    drafts: draftTournaments.length
+    drafts: draftTournaments.length,
+    shared: sharedTournaments.length
   };
 
   return (
@@ -160,6 +168,37 @@ const TournamentLobby = () => {
                       onSelect={handleSelectTournament}
                       onShare={handleShareTournament}
                       onDelete={openDeleteConfirm}
+                    />
+                  ))}
+                </div>
+              </motion.section>
+            )}
+
+            {/* Shared Section */}
+            {sharedTournaments.length > 0 && (
+              <motion.section
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25 }}
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Icon name="Users" className="text-yellow-500" />
+                    Shared with Me
+                  </h2>
+                  <div className="h-px bg-slate-800 flex-1" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {sharedTournaments.map((tourney, index) => (
+                    <TournamentCard
+                      key={tourney.id}
+                      tournament={tourney}
+                      variant="default" // Use default style but maybe with shared indicator
+                      index={index}
+                      onSelect={handleSelectTournament}
+                      onShare={handleShareTournament}
+                      onDelete={() => toast.error("Cannot delete shared tournament")}
                     />
                   ))}
                 </div>

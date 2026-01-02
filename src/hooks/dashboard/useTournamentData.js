@@ -33,6 +33,7 @@ const useTournamentData = (tournamentSlug) => {
     const [pendingResults, setPendingResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [userRole, setUserRole] = useState(null);
 
     // Use a ref to track if we're mounted to avoid state updates on unmount
     const isMounted = useRef(true);
@@ -66,10 +67,29 @@ const useTournamentData = (tournamentSlug) => {
                 throw tErr || new Error("Tournament not found");
             }
 
-            // Security check: Ensure user owns this tournament
-            if (tournamentData.user_id !== session.user.id) {
+            // Security check: Determine Role
+            let role = null;
+            if (tournamentData.user_id === session.user.id) {
+                role = 'owner';
+            } else {
+                // Check collaborator status
+                const { data: collabData, error: collabError } = await supabase
+                    .from('tournament_collaborators')
+                    .select('role')
+                    .eq('tournament_id', tournamentData.id)
+                    .eq('email', session.user.email)
+                    .single();
+
+                if (collabData) {
+                    role = collabData.role || 'editor';
+                }
+            }
+
+            if (!role) {
                 throw new Error("You don't have permission to access this tournament's admin dashboard.");
             }
+
+            if (isMounted.current) setUserRole(role);
 
             // Helper to merge tournament_players with profile data
             const combinedPlayers = tournamentData.tournament_players.map(tp => ({
@@ -235,6 +255,7 @@ const useTournamentData = (tournamentSlug) => {
         setPendingResults,
         loading,
         error,
+        userRole,
         refresh: fetchTournamentData
     };
 };
