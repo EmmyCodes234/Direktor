@@ -91,17 +91,30 @@ export const calculateStandings = (players, results, matches, tournamentInfo) =>
     } else {
         // Standard Individual / Team logic - Optimized to O(R + P)
         const statsMap = new Map();
-        results.forEach(result => {
-            if (!result.player1_id || !result.player2_id) return;
+        const opponentMap = new Map(); // player_id -> [opponent_ids]
 
+        results.forEach(result => {
             const pid1 = String(result.player1_id);
-            const pid2 = String(result.player2_id);
+            const pid2 = result.player2_id ? String(result.player2_id) : null;
+            const p2Name = result.player2_name;
 
             if (!statsMap.has(pid1)) statsMap.set(pid1, { wins: 0, losses: 0, ties: 0, spread: 0 });
-            if (!statsMap.has(pid2)) statsMap.set(pid2, { wins: 0, losses: 0, ties: 0, spread: 0 });
-
             const s1 = statsMap.get(pid1);
+
+            if (p2Name === 'BYE' || !pid2) {
+                // Grant 1 Win for Bye
+                s1.wins++;
+                return;
+            }
+
+            if (!statsMap.has(pid2)) statsMap.set(pid2, { wins: 0, losses: 0, ties: 0, spread: 0 });
             const s2 = statsMap.get(pid2);
+
+            // Track opponents for Solkoff
+            if (!opponentMap.has(pid1)) opponentMap.set(pid1, []);
+            if (!opponentMap.has(pid2)) opponentMap.set(pid2, []);
+            opponentMap.get(pid1).push(pid2);
+            opponentMap.get(pid2).push(pid1);
 
             if (result.score1 > result.score2) {
                 s1.wins++;
@@ -119,8 +132,18 @@ export const calculateStandings = (players, results, matches, tournamentInfo) =>
         });
 
         enrichedPlayers = enrichedPlayers.map(player => {
-            const s = statsMap.get(String(player.player_id)) || { wins: 0, losses: 0, ties: 0, spread: 0 };
-            return { ...player, ...s };
+            const sid = String(player.player_id);
+            const s = statsMap.get(sid) || { wins: 0, losses: 0, ties: 0, spread: 0 };
+
+            // Calculate Solkoff (Sum of opponents' wins)
+            let solkoff = 0;
+            const opponents = opponentMap.get(sid) || [];
+            opponents.forEach(oid => {
+                const ostats = statsMap.get(oid);
+                if (ostats) solkoff += (ostats.wins + ostats.ties * 0.5);
+            });
+
+            return { ...player, ...s, solkoff };
         });
     }
 
@@ -135,6 +158,9 @@ export const calculateStandings = (players, results, matches, tournamentInfo) =>
         const aGameScore = (a.wins || 0) + (a.ties || 0) * 0.5;
         const bGameScore = (b.wins || 0) + (b.ties || 0) * 0.5;
         if (aGameScore !== bGameScore) return bGameScore - aGameScore;
+
+        // Tie-breaker 1: Solkoff (Sum of opponents' scores)
+        if ((a.solkoff || 0) !== (b.solkoff || 0)) return (b.solkoff || 0) - (a.solkoff || 0);
 
         if ((a.spread || 0) !== (b.spread || 0)) return (b.spread || 0) - (a.spread || 0);
 
@@ -158,7 +184,7 @@ export const calculateStandings = (players, results, matches, tournamentInfo) =>
             if (aWins !== bWins) return bWins - aWins;
         }
 
-        return (a.seed || 999) - (b.seed || 999);
+        return (a.initial_seed || a.seed || 999) - (b.initial_seed || b.seed || 999);
     }).map((player, index) => ({ ...player, rank: index + 1 }));
 };
 

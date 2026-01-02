@@ -29,6 +29,19 @@ const COMMAND_MAP = {
     'ps': 'peakscore',
     'hw': 'peakscore', // High Wins
 
+    // Pairing Systems
+    'q': 'q',
+    'pq': 'pq',
+    'pairquartiles': 'pq',
+    'quartile': 'q',
+    'quart': 'q',
+    'ns': 'ns',
+    'ts': 'ns',
+    'sw': 'sw',
+    'initfontes': 'initfontes',
+    'koth': 'koth',
+    'rr': 'rr',
+
     // Shootout
     'so': 'shootout',
     'hc': 'shootout', // High Combined

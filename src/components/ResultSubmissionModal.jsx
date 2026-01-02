@@ -12,7 +12,7 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
     player2_name: '',
     score1: '',
     score2: '',
-    round: tournament?.currentRound || 1,
+    round: tournament?.current_round || 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,58 +59,58 @@ const ResultSubmissionModal = ({ tournament, players, onClose }) => {
   };
 
   return (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 pt-16 sm:pt-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 pt-16 sm:pt-4" onClick={onClose}>
       <div className="glass-card w-full max-w-md mx-4 animate-fade-in-up max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-border">
           <h2 className="text-xl font-heading font-semibold text-foreground">Submit Game Result</h2>
           <p className="text-sm text-muted-foreground">This result will be sent for director approval.</p>
         </div>
         <form onSubmit={handleSubmit}>
-            <div className="p-6 space-y-4">
-                <Input
-                    label="Round Number"
-                    name="round"
-                    type="number"
-                    value={formData.round}
-                    onChange={(e) => handleChange('round', e.target.value)}
-                    placeholder="Enter the round number"
-                    required
-                />
-                <Select
-                    label="Your Name"
-                    options={playerOptions}
-                    value={formData.player1_name}
-                    onChange={(value) => handleChange('player1_name', value)}
-                    placeholder="Select your name"
-                />
-                <Input
-                    label="Your Score"
-                    name="score1"
-                    type="number"
-                    value={formData.score1}
-                    onChange={(e) => handleChange('score1', e.target.value)}
-                    placeholder="Enter your score"
-                />
-                <Select
-                    label="Opponent's Name"
-                    options={playerOptions}
-                    value={formData.player2_name}
-                    onChange={(value) => handleChange('player2_name', value)}
-                    placeholder="Select opponent's name"
-                />
-                 <Input
-                    label="Opponent's Score"
-                    name="score2"
-                    type="number"
-                    value={formData.score2}
-                    onChange={(e) => handleChange('score2', e.target.value)}
-                    placeholder="Enter opponent's score"
-                />
-            </div>
-            <div className="p-6 border-t border-border flex justify-end items-center space-x-2">
-                <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
-                <Button type="submit" loading={isSubmitting}>Submit for Approval</Button>
-            </div>
+          <div className="p-6 space-y-4">
+            <Input
+              label="Round Number"
+              name="round"
+              type="number"
+              value={formData.round}
+              onChange={(e) => handleChange('round', e.target.value)}
+              placeholder="Enter the round number"
+              required
+            />
+            <Select
+              label="Your Name"
+              options={playerOptions}
+              value={formData.player1_name}
+              onChange={(value) => handleChange('player1_name', value)}
+              placeholder="Select your name"
+            />
+            <Input
+              label="Your Score"
+              name="score1"
+              type="number"
+              value={formData.score1}
+              onChange={(e) => handleChange('score1', e.target.value)}
+              placeholder="Enter your score"
+            />
+            <Select
+              label="Opponent's Name"
+              options={playerOptions}
+              value={formData.player2_name}
+              onChange={(value) => handleChange('player2_name', value)}
+              placeholder="Select opponent's name"
+            />
+            <Input
+              label="Opponent's Score"
+              name="score2"
+              type="number"
+              value={formData.score2}
+              onChange={(e) => handleChange('score2', e.target.value)}
+              placeholder="Enter opponent's score"
+            />
+          </div>
+          <div className="p-6 border-t border-border flex justify-end items-center space-x-2">
+            <Button variant="ghost" type="button" onClick={onClose}>Cancel</Button>
+            <Button type="submit" loading={isSubmitting}>Submit for Approval</Button>
+          </div>
         </form>
       </div>
     </div>

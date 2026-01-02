@@ -7,7 +7,8 @@ import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
 import { cn } from '../../../utils/cn';
 import ManualPairingModal from '../../../components/ManualPairingModal';
-import { assignStarts, generateSwissPairings, generateEnhancedSwissPairings, generateKingOfTheHillPairings, generateTeamSwissPairings } from '../../../utils/pairingLogic';
+import { assignStarts, generateSwissPairings, generateEnhancedSwissPairings, generateKingOfTheHillPairings, generateTeamSwissPairings, generateQuartilePairings } from '../../../utils/pairingLogic';
+import { calculateStandings } from '../../../hooks/dashboard/useStandingsCalculator';
 
 
 
@@ -17,23 +18,23 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
   const [isPaired, setIsPaired] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showManualPairing, setShowManualPairing] = useState(false);
-  const [viewRound, setViewRound] = useState(tournamentInfo?.currentRound || 1);
+  const [viewRound, setViewRound] = useState(tournamentInfo?.current_round || 1);
 
-  // Sync viewRound when currentRound updates (e.g. tournament advances)
+  // Sync viewRound when current_round updates (e.g. tournament advances)
   useEffect(() => {
-    if (tournamentInfo?.currentRound) {
-      setViewRound(tournamentInfo.currentRound);
+    if (tournamentInfo?.current_round) {
+      setViewRound(tournamentInfo.current_round);
     }
-  }, [tournamentInfo?.currentRound]);
+  }, [tournamentInfo?.current_round]);
 
   useEffect(() => {
-    const roundToDisplay = viewRound || tournamentInfo?.currentRound || 1;
+    const roundToDisplay = viewRound || tournamentInfo?.current_round || 1;
 
     // Debug logging for pairing data
     console.log('🔍 TournamentControl Debug:', {
       tournamentId: tournamentInfo?.id,
       viewRound: roundToDisplay,
-      currentRound: tournamentInfo?.currentRound,
+      current_round: tournamentInfo?.current_round,
       pairingSystem: tournamentInfo?.pairing_system,
       pairingSchedule: tournamentInfo?.pairing_schedule,
       scheduleKeys: tournamentInfo?.pairing_schedule ? Object.keys(tournamentInfo.pairing_schedule) : [],
@@ -87,7 +88,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
   const handlePairCurrentRound = async () => {
     setIsLoading(true);
     try {
-      const currentRound = tournamentInfo.currentRound || 1;
+      const currentRound = tournamentInfo.current_round || 1;
 
       let schedule = { ...(tournamentInfo.pairing_schedule || {}) };
       let fullRoundPairings = [];
@@ -120,63 +121,10 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
         let divisionPairings;
 
         if (pairingSystem === 'enhanced_swiss') {
-          // Enhanced Swiss logic (previously Lito)
-          let playersToPair = [...divisionPlayers];
           const baseRound = advancedSettings?.base_round ?? currentRound - 1;
-
-          // Calculate standings based on the specified base round
-          if (baseRound >= 0) {
-            const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
-            const statsMap = new Map();
-
-            // Initialize stats for all players
-            playersToPair.forEach(p => {
-              statsMap.set(p.player_id, {
-                ...p,
-                wins: 0,
-                losses: 0,
-                ties: 0,
-                spread: 0,
-                rank: 0
-              });
-            });
-
-            // Calculate stats from historical results
-            for (const res of historicalResults) {
-              const p1Stats = statsMap.get(res.player1_id);
-              const p2Stats = statsMap.get(res.player2_id);
-              if (!p1Stats || !p2Stats) continue;
-
-              if (res.score1 > res.score2) {
-                p1Stats.wins++;
-                p2Stats.losses++;
-              } else if (res.score2 > res.score1) {
-                p2Stats.wins++;
-                p1Stats.losses++;
-              } else {
-                p1Stats.ties++;
-                p2Stats.ties++;
-              }
-
-              p1Stats.spread += (res.score1 - res.score2);
-              p2Stats.spread += (res.score2 - res.score1);
-            }
-
-            // Sort players by standings
-            const sortedPlayers = Array.from(statsMap.values()).sort((a, b) => {
-              const aScore = (a.wins || 0) + (a.ties || 0) * 0.5;
-              const bScore = (b.wins || 0) + (b.ties || 0) * 0.5;
-              if (aScore !== bScore) return bScore - aScore;
-              return (b.spread || 0) - (a.spread || 0);
-            });
-
-            // Assign ranks
-            sortedPlayers.forEach((player, index) => {
-              player.rank = index + 1;
-            });
-
-            playersToPair = sortedPlayers;
-          }
+          const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
+          const standings = calculateStandings(divisionPlayers.map(p => ({ ...p, player_id: p.id })), historicalResults, [], tournamentInfo);
+          playersToPair = standings.filter(p => !p.withdrawn && p.status !== 'paused');
 
           let previousMatchups = new Set();
           const allowRematches = advancedSettings?.allow_rematches ?? false;
@@ -201,62 +149,10 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           );
         } else if (pairingSystem === 'king_of_the_hill') {
           // King of the Hill logic
-          let playersToPair = [...divisionPlayers];
           const baseRound = advancedSettings?.base_round ?? currentRound - 1;
-
-          // Calculate standings based on the specified base round
-          if (baseRound >= 0) {
-            const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
-            const statsMap = new Map();
-
-            // Initialize stats for all players
-            playersToPair.forEach(p => {
-              statsMap.set(p.player_id, {
-                ...p,
-                wins: 0,
-                losses: 0,
-                ties: 0,
-                spread: 0,
-                rank: 0
-              });
-            });
-
-            // Calculate stats from historical results
-            for (const res of historicalResults) {
-              const p1Stats = statsMap.get(res.player1_id);
-              const p2Stats = statsMap.get(res.player2_id);
-              if (!p1Stats || !p2Stats) continue;
-
-              if (res.score1 > res.score2) {
-                p1Stats.wins++;
-                p2Stats.losses++;
-              } else if (res.score2 > res.score1) {
-                p2Stats.wins++;
-                p1Stats.losses++;
-              } else {
-                p1Stats.ties++;
-                p2Stats.ties++;
-              }
-
-              p1Stats.spread += (res.score1 - res.score2);
-              p2Stats.spread += (res.score2 - res.score1);
-            }
-
-            // Sort players by standings
-            const sortedPlayers = Array.from(statsMap.values()).sort((a, b) => {
-              const aScore = (a.wins || 0) + (a.ties || 0) * 0.5;
-              const bScore = (b.wins || 0) + (b.ties || 0) * 0.5;
-              if (aScore !== bScore) return bScore - aScore;
-              return (b.spread || 0) - (a.spread || 0);
-            });
-
-            // Assign ranks
-            sortedPlayers.forEach((player, index) => {
-              player.rank = index + 1;
-            });
-
-            playersToPair = sortedPlayers;
-          }
+          const historicalResults = allResultsSoFar.filter(r => r.round <= baseRound);
+          const standings = calculateStandings(divisionPlayers.map(p => ({ ...p, player_id: p.id })), historicalResults, [], tournamentInfo);
+          playersToPair = standings.filter(p => !p.withdrawn && p.status !== 'paused');
 
           let previousMatchups = new Set();
           const allowRematches = advancedSettings?.allow_rematches ?? false;
@@ -268,6 +164,9 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           }
 
           divisionPairings = generateKingOfTheHillPairings(playersToPair, previousMatchups, allResultsSoFar, currentRound);
+        } else if (pairingSystem === 'quartile' || pairingSystem === 'fontes') {
+          // Quartile / Fontes Swiss Logic
+          divisionPairings = generateQuartilePairings(divisionPlayers, currentRound, allResultsSoFar, cliSettings.current?.reserved_tables || {});
         } else if (pairingSystem === 'team_swiss') {
           // Team Swiss logic
           const teams = Array.from(new Set(divisionPlayers.map(p => p.team_id))).map(teamId => {
@@ -315,6 +214,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           const teamPairings = generateTeamSwissPairings(teams, previousTeamMatchups, allResultsSoFar);
 
           divisionPairings = [];
+          let tableNumber = 1;
           for (const teamPairing of teamPairings) {
             if (teamPairing.team2.name === 'BYE') {
               const team1Players = players.filter(p => p.team_id === teamPairing.team1.id);
@@ -342,56 +242,29 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
         } else if (pairingSystem === 'round_robin') {
           // Round Robin pairing logic - Generate complete schedule if first round
           if (currentRound === 1) {
-            // Generate complete round robin schedule for all rounds
-            let playersToPair = [...divisionPlayers];
-            const hasOddPlayers = playersToPair.length % 2 !== 0;
+            const completeSchedule = generateRoundRobinSchedule(divisionPlayers, 1, 1, cliSettings.current?.reserved_tables || {});
 
-            // If odd number, add bye handling
-            if (hasOddPlayers) {
-              playersToPair = playersToPair.slice(0, -1); // Remove last player for pairing, handle bye separately
+            if (completeSchedule) {
+              const { error: updateError } = await supabase
+                .from('tournaments')
+                .update({ pairing_schedule: completeSchedule })
+                .eq('id', tournamentInfo.id);
+
+              if (updateError) {
+                toast.error('Failed to save Round Robin schedule.');
+              } else {
+                toast.success('Generated complete Round Robin schedule!');
+                onRoundPaired(currentRound, completeSchedule[currentRound]);
+              }
+              return;
             }
-
-            const playerCount = playersToPair.length;
-            const completeSchedule = {};
+          }
+          if (false) {
 
             if (playerCount >= 2 && playerCount <= 10) {
               // Generate proper round robin schedule algorithmically
-              const generateRoundRobinSchedule = (numPlayers) => {
-                const schedule = [];
-                const players = Array.from({ length: numPlayers }, (_, i) => i);
-
-                // For odd number of players, add a "bye" player
-                if (numPlayers % 2 !== 0) {
-                  players.push(-1); // -1 represents bye
-                }
-
-                const n = players.length;
-                const rounds = n - 1;
-                const halfSize = n / 2;
-
-                for (let round = 0; round < rounds; round++) {
-                  const roundPairings = [];
-
-                  for (let i = 0; i < halfSize; i++) {
-                    const player1 = players[i];
-                    const player2 = players[n - 1 - i];
-
-                    // Skip if either player is bye
-                    if (player1 !== -1 && player2 !== -1) {
-                      roundPairings.push([player1, player2]);
-                    }
-                  }
-
-                  schedule.push(roundPairings);
-
-                  // Rotate players (keep first player fixed, rotate others)
-                  players.splice(1, 0, players.pop());
-                }
-
-                return schedule;
-              };
-
-              const schedule = generateRoundRobinSchedule(playerCount);
+              // [REF] Using global generateRoundRobinSchedule utility
+              const schedule = generateRoundRobinSchedule(divisionPlayers, 1, 1, cliSettings.current?.reserved_tables || {});
               if (schedule) {
                 // Generate pairings for all rounds
                 schedule.forEach((roundPairings, roundIndex) => {
@@ -884,7 +757,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
 
   const handleSaveManualPairings = async (manualPairings) => {
     setIsLoading(true);
-    const currentRound = tournamentInfo.currentRound || 1;
+    const currentRound = tournamentInfo.current_round || 1;
 
     let schedule = { ...(tournamentInfo.pairing_schedule || {}) };
 
@@ -1066,7 +939,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
               <h2 className="text-lg sm:text-xl font-heading font-semibold text-foreground">
-                Round {tournamentInfo?.currentRound || 1} Control
+                Round {tournamentInfo?.current_round || 1} Control
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground">
                 {isPaired ? `${currentPairings.length} pairings generated` : 'No pairings for current round'}
@@ -1337,7 +1210,7 @@ const TournamentControl = ({ tournamentInfo, onRoundPaired, onManualPairingsSave
         isOpen={showManualPairing}
         onClose={() => setShowManualPairing(false)}
         players={players}
-        currentRound={tournamentInfo?.currentRound || 1}
+        currentRound={tournamentInfo?.current_round || 1}
         onSavePairings={handleSaveManualPairings}
         existingPairings={currentPairings}
         tournamentInfo={tournamentInfo}

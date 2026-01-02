@@ -33,7 +33,7 @@ const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setRes
 
             const payload = {
                 tournament_id: tournamentInfo.id,
-                round: resultData.round || tournamentInfo.currentRound,
+                round: resultData.round || tournamentInfo.current_round,
                 player1_id: player1.player_id,
                 player2_id: player2.player_id,
                 score1: finalScore1,
@@ -67,7 +67,7 @@ const useTournamentActions = (tournamentInfo, setTournamentInfo, players, setRes
                     .from('results')
                     .select('id')
                     .eq('tournament_id', tournamentInfo.id)
-                    .eq('round', resultData.round || tournamentInfo.currentRound)
+                    .eq('round', resultData.round || tournamentInfo.current_round)
                     .or(`and(player1_id.eq.${player1.player_id},player2_id.eq.${player2.player_id}),and(player1_id.eq.${player2.player_id},player2_id.eq.${player1.player_id})`);
 
                 if (existingDupes && existingDupes.length > 0) {

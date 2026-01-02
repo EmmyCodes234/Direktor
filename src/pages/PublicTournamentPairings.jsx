@@ -132,10 +132,10 @@ const PublicTournamentPairings = () => {
     });
 
     // Apply Gibson rule if enabled
-    if (tournament?.gibson_rule_enabled && tournament?.currentRound) {
+    if (tournament?.gibson_rule_enabled && tournament?.current_round) {
       const totalRounds = tournament.rounds || 10;
       const prizeCount = tournament.prizes?.length || 3;
-      return applyGibsonRuleToPairings(pairings, players, tournament.currentRound, totalRounds, prizeCount, tournament?.type);
+      return applyGibsonRuleToPairings(pairings, players, tournament.current_round, totalRounds, prizeCount, tournament?.type);
     }
 
     return pairings;

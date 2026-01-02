@@ -34,7 +34,7 @@ const TournamentStats = ({ players, recentResults, tournamentInfo, compact = fal
     const totalPlayers = players?.length || 0;
     const activePlayers = players?.filter(p => !p.withdrawn)?.length || 0;
     const totalGames = recentResults?.length || 0;
-    const currentRound = tournamentInfo?.currentRound || 1;
+    const currentRound = tournamentInfo?.current_round || 1;
 
     return [
       {

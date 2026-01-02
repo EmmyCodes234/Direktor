@@ -30,34 +30,51 @@ export const assignStarts = (pairings, players, allResults) => {
         } else if (p2Starts < p1Starts) {
             p.player2.starts = true;
         } else {
-            // Tie-breaker 1: Head-to-head starts
-            const headToHeadGames = allResults.filter(r =>
-                (r.player1_id === player1.player_id && r.player2_id === player2.player_id) ||
-                (r.player1_id === player2.player_id && r.player2_id === player1.player_id)
-            );
+            // Tie-breaker 1: Last game starts
+            // If p1 went first last, p2 should go first now.
+            const p1Results = allResults.filter(r => r.player1_id === player1.player_id || r.player2_id === player1.player_id);
+            const p2Results = allResults.filter(r => r.player1_id === player2.player_id || r.player2_id === player2.player_id);
 
-            const p1HeadToHeadStarts = headToHeadGames.reduce((acc, r) => {
-                if (r.player1_id === player1.player_id && r.player1_starts) return acc + 1;
-                if (r.player2_id === player1.player_id && r.player2_starts) return acc + 1;
-                return acc;
-            }, 0);
+            const lastR1 = p1Results.length > 0 ? p1Results[p1Results.length - 1] : null;
+            const lastR2 = p2Results.length > 0 ? p2Results[p2Results.length - 1] : null;
 
-            const p2HeadToHeadStarts = headToHeadGames.reduce((acc, r) => {
-                if (r.player1_id === player2.player_id && r.player1_starts) return acc + 1;
-                if (r.player2_id === player2.player_id && r.player2_starts) return acc + 1;
-                return acc;
-            }, 0);
+            const p1LastStarted = lastR1 ? (lastR1.player1_id === player1.player_id ? lastR1.player1_starts : lastR1.player2_starts) : false;
+            const p2LastStarted = lastR2 ? (lastR2.player1_id === player2.player_id ? lastR2.player1_starts : lastR2.player2_starts) : false;
 
-            if (p1HeadToHeadStarts < p2HeadToHeadStarts) {
-                p.player1.starts = true;
-            } else if (p2HeadToHeadStarts < p1HeadToHeadStarts) {
+            if (p1LastStarted && !p2LastStarted) {
                 p.player2.starts = true;
+            } else if (!p1LastStarted && p2LastStarted) {
+                p.player1.starts = true;
             } else {
-                // Tie-breaker 2: Fair tie-breaker using lower seed (higher rank)
-                if ((player1.seed || 999) < (player2.seed || 999)) {
+                // Tie-breaker 2: Head-to-head starts
+                const headToHeadGames = allResults.filter(r =>
+                    (r.player1_id === player1.player_id && r.player2_id === player2.player_id) ||
+                    (r.player1_id === player2.player_id && r.player2_id === player1.player_id)
+                );
+
+                const p1HeadToHeadStarts = headToHeadGames.reduce((acc, r) => {
+                    if (r.player1_id === player1.player_id && r.player1_starts) return acc + 1;
+                    if (r.player2_id === player1.player_id && r.player2_starts) return acc + 1;
+                    return acc;
+                }, 0);
+
+                const p2HeadToHeadStarts = headToHeadGames.reduce((acc, r) => {
+                    if (r.player1_id === player2.player_id && r.player1_starts) return acc + 1;
+                    if (r.player2_id === player2.player_id && r.player2_starts) return acc + 1;
+                    return acc;
+                }, 0);
+
+                if (p1HeadToHeadStarts < p2HeadToHeadStarts) {
                     p.player1.starts = true;
-                } else {
+                } else if (p2HeadToHeadStarts < p1HeadToHeadStarts) {
                     p.player2.starts = true;
+                } else {
+                    // Tie-breaker 3: Fair tie-breaker using lower seed (higher rank)
+                    if ((player1.initial_seed || player1.seed || 999) < (player2.initial_seed || player2.seed || 999)) {
+                        p.player1.starts = true;
+                    } else {
+                        p.player2.starts = true;
+                    }
                 }
             }
         }
@@ -66,190 +83,229 @@ export const assignStarts = (pairings, players, allResults) => {
 };
 
 
-export const generateSwissPairings = (playersToPair, previousMatchups, allResults, currentRound = 1, maxConsecutive = 0, reservedTables = {}) => {
-    let availablePlayers = [...playersToPair.filter(p => p.status !== 'withdrawn' && p.status !== 'paused')];
+/**
+ * Generate Swiss Pairings based on TSH standards.
+ * 
+ * Features:
+ * - Win Groups: Players are paired within groups of same wins.
+ * - Optimized Search: Pairs from top and bottom win-groups alternately to reduce backtracking.
+ * - TSH Priority: Minimize repeats > Not previous opponent > Color balance > Proximity (half-group distance).
+ */
+export const generateSwissPairings = (playersToPair, previousMatchups, allResults, currentRound = 1, maxRepeats = 0, reservedTables = {}) => {
+    let availablePlayers = [...playersToPair.filter(p => !p.withdrawn && p.status !== 'paused')];
     let newPairings = [];
 
-    // Determine used tables from reservations to avoid conflicts
-    const usedTables = new Set(Object.values(reservedTables));
-    let table = 1;
-
-    // Helper to get next table
-    const getNextTable = () => {
-        while (usedTables.has(table)) table++;
-        const t = table;
-        usedTables.add(t);
-        return t;
+    // Helper: Determine Starts/Seconds balance for a player
+    const getStats = (pId) => {
+        const pResults = allResults.filter(r => r.player1_id === pId || r.player2_id === pId);
+        const starts = pResults.filter(r => (r.player1_id === pId && r.player1_starts) || (r.player2_id === pId && r.player2_starts)).length;
+        const total = pResults.length;
+        const previousOpponent = pResults.length > 0 ? (pResults[pResults.length - 1].player1_id === pId ? pResults[pResults.length - 1].player2_id : pResults[pResults.length - 1].player1_id) : null;
+        return { starts, total, previousOpponent };
     };
 
-    // Helper to check reserved table for a pair
-    const getTableForPair = (p1, p2) => {
-        if (reservedTables[p1.player_id]) return reservedTables[p1.player_id];
-        if (reservedTables[p2.player_id]) return reservedTables[p2.player_id];
-        return getNextTable();
-    };
+    // Helper: Opponent Eligibility & Quality Score
+    const getMatchQuality = (p1, p2) => {
+        const stats1 = getStats(p1.player_id);
+        const stats2 = getStats(p2.player_id);
 
-    // Handle odd number of players with bye
-    if (availablePlayers.length % 2 !== 0) {
-        const playersWithByes = new Set(allResults.filter(r => r.player2_name === 'BYE').map(r => r.player1_name));
-
-        // Filter eligible for Bye
-        // Condition: Not had bye.
-        // Condition: If Round 1, Unrated players (rating 0 or null) should NOT get bye if possible (unless all are unrated).
-
-        let candidates = availablePlayers.filter(p => !playersWithByes.has(p.name));
-
-        if (currentRound === 1) {
-            const ratedCandidates = candidates.filter(p => (p.rating || 0) > 0);
-            if (ratedCandidates.length > 0) candidates = ratedCandidates;
-        }
-
-        // Sort by Rank DESC (Lower Rank/Worst Player gets bye usually, or Lowest Rating)
-        // If rank isn't strictly defined, use rating (Ascending). 
-        // Logic: b.rank - a.rank (High Rank Number = Worse).
-        candidates.sort((a, b) => (b.rank || 0) - (a.rank || 0));
-
-        if (candidates.length === 0) {
-            // Fallback to anyone
-            candidates = availablePlayers.sort((a, b) => (b.rank || 0) - (a.rank || 0));
-        }
-
-        const byePlayer = candidates[0];
-        if (byePlayer) {
-            newPairings.push({
-                table: 'BYE',
-                player1: {
-                    player_id: byePlayer.player_id,
-                    name: byePlayer.name,
-                    rating: byePlayer.rating,
-                    division: byePlayer.division
-                },
-                player2: { name: 'BYE' },
-                note: 'Bye Assignment'
-            });
-            availablePlayers = availablePlayers.filter(p => p.player_id !== byePlayer.player_id);
-        }
-    }
-
-    // Group players by score
-    const scoreGroups = new Map();
-    availablePlayers.forEach(player => {
-        const score = (player.wins || 0) + 0.5 * (player.ties || 0);
-        if (!scoreGroups.has(score)) {
-            scoreGroups.set(score, []);
-        }
-        scoreGroups.get(score).push(player);
-    });
-
-    const sortedScores = Array.from(scoreGroups.keys()).sort((a, b) => b - a);
-
-    // Helper: Check consecutive pairings
-    const hasExceededConsecutive = (p1, p2) => {
-        if (!maxConsecutive || maxConsecutive <= 0) return false;
-
-        const matches = allResults.filter(r =>
+        const repeatCount = allResults.filter(r =>
             (r.player1_id === p1.player_id && r.player2_id === p2.player_id) ||
             (r.player1_id === p2.player_id && r.player2_id === p1.player_id)
-        ).sort((a, b) => b.round - a.round);
+        ).length;
 
-        let consecutive = 0;
-        let checkRound = currentRound - 1;
+        if (maxRepeats === 0 && repeatCount > 0) return -1;
+        if (maxRepeats > 0 && repeatCount > maxRepeats) return -1;
 
-        for (const m of matches) {
-            if (m.round === checkRound) {
-                consecutive++;
-                checkRound--;
-            } else {
-                break;
-            }
-        }
+        let score = 0;
+        // Priority 1: Minimize repeats
+        score += (100 - repeatCount * 10);
 
-        return consecutive >= maxConsecutive;
+        // Priority 2: Not previous opponent
+        if (stats1.previousOpponent !== p2.player_id) score += 50;
+
+        // Priority 3: Color balance
+        const p1NeedsStart = stats1.starts <= stats1.total / 2;
+        const p2NeedsStart = stats2.starts <= stats2.total / 2;
+        if (p1NeedsStart !== p2NeedsStart) score += 20;
+
+        // Priority 4: Avoid 3 consecutive starts/seconds
+        const checkConsecutive = (pId) => {
+            const pResults = allResults.filter(r => r.player1_id === pId || r.player2_id === pId).slice(-2);
+            if (pResults.length < 2) return 0;
+            const s1 = (pResults[0].player1_id === pId ? pResults[0].player1_starts : pResults[0].player2_starts);
+            const s2 = (pResults[1].player1_id === pId ? pResults[1].player1_starts : pResults[1].player2_starts);
+            if (s1 && s2) return 1; // 2 starts in a row
+            if (!s1 && !s2) return -1; // 2 seconds in a row
+            return 0;
+        };
+
+        const con1 = checkConsecutive(p1.player_id);
+        const con2 = checkConsecutive(p2.player_id);
+
+        // If p1 had 2 starts and p2 had 2 seconds, this is a GREAT match (score +30)
+        // If both had 2 starts, this is a BAD match (score -40)
+        if (con1 !== 0 && con1 === con2) score -= 40;
+        if (con1 !== 0 && con1 === -con2) score += 30;
+
+        return score;
     };
 
-    for (const score of sortedScores) {
-        const playersInGroup = scoreGroups.get(score);
-
-        while (playersInGroup.length >= 2) {
-            const player1 = playersInGroup.shift();
-            let opponentFound = false;
-
-            for (let i = 0; i < playersInGroup.length; i++) {
-                const player2 = playersInGroup[i];
-                const matchupKey1 = `${player1.player_id}-${player2.player_id}`;
-                const matchupKey2 = `${player2.player_id}-${player1.player_id}`;
-
-                let validParams = true;
-                if (maxConsecutive > 0) {
-                    if (hasExceededConsecutive(player1, player2)) validParams = false;
-                } else {
-                    if (previousMatchups.has(matchupKey1) || previousMatchups.has(matchupKey2)) validParams = false;
-                }
-
-                if (validParams) {
-                    newPairings.push({
-                        table: getTableForPair(player1, player2),
-                        player1: {
-                            player_id: player1.player_id,
-                            name: player1.name,
-                            rating: player1.rating,
-                            division: player1.division
-                        },
-                        player2: {
-                            player_id: player2.player_id,
-                            name: player2.name,
-                            rating: player2.rating,
-                            division: player2.division
-                        },
-                        note: maxConsecutive > 0 && hasExceededConsecutive(player1, player2) ? 'Rematch Allowed' : undefined
-                    });
-                    playersInGroup.splice(i, 1);
-                    opponentFound = true;
-                    break;
-                }
+    // 1. Handle Odd Bye (Lowest ranked player with fewest byes)
+    if (availablePlayers.length % 2 !== 0) {
+        const byeCounts = new Map();
+        allResults.forEach(r => {
+            if (r.player2_name === 'BYE') {
+                byeCounts.set(r.player1_id, (byeCounts.get(r.player1_id) || 0) + 1);
             }
+        });
 
-            if (!opponentFound && playersInGroup.length > 0) {
-                // Desperate Measure: Pair with someone available even if rematch?
-                // Or Float Down?
-                // Standard Swiss floats down. But here we are forcing pairs if we can't find valid in group.
-                // If we can't pair in group, we should try to Float Down.
-                // But simplified logic: Force pair if no other choice in group to clear group?
-                // Real Swiss: P1 moves to next score group.
-                // Current Logic: Force pair (BAD for strict swiss).
-                // Correction: Float P1 to next group.
+        // Sort by Bye Count (Asc) then Rank (Desc - worst player first)
+        availablePlayers.sort((a, b) => {
+            const bcA = byeCounts.get(a.player_id) || 0;
+            const bcB = byeCounts.get(b.player_id) || 0;
+            if (bcA !== bcB) return bcA - bcB;
+            return (b.rank || 0) - (a.rank || 0);
+        });
 
-                // Push P1 to next group?
-                const nextScore = sortedScores.find(s => s < score);
-                if (nextScore !== undefined) {
-                    scoreGroups.get(nextScore).unshift(player1);
-                    // Don't pair here. Continue.
-                } else {
-                    // No lower group? Must force pair (rematch) or bye.
-                    // If we are here, P1 is stuck at bottom.
-                    // Try to pair with ANY remaining regardless of history?
-                    const player2 = playersInGroup.shift();
-                    newPairings.push({
-                        table: getTableForPair(player1, player2),
-                        player1: { ...player1 },
-                        player2: { ...player2 },
-                        note: 'Forced Rematch'
-                    });
-                }
-            }
+        const byePlayer = availablePlayers[0];
+        newPairings.push({
+            table: 'BYE',
+            player1: { ...byePlayer },
+            player2: { name: 'BYE' },
+            note: 'Bye Assignment'
+        });
+        availablePlayers = availablePlayers.filter(p => p.player_id !== byePlayer.player_id);
+    }
 
+    // 2. Group into Win Groups
+    // Rank is important for the "proximity" rule
+    availablePlayers.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+    const winGroups = new Map();
+    availablePlayers.forEach(p => {
+        const wins = (p.wins || 0) + (p.ties || 0) * 0.5;
+        if (!winGroups.has(wins)) winGroups.set(wins, []);
+        winGroups.get(wins).push(p);
+    });
+
+    const sortedWins = Array.from(winGroups.keys()).sort((a, b) => b - a);
+
+    // 3. Pairing Loop (Top-Down/Bottom-Up Alternating)
+    // TSH Optimization: Pair top win group, then bottom win group, then top...
+    let topIdx = 0;
+    let bottomIdx = sortedWins.length - 1;
+    let turn = 'top';
+
+    const workingGroups = new Map(winGroups);
+    let orphans = []; // Players floating down/up
+
+    while (topIdx <= bottomIdx) {
+        const currentWin = (turn === 'top') ? sortedWins[topIdx] : sortedWins[bottomIdx];
+        let group = workingGroups.get(currentWin) || [];
+
+        // Add orphans from previous group
+        if (orphans.length > 0) {
+            if (turn === 'top') group = [...orphans, ...group];
+            else group = [...group, ...orphans];
+            orphans = [];
         }
 
-        if (playersInGroup.length === 1) {
-            const nextScore = sortedScores.find(s => s < score);
-            if (nextScore !== undefined) {
-                const nextGroup = scoreGroups.get(nextScore);
-                if (nextGroup) {
-                    nextGroup.unshift(playersInGroup[0]); // Minimize Promotion: Floater plays highest of next group
+        // Pair within group
+        // TSH: "Top half plays the bottom half, in order" or "Proximity to half-group distance"
+        while (group.length >= 2) {
+            const p1 = (turn === 'top') ? group.shift() : group.pop();
+
+            // Search for best opponent
+            // "Ideally half a win group away"
+            const searchRange = [...group];
+            const halfWay = Math.floor(searchRange.length / 2);
+
+            // Re-order searchRange to start from "halfway" point for proximity
+            const proximityOrdered = [];
+            for (let i = 0; i < searchRange.length; i++) {
+                const idx = (halfWay + (i % 2 === 0 ? Math.floor(i / 2) : -Math.ceil(i / 2)));
+                // Wrap safely
+                let safeIdx = idx % searchRange.length;
+                if (safeIdx < 0) safeIdx += searchRange.length;
+                proximityOrdered.push(searchRange[safeIdx]);
+            }
+
+            let bestOpponent = null;
+            let bestScore = -1;
+            let bestIdx = -1;
+
+            for (let i = 0; i < proximityOrdered.length; i++) {
+                const p2 = proximityOrdered[i];
+                const q = getMatchQuality(p1, p2);
+                if (q > bestScore) {
+                    bestScore = q;
+                    bestOpponent = p2;
                 }
             }
+
+            if (bestOpponent && bestScore >= 0) {
+                newPairings.push({
+                    player1: { ...p1 },
+                    player2: { ...bestOpponent },
+                    table: 0 // Will assign later
+                });
+                const idxInGroup = group.indexOf(bestOpponent);
+                group.splice(idxInGroup, 1);
+            } else {
+                // No quality opponent found? P1 becomes an orphan
+                orphans.push(p1);
+            }
+        }
+
+        // Remaining player becomes an orphan
+        if (group.length === 1) {
+            orphans.push(group[0]);
+        }
+
+        // Flip turn
+        if (turn === 'top') {
+            topIdx++;
+            turn = 'bottom';
+        } else {
+            bottomIdx--;
+            turn = 'top';
         }
     }
+
+    // Handle remaining orphans (desperation)
+    // Try a few shuffles to minimize rematches if orphans > 2
+    if (orphans.length > 2) orphans.sort(() => Math.random() - 0.5);
+
+    while (orphans.length >= 2) {
+        const p1 = orphans.shift();
+        const p2 = orphans.shift();
+        newPairings.push({
+            player1: { ...p1 },
+            player2: { ...p2 },
+            table: 0,
+            note: 'Float/Rematch'
+        });
+    }
+
+    // Assign Tables (Preserve reserved tables)
+    const usedTables = new Set(Object.values(reservedTables));
+    let tCounter = 1;
+    newPairings.forEach(p => {
+        if (p.table === 'BYE') return;
+
+        const reserved = reservedTables[p.player1.player_id] || reservedTables[p.player2.player_id];
+        if (reserved) {
+            p.table = reserved;
+        } else if (p.table === 0 || p.table === 'GIBSON') {
+            // Only assign new table if not already assigned (BYE/GIBSON/Reserved)
+            while (usedTables.has(tCounter)) tCounter++;
+            p.table = (p.isGibsonPairing) ? 'GIBSON' : tCounter;
+            if (!p.isGibsonPairing) {
+                usedTables.add(tCounter);
+            }
+        }
+    });
 
     return assignStarts(newPairings, playersToPair, allResults);
 };
@@ -359,8 +415,8 @@ export const generateRoundRobinSchedule = (players, cycles = 1, matchesPerOppone
 
                         finalPairings.push({
                             table: assignedTable,
-                            player1: p1,
-                            player2: p2
+                            player1: { ...p1, player_id: p1.player_id || p1.id },
+                            player2: { ...p2, player_id: p2.player_id || p2.id }
                         });
                     }
                 });
@@ -617,8 +673,8 @@ export const generateTeamSwissPairings = (teams, previousTeamMatchups, allResult
         if (byeTeam) {
             newTeamPairings.push({
                 table: 'BYE',
-                team1: { name: byeTeam.name },
-                team2: { name: 'BYE' }
+                team1: { name: byeTeam.name, id: byeTeam.id },
+                team2: { name: 'BYE', id: null }
             });
             availableTeams = availableTeams.filter(t => t.id !== byeTeam.id);
         }
@@ -688,6 +744,190 @@ export const generateTeamSwissPairings = (teams, previousTeamMatchups, allResult
 
     return newTeamPairings;
 };
+
+/**
+ * Splits players into 4 balanced quartiles (A, B, C, D).
+ */
+const getQuartiles = (players) => {
+    const sorted = [...players].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    const n = sorted.length;
+    const base = Math.floor(n / 4);
+    const remainder = n % 4;
+
+    let piles = [[], [], [], []];
+    let current = 0;
+    for (let i = 0; i < 4; i++) {
+        const size = base + (i < remainder ? 1 : 0);
+        piles[i] = sorted.slice(current, current + size);
+        current += size;
+    }
+    return piles;
+};
+
+/**
+ * Generate Fontes (Portland Swiss) pairings for a single round.
+ * Round 1: A-C, B-D
+ * Round 2: A-B, C-D
+ * Round 3: A-D, B-C
+ */
+export const generateQuartilePairings = (players, roundNum = 1, allResults = [], reservedTables = {}) => {
+    const activePlayers = players.filter(p => !p.withdrawn && p.status !== 'paused');
+    const piles = getQuartiles(activePlayers);
+
+    let pairs = [];
+    let orphans = [];
+
+    const pairPiles = (idx1, idx2) => {
+        const p1 = piles[idx1];
+        const p2 = piles[idx2];
+        const max = Math.max(p1.length, p2.length);
+        for (let i = 0; i < max; i++) {
+            if (p1[i] && p2[i]) {
+                pairs.push({ player1: p1[i], player2: p2[i] });
+            } else if (p1[i]) {
+                orphans.push(p1[i]);
+            } else if (p2[i]) {
+                orphans.push(p2[i]);
+            }
+        }
+    };
+
+    const pattern = (roundNum - 1) % 3;
+    if (pattern === 0) { // Round 1: A-C, B-D
+        pairPiles(0, 2);
+        pairPiles(1, 3);
+    } else if (pattern === 1) { // Round 2: A-B, C-D
+        pairPiles(0, 1);
+        pairPiles(2, 3);
+    } else { // Round 3: A-D, B-C
+        pairPiles(0, 3);
+        pairPiles(1, 2);
+    }
+
+    // Pair remaining orphans
+    while (orphans.length >= 2) {
+        pairs.push({ player1: orphans.shift(), player2: orphans.shift() });
+    }
+
+    // Handle single orphan with Bye
+    if (orphans.length === 1) {
+        pairs.push({
+            table: 'BYE',
+            player1: orphans[0],
+            player2: { name: 'BYE' }
+        });
+    }
+
+    // Assign Tables
+    const usedTables = new Set(Object.values(reservedTables));
+    let tCounter = 1;
+    pairs.forEach(p => {
+        if (p.table === 'BYE') return;
+        const reserved = reservedTables[p.player1.player_id] || reservedTables[p.player2.player_id];
+        if (reserved) {
+            p.table = reserved;
+        } else {
+            while (usedTables.has(tCounter)) tCounter++;
+            p.table = tCounter;
+            usedTables.add(tCounter);
+        }
+    });
+
+    return assignStarts(pairs, players, allResults);
+};
+
+/**
+ * InitFontes logic: Generates a multi-round schedule using Fontes patterns.
+ */
+export const generateInitFontesPairings = (activePlayers, numRounds = 3, allResults = []) => {
+    const schedule = {};
+    for (let r = 1; r <= numRounds; r++) {
+        schedule[r] = generateQuartilePairings(activePlayers, r, allResults);
+    }
+    return schedule;
+};
+
+/**
+ * Generate TSH-style Quartile pairings (pq command).
+     * Pairs Quartile 1 against targetQuartile, and the other two quartiles against each other.
+     * Pairings within the matched groups are randomized.
+     */
+export const generateTSHQuartilePairings = (players, targetQuartile = 4, maxRepeats = 0, previousMatchups = new Set(), allResults = [], reservedTables = {}) => {
+    const activePlayers = players.filter(p => !p.withdrawn && p.status !== 'paused');
+    const piles = getQuartiles(activePlayers);
+
+    // matchGroups defines which quartiles play each other
+    let matchGroups = [];
+    if (targetQuartile === 4) matchGroups = [[0, 3], [1, 2]];
+    else if (targetQuartile === 3) matchGroups = [[0, 2], [1, 3]];
+    else matchGroups = [[0, 1], [2, 3]];
+
+    let pairings = [];
+    let orphans = [];
+
+    matchGroups.forEach(([q1Idx, q2Idx]) => {
+        let pile1 = [...piles[q1Idx]];
+        let pile2 = [...piles[q2Idx]];
+
+        // Shuffle for randomness
+        pile1.sort(() => Math.random() - 0.5);
+        pile2.sort(() => Math.random() - 0.5);
+
+        while (pile1.length > 0 && pile2.length > 0) {
+            const p1 = pile1.pop();
+            let oppIdx = -1;
+
+            if (maxRepeats === 0) {
+                // Try to find someone they haven't played
+                for (let i = 0; i < pile2.length; i++) {
+                    if (!previousMatchups.has(`${p1.player_id}-${pile2[i].player_id}`)) {
+                        oppIdx = i;
+                        break;
+                    }
+                }
+            } else {
+                oppIdx = pile2.length - 1;
+            }
+
+            if (oppIdx !== -1) {
+                const p2 = pile2.splice(oppIdx, 1)[0];
+                pairings.push({ player1: p1, player2: p2 });
+            } else {
+                orphans.push(p1);
+            }
+        }
+        orphans = [...orphans, ...pile1, ...pile2];
+    });
+
+    // Final shuffle for orphans
+    orphans.sort(() => Math.random() - 0.5);
+    while (orphans.length >= 2) {
+        pairings.push({ player1: orphans.shift(), player2: orphans.shift() });
+    }
+
+    if (orphans.length === 1) {
+        pairings.push({ player1: orphans[0], player2: { name: 'BYE' }, table: 'BYE' });
+    }
+
+    // Assign Tables
+    const usedTables = new Set(Object.values(reservedTables));
+    let tCounter = 1;
+    pairings.forEach(p => {
+        if (p.table === 'BYE') return;
+        const reserved = reservedTables[p.player1.player_id] || reservedTables[p.player2.player_id];
+        if (reserved) {
+            p.table = reserved;
+        } else {
+            while (usedTables.has(tCounter)) tCounter++;
+            p.table = tCounter;
+            usedTables.add(tCounter);
+        }
+    });
+
+    return assignStarts(pairings, players, allResults);
+};
+
+
 
 
 

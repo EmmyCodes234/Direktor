@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import JSZip from 'jszip';
 import Fuse from 'fuse.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { assignStarts, generateSwissPairings, generateEnhancedSwissPairings, generateKingOfTheHillPairings, generateTeamSwissPairings, generateRoundRobinSchedule } from '../../../utils/pairingLogic';
+import { assignStarts, generateSwissPairings, generateEnhancedSwissPairings, generateKingOfTheHillPairings, generateTeamSwissPairings, generateRoundRobinSchedule, generateQuartilePairings, generateInitFontesPairings, generateTSHQuartilePairings } from '../../../utils/pairingLogic';
 import { roundRobinSchedules } from '../../../utils/pairingSchedules';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
@@ -674,10 +674,13 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory('  rejoin <player>               - Rejoin player (Alias: on)', 'info');
                 addToHistory('  floss <round> <player>        - Assign Forfeit Loss to player', 'info');
                 addToHistory('  dry <round>                   - Simulate remaining rounds (Dry Run)', 'info');
-                addToHistory('  sw <round> <base> <repeats>   - Generate Swiss Pairings', 'info');
-                addToHistory('  koth <repeats> <base>         - Generate KOTH Pairings', 'info');
+                addToHistory('  ns [repeats] [base]           - National Swiss (TSH style)', 'info');
+                addToHistory('  sw <round> <base> <repeats>   - Standard Swiss Pairings', 'info');
+                addToHistory('  q [round]                     - Quartile / Fontes Swiss (Single Round)', 'info');
+                addToHistory('  pq <target> [rep] [base]      - TSH Quartile Pairings (e.g. pq 4 0 12)', 'info');
+                addToHistory('  initfontes [rounds]           - Initialize Fontes cycle (Multi-round)', 'info');
+                addToHistory('  koth <repeats> <base>         - King of the Hill Pairings', 'info');
                 addToHistory('  rr <repeats>                  - Generate Round Robin', 'info');
-                addToHistory('  quart <type> <rep> <src>      - Generate Quartile Pairings (Alias: q)', 'info');
                 addToHistory('  abs                           - Assign BYEs to all unpaired players', 'info');
                 addToHistory('  delpair <table>               - Delete pairing at specific table (Current Round)', 'info');
                 addToHistory('  set <param> <val>             - Update CLI settings (max_consecutive, rr_consecutive)', 'info');
@@ -720,7 +723,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             case 'abs': // Assign Byes to Singles
                 // Logic: Find all active players NOT present in pairing_schedule[currentRound]
                 // Assign them a BYE pairing (350-0)
-                const absRound = tournamentInfo.currentRound;
+                const absRound = tournamentInfo.current_round;
                 if (!absRound) {
                     addToHistory('No active round found.', 'error');
                     break;
@@ -751,10 +754,10 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
 
                 unpaired.forEach(p => {
                     newByes.push({
-                        table: 'BYE', // or ++maxTbl if we want table numbers
+                        table: 'BYE',
                         round: absRound,
                         player1: p,
-                        player2: { name: 'BYE', isBye: true }
+                        player2: { name: 'BYE', player_id: null, isBye: true }
                     });
                     addToHistory(`Assigned BYE to ${p.name}`, 'info');
                 });
@@ -778,21 +781,31 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 addToHistory(`Assigned ${newByes.length} Byes.`, 'success');
                 break;
 
-            case 'delpair': // delpair <table>
+            case 'delpair': // delpair [round] <table>
                 if (!args[0]) {
-                    addToHistory('Usage: delpair <table>', 'error');
+                    addToHistory('Usage: delpair [round] <table>', 'error');
                     break;
                 }
-                const delTableArg = args[0]; // could be "1" or "BYE"
-                const dpRoundDel = tournamentInfo.currentRound;
 
-                const dpSched = tournamentInfo.pairing_schedule?.[dpRoundDel] || [];
+                let dpRound, dpTable;
+                if (args.length === 1) {
+                    dpRound = tournamentInfo.current_round;
+                    dpTable = args[0];
+                } else {
+                    dpRound = parseInt(args[0]);
+                    dpTable = args[1];
+                }
 
-                // Find index
-                const dpIndex = dpSched.findIndex(m => String(m.table) === String(delTableArg) || String(m.table_number) === String(delTableArg));
+                if (isNaN(dpRound)) {
+                    addToHistory('Invalid round.', 'error');
+                    break;
+                }
+
+                const dpSched = tournamentInfo.pairing_schedule?.[dpRound] || [];
+                const dpIndex = dpSched.findIndex(m => String(m.table) === String(dpTable) || String(m.table_number) === String(dpTable));
 
                 if (dpIndex === -1) {
-                    addToHistory(`Table ${delTableArg} not found in Round ${dpRoundDel}.`, 'error');
+                    addToHistory(`Table ${dpTable} not found in Round ${dpRound}.`, 'error');
                     break;
                 }
 
@@ -805,7 +818,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 onUpdateTournament(prev => {
                     const updated = {
                         ...(prev.pairing_schedule || {}),
-                        [dpRoundDel]: newDpSched
+                        [dpRound]: newDpSched
                     };
                     supabase.from('tournaments')
                         .update({ pairing_schedule: updated })
@@ -819,7 +832,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             case 'dry':
                 // Usage: dry [start_round]
                 const dryStartArg = parseInt(args[0]);
-                let dryStartRound = (tournamentInfo.currentRound || 0);
+                let dryStartRound = (tournamentInfo.current_round || 0);
 
                 if (!isNaN(dryStartArg) && dryStartArg > 0) {
                     dryStartRound = dryStartArg;
@@ -844,21 +857,9 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                         addToHistory(`Simulating Round ${r}...`, 'info');
 
                         // 1. Calculate Stats based on CURRENT simResults
-                        simPlayers.forEach(p => {
-                            p.wins = 0; p.ties = 0; p.spread = 0;
-                            simResults.forEach(res => {
-                                if (res.round >= r) return;
-                                if (res.player1_id === p.player_id || res.player1_id === p.id) {
-                                    if (res.score1 > res.score2) p.wins++;
-                                    else if (res.score1 === res.score2) p.ties++;
-                                    p.spread += (res.score1 - res.score2);
-                                } else if (res.player2_id === p.player_id || res.player2_id === p.id) {
-                                    if (res.score2 > res.score1) p.wins++;
-                                    else if (res.score2 === res.score1) p.ties++;
-                                    p.spread += (res.score2 - res.score1);
-                                }
-                            });
-                        });
+                        const simStandings = calculateStandings(players, simResults, [], tournamentInfo);
+                        // Filter for active players
+                        const activeSimPlayers = simStandings.filter(p => !p.withdrawn && p.status !== 'withdrawn' && p.status !== 'paused');
 
                         // 2. Generate Pairings
                         const previousMatchups = new Set();
@@ -867,9 +868,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                             previousMatchups.add(`${res.player2_id}-${res.player1_id}`);
                         });
 
-                        const activeSimPlayers = simPlayers.filter(p => !p.withdrawn && p.status !== 'withdrawn' && p.status !== 'paused');
-                        // Use Swiss by default for simulation
-                        const pairings = generateSwissPairings(activeSimPlayers, previousMatchups, simResults);
+                        const pairings = generateSwissPairings(activeSimPlayers, previousMatchups, simResults, r, 0, {});
 
                         // 3. Generate Random Results
                         const roundResults = [];
@@ -938,7 +937,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                         .update({ current_round: totalRounds })
                         .eq('id', tournamentInfo.id);
 
-                    onUpdateTournament(prev => ({ ...prev, currentRound: totalRounds })); // Trigger refresh
+                    onUpdateTournament(prev => ({ ...prev, current_round: totalRounds })); // Trigger refresh
 
                 } catch (e) {
                     addToHistory(`Simulation Failed: ${e.message}`, 'error');
@@ -1198,28 +1197,37 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 onClose();
                 break;
 
-            case 'field': // was rosters
+            case 'field':
+            case 'rosters':
+                const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ? tournamentInfo.divisions : [{ name: 'Open' }];
+                let totalPlayers = 0;
 
-                addToHistory('Player Rosters', 'system');
-                addToHistory('', 'info');
-                const playersByDiv = players.reduce((acc, p) => {
-                    const div = p.division || 'Open';
-                    if (!acc[div]) acc[div] = [];
-                    acc[div].push(p);
-                    return acc;
-                }, {});
+                divisions.forEach(div => {
+                    const divPlayers = players
+                        .filter(p => (p.division || 'Open') === div.name)
+                        .sort((a, b) => (b.rating || 0) - (a.rating || 0)); // Sort by rating descending
 
-                Object.keys(playersByDiv).sort().forEach(div => {
-                    addToHistory(`         Division ${div}`, 'info');
-                    addToHistory(' # Rtng  Player', 'info');
-                    const sorted = [...playersByDiv[div]].sort((a, b) => (a.seed || a.rank || 999) - (b.seed || b.rank || 999));
-                    sorted.forEach((p, idx) => {
-                        const seed = String(p.seed || p.initial_seed || idx + 1).padStart(2);
-                        const rtng = String(p.rating || 0).padStart(4);
-                        addToHistory(`${seed}  ${rtng}  ${p.name}`, 'info');
-                    });
-                    addToHistory('', 'info');
+                    if (divPlayers.length > 0) {
+                        addToHistory(`Division: ${div.name.toUpperCase()} (${divPlayers.length})`, 'highlight');
+                        addToHistory(`  ID  | NAME                          | RATING | TEAM`, 'info');
+                        addToHistory(`  --- | ----------------------------- | ------ | ----`, 'info');
+                        divPlayers.forEach(p => {
+                            const teamName = p.team_id ? (teams?.find(t => t.id === p.team_id)?.name || '-') : '-';
+                            const idStr = String(p.player_id).padEnd(3);
+                            const nameStr = p.name.padEnd(29);
+                            const ratingStr = String(p.rating || 0).padEnd(6);
+                            addToHistory(`  ${idStr} | ${nameStr} | ${ratingStr} | ${teamName}`, 'system');
+                        });
+                        addToHistory(' ', 'system'); // Spacer
+                        totalPlayers += divPlayers.length;
+                    }
                 });
+
+                if (totalPlayers === 0) {
+                    addToHistory('No players found in any division.', 'warning');
+                } else {
+                    addToHistory(`Total Players: ${totalPlayers}`, 'success');
+                }
                 break;
 
             case 'leaderboard': // was st
@@ -1233,7 +1241,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 // Parse Range or Single Round
                 let stStart, stEnd;
                 if (command === 'st' || command === 'leaderboard') {
-                    stStart = tournamentInfo.currentRound || 1;
+                    stStart = tournamentInfo.current_round || 1;
                     stEnd = stStart;
                 } else {
                     if (args[0].includes('-')) {
@@ -1438,463 +1446,10 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 }
                 break;
 
-            case 'sw': // Swiss Pairings: sw <round> <base> <repeats>
-            case 'koth': // KOTH: koth <repeats> <base>
-            case 'rr': // Round Robin: rr <repeats>
-                handlePairingCommand(command, args);
-                break;
-
             case 'trr': // Team Round Robin: trr [round]
-                // 1. Parse Round
-                const trrRound = args.length > 0 ? parseInt(args[0]) : (tournamentInfo.currentRound || 0) + 1;
+            case 'ts':
+            case 'ns': // National Swiss: ns <repeats> <base>
 
-                if (isNaN(trrRound)) {
-                    addToHistory('Invalid round number.', 'error');
-                    return;
-                }
-
-                addToHistory(`[SYSTEM] Generating Team Round Robin for Round ${trrRound}...`, 'system');
-
-                // 2. Group Players by Team (Club)
-                const teamMap = new Map();
-                const trrPlayers = players.filter(p => !p.withdrawn && p.status !== 'paused');
-
-                trrPlayers.forEach(p => {
-                    let teamName = 'Unattached';
-                    if (p.team_id && teams) {
-                        const t = teams.find(tm => tm.id === p.team_id);
-                        if (t) teamName = t.name;
-                    } else {
-                        teamName = (p.club || p.team || 'Unattached').trim();
-                    }
-
-                    if (!teamMap.has(teamName)) {
-                        teamMap.set(teamName, []);
-                    }
-                    teamMap.get(teamName).push(p);
-                });
-
-                const teamsList = Array.from(teamMap.keys()).sort(); // Sort teams alphabetically
-                if (teamsList.length < 2) {
-                    addToHistory(`Error: Not enough teams found (Found: ${teamsList.length}). Check 'club' field.`, 'error');
-                    return;
-                }
-
-                addToHistory(`Found ${teamsList.length} Teams: ${teamsList.join(', ')}`, 'info');
-
-                // 3. Generate RR Schedule for TEAMS
-                // Using generic Round Robin algorithm for N teams
-                // Round 1 logic: 
-                // Fix first team, rotate others.
-                // We need specific matchups for *this* round (trrRound).
-                // Cycle index = (trrRound - 1) % (NumRoundsInCycle).
-                // NumRoundsInCycle = N - 1 (if N even) or N (if N odd).
-
-                const teamObjList = teamsList.map((name, i) => ({ id: i, name }));
-                let scheduleTeams = [...teamObjList];
-
-                // Add Bye Team if odd
-                if (scheduleTeams.length % 2 !== 0) {
-                    scheduleTeams.push({ id: -1, name: 'BYE' });
-                }
-
-                const numTeams = scheduleTeams.length;
-                const roundsInCycle = numTeams - 1;
-                const cycleIndex = (trrRound - 1) % roundsInCycle;
-
-                // Berger Table / Circle Method Rotation
-                // Fixed: index 0.
-                // Rotating: indices 1 to N-1.
-                // Rotation amount = cycleIndex.
-
-                // Current order for this round:
-                // [0, ...rotatedRest]
-                const fixed = scheduleTeams[0];
-                const rest = scheduleTeams.slice(1);
-
-                // Rotate 'rest' array by 'cycleIndex'
-                // Note: Standard RR rotates clockwise or counter. 
-                // Let's standard rotation: last becomes first.
-                // Or simplified: Just slicing.
-                // rotated = rest.slice(-cycleIndex) concat rest.slice(0, -cycleIndex)
-
-                // Correct rotation for Round R (1-based):
-                // Rotate (R-1) times.
-                // One rotation: [Last] + [0..SecondLast]
-
-                let rotatedRest = [...rest];
-                for (let i = 0; i < cycleIndex; i++) {
-                    const last = rotatedRest.pop();
-                    rotatedRest.unshift(last);
-                }
-
-                const roundTeamsOrder = [fixed, ...rotatedRest];
-
-                // Pair: 0 vs N-1, 1 vs N-2, ...
-                // Standard visual:
-                // T0  T1  T2
-                // T5  T4  T3
-                // Matches: (T0,T5), (T1,T4), (T2,T3).
-
-                const half = numTeams / 2;
-                const teamPairings = [];
-
-                for (let i = 0; i < half; i++) {
-                    const t1 = roundTeamsOrder[i];
-                    const t2 = roundTeamsOrder[numTeams - 1 - i];
-                    teamPairings.push({ team1: t1, team2: t2 });
-                }
-
-                // 4. Expand to Individual Pairings
-                let individualPairings = [];
-                let tableOffset = 1;
-
-                teamPairings.forEach(tp => {
-                    const t1Name = tp.team1.name;
-                    const t2Name = tp.team2.name;
-
-                    if (t1Name === 'BYE' || t2Name === 'BYE') {
-                        // All players in valid team get Bye
-                        const realTeam = t1Name === 'BYE' ? t2Name : t1Name;
-                        if (realTeam !== 'BYE') { // Safety
-                            const teamPlayers = teamMap.get(realTeam);
-                            teamPlayers.forEach(p => {
-                                individualPairings.push({
-                                    table: 'BYE',
-                                    player1: p,
-                                    player2: { name: 'BYE', player_id: null, isBye: true }
-                                });
-                            });
-                            addToHistory(`[TEAM BYE] ${realTeam}`, 'info');
-                        }
-                        return;
-                    }
-
-                    addToHistory(`[TEAM MATCH] ${t1Name} vs ${t2Name}`, 'success');
-
-                    // Fixed Board Pairing: Sort by Rank/Seed
-                    const roster1 = [...teamMap.get(t1Name)].sort((a, b) => (a.rank || 999) - (b.rank || 999));
-                    const roster2 = [...teamMap.get(t2Name)].sort((a, b) => (a.rank || 999) - (b.rank || 999));
-
-                    const maxBoards = Math.max(roster1.length, roster2.length);
-
-                    for (let b = 0; b < maxBoards; b++) {
-                        const p1 = roster1[b];
-                        const p2 = roster2[b];
-
-                        if (p1 && p2) {
-                            individualPairings.push({ table: tableOffset++, player1: p1, player2: p2 });
-                        } else if (p1) {
-                            // P1 has no opponent in Team B -> Bye or Forfeit Win?
-                            // Standard TSH: Bye/Walkover.
-                            individualPairings.push({ table: 'BYE', player1: p1, player2: { name: 'BYE (No Opponent in Team)', isBye: true } });
-                        } else if (p2) {
-                            // P2 has no opponent in Team A
-                            individualPairings.push({ table: 'BYE', player1: p2, player2: { name: 'BYE (No Opponent in Team)', isBye: true } });
-                        }
-                    }
-                });
-
-                // 5. Save (Assign Starts & Persist)
-                individualPairings = assignStarts(individualPairings, players, results);
-
-                // ... Save Logic (Duplicated from Q/SW) ...
-                let newScheduleTRR = { ...(tournamentInfo.pairing_schedule || {}) };
-                newScheduleTRR[trrRound] = individualPairings.map((p, i) => ({
-                    ...p,
-                    round: trrRound,
-                    table_number: typeof p.table === 'number' ? p.table : i + 1,
-                    player1_id: p.player1.player_id,
-                    player2_id: p.player2?.player_id
-                }));
-
-                onUpdateTournament(prev => {
-                    const updated = {
-                        ...prev,
-                        pairing_schedule: newScheduleTRR,
-                        currentRound: trrRound
-                    };
-                    supabase.from('tournaments')
-                        .update({ pairing_schedule: newScheduleTRR, current_round: trrRound })
-                        .eq('id', tournamentInfo.id)
-                        .then(res => {
-                            if (res.error) toast.error("DB Save Failed");
-                            else toast.success(`Round ${trrRound} Team Pairings Saved`);
-                        });
-                    return updated;
-                });
-
-                addToHistory(`[OK] Generated ${individualPairings.length} matches for Round ${trrRound}.`, 'success');
-                break;
-
-            case 'quart':
-            case 'q': // Quartile Pairing: q [type] [repeats] [source]
-                // Parse Args
-                if (args.length < 3) {
-                    addToHistory('Usage: q <type> <repeats> <source_round>', 'error');
-                    addToHistory('Type: 1 (Q1-Q2), 2 (Q1-Q4), 3 (Q1-Q3)', 'info');
-                    addToHistory('Source: 0 (Rating), >0 (Round Snapshot)', 'info');
-                    return;
-                }
-
-                const qType = parseInt(args[0]);
-                const qRepeats = parseInt(args[1]);
-                const qSourceArg = args[2];
-                const qSource = qSourceArg === 'current' ? (tournamentInfo.currentRound || 0) : parseInt(qSourceArg);
-
-                if (isNaN(qType) || isNaN(qRepeats) || isNaN(qSource)) {
-                    addToHistory('Invalid arguments. Must be integers.', 'error');
-                    return;
-                }
-
-                addToHistory(`[SYSTEM] Generating Quartile Pairings (Type ${qType})...`, 'system');
-
-                // --- Helpers ---
-                const getMatchCount = (p1Id, p2Id) => {
-                    let count = 0;
-                    results.forEach(r => {
-                        if ((r.player1_id === p1Id && r.player2_id === p2Id) ||
-                            (r.player1_id === p2Id && r.player2_id === p1Id)) {
-                            count++;
-                        }
-                    });
-                    return count;
-                };
-
-                const findValidOpponent = (player, targetPool, maxRepeats, poolName) => {
-                    for (let i = 0; i < targetPool.length; i++) {
-                        const potentialOpponent = targetPool[i];
-                        const timesPlayed = getMatchCount(player.player_id, potentialOpponent.player_id);
-
-                        if (timesPlayed <= maxRepeats) {
-                            // Found validd match
-                            // Log swap if it wasn't the first option
-                            if (i > 0) {
-                                addToHistory(`[SWAP] ${player.name} vs ${targetPool[0].name} (Repeat). Swapping index 0 with ${i}.`, 'warning');
-                                addToHistory(`[FIX] Matching with ${potentialOpponent.name} instead.`, 'success');
-                            }
-                            return targetPool.splice(i, 1)[0];
-                        }
-                    }
-
-                    // Fallback
-                    addToHistory(`[!] Forced Repeat or No Valid Match: ${player.name}. Searching remainder...`, 'warning');
-                    return targetPool.splice(0, 1)[0];
-                };
-
-                // 1. Get Snapshot
-                let rankingPool = [];
-                const activeP = players.filter(p => !p.withdrawn && p.status !== 'paused');
-
-                if (qSource === 0) {
-                    rankingPool = [...activeP].sort((a, b) => {
-                        if ((a.rating || 0) !== (b.rating || 0)) return (b.rating || 0) - (a.rating || 0);
-                        return (a.initial_seed || 999) - (b.initial_seed || 999);
-                    });
-                } else {
-                    const snapshotResults = results.filter(r => r.round <= qSource);
-                    const allStandings = calculateStandings(players, snapshotResults, matches, tournamentInfo);
-                    rankingPool = allStandings.filter(p => !p.withdrawn && p.status !== 'paused');
-                }
-
-                // 2. Handle Bye
-                // Check past byes
-                const pastByes = new Set();
-                results.forEach(r => {
-                    if (r.player2_name === 'BYE') pastByes.add(r.player1_id);
-                });
-
-                let qPairings = [];
-
-                if (rankingPool.length % 2 !== 0) {
-                    let byeCandidateIndex = -1;
-                    // Lowest ranked who hasn't had bye
-                    for (let i = rankingPool.length - 1; i >= 0; i--) {
-                        if (!pastByes.has(rankingPool[i].player_id)) {
-                            byeCandidateIndex = i;
-                            break;
-                        }
-                    }
-                    if (byeCandidateIndex === -1) byeCandidateIndex = rankingPool.length - 1; // Repeat bye if everyone had one
-
-                    const byeP = rankingPool.splice(byeCandidateIndex, 1)[0];
-                    qPairings.push({
-                        table: 'BYE',
-                        player1: byeP,
-                        player2: { name: 'BYE', player_id: null, isBye: true }
-                    });
-                    addToHistory(`[BYE] Assigned to ${byeP.name}`, 'info');
-                }
-
-                // 3. Create Quartiles
-                const N = rankingPool.length;
-                const base = Math.floor(N / 4);
-                const rem = N % 4;
-
-                const s1 = base + (rem > 0 ? 1 : 0);
-                const s2 = base + (rem > 1 ? 1 : 0);
-                const s3 = base + (rem > 2 ? 1 : 0);
-
-                const Q1 = rankingPool.slice(0, s1);
-                const Q2 = rankingPool.slice(s1, s1 + s2);
-                const Q3 = rankingPool.slice(s1 + s2, s1 + s2 + s3);
-                const Q4 = rankingPool.slice(s1 + s2 + s3);
-
-                addToHistory(`Quartiles: Q1(${Q1.length}) Q2(${Q2.length}) Q3(${Q3.length}) Q4(${Q4.length})`, 'info');
-
-                // 4. Match
-                // Type 3: Q1-Q3, Q2-Q4
-                // Type 2: Q1-Q4, Q2-Q3
-                // Type 1: Q1-Q2, Q3-Q4
-
-                const processPairing = (sourceGroup, targetGroup, label) => {
-                    // We iterate sourceGroup. 
-                    // Note: Groups might have uneven sizes.
-                    // If Source > Target, we have leftovers.
-                    // If Source < Target, we consume part of Target.
-
-                    const pairs = [];
-                    // Clone source to safe iterate?
-                    // actually we consume targetGroup. we iterate source.
-
-                    for (let i = 0; i < sourceGroup.length; i++) {
-                        const p1 = sourceGroup[i];
-
-                        let p2;
-                        if (targetGroup.length > 0) {
-                            p2 = findValidOpponent(p1, targetGroup, qRepeats, label);
-                        } else {
-                            // No target available (uneven sizes)
-                            // Fallback? 
-                            // Wait, if Q1 has 3 and Q3 has 2.
-                            // 3rd person in Q1 has no one in Q3.
-                            // They should become a "floater".
-                            addToHistory(`[WARN] ${p1.name} has no opponent in group ${label}. Moving to floaters.`, 'warning');
-                            // We'll handle leftovers later.
-                            // Return p1 as leftover
-                            continue;
-                        }
-
-                        if (p2) {
-                            pairs.push({ player1: p1, player2: p2 });
-                            addToHistory(`[MATCH] ${p1.name} vs ${p2.name}`, 'info');
-                        }
-                    }
-                    return pairs;
-                };
-
-                let generatedMatches = [];
-                let leftovers = []; // To track unmatchable due to size diffs
-
-                /* 
-                   Wait, findValidOpponent SPLICES the target group. 
-                   So we destructively consume target pools.
-                   Leftovers in Source are implicit if loop finishes and p2 was null?
-                   Actually my loop structure above skips if target empty.
-                   Those source players need to be collected.
-                */
-
-                const runMatching = (S, T, Lb) => {
-                    const matched = [];
-                    const unmatchedS = [];
-
-                    S.forEach(p1 => {
-                        if (T.length > 0) {
-                            const p2 = findValidOpponent(p1, T, qRepeats, Lb);
-                            matched.push({ player1: p1, player2: p2 });
-                            addToHistory(`[MATCH] ${p1.name} (${p1.rank || '-'}) vs ${p2.name} (${p2.rank || '-'})`, 'info');
-                        } else {
-                            unmatchedS.push(p1);
-                        }
-                    });
-
-                    return { matched, unmatchedS, remainingT: T };
-                };
-
-                if (qType === 3) {
-                    const r1 = runMatching(Q1, Q3, 'Q3');
-                    const r2 = runMatching(Q2, Q4, 'Q4');
-                    generatedMatches.push(...r1.matched, ...r2.matched);
-                    leftovers.push(...r1.unmatchedS, ...r1.remainingT, ...r2.unmatchedS, ...r2.remainingT);
-
-                } else if (qType === 2) {
-                    const r1 = runMatching(Q1, Q4, 'Q4');
-                    const r2 = runMatching(Q2, Q3, 'Q3');
-                    generatedMatches.push(...r1.matched, ...r2.matched);
-                    leftovers.push(...r1.unmatchedS, ...r1.remainingT, ...r2.unmatchedS, ...r2.remainingT);
-
-                } else { // Type 1
-                    const r1 = runMatching(Q1, Q2, 'Q2');
-                    const r2 = runMatching(Q3, Q4, 'Q4');
-                    generatedMatches.push(...r1.matched, ...r2.matched);
-                    leftovers.push(...r1.unmatchedS, ...r1.remainingT, ...r2.unmatchedS, ...r2.remainingT);
-                }
-
-                // Pair Leftovers
-                if (leftovers.length > 0) {
-                    addToHistory(`[SYSTEM] Pairing ${leftovers.length} leftovers...`, 'system');
-                    // Sort leftovers by rank to keep it sensible?
-                    // They are likely mixed from different quartiles.
-                    // Just pair them top-down.
-                    leftovers.sort((a, b) => (a.rank || 0) - (b.rank || 0)); // simple sort
-
-                    while (leftovers.length >= 2) {
-                        const p1 = leftovers.shift();
-                        // Find opponent in remaining
-                        const p2 = findValidOpponent(p1, leftovers, qRepeats, 'Leftovers');
-                        generatedMatches.push({ player1: p1, player2: p2 });
-                        addToHistory(`[MATCH-L] ${p1.name} vs ${p2.name}`, 'info');
-                    }
-                    if (leftovers.length === 1) {
-                        addToHistory(`[ERR] ${leftovers[0].name} remains unpaired! (Odd number?)`, 'error');
-                    }
-                }
-
-                addToHistory(`[OK] ${generatedMatches.length} Matchups generated.`, 'success');
-
-                // 5. Save
-                const qTargetRound = (tournamentInfo.currentRound || 0) + 1;
-                let tableCnt = 1;
-                qPairings.forEach(p => p.table = tableCnt++); // Byes first
-
-                generatedMatches.forEach(m => {
-                    qPairings.push({
-                        table: tableCnt++,
-                        player1: m.player1,
-                        player2: m.player2
-                    });
-                });
-
-                qPairings = assignStarts(qPairings, players, results);
-
-                // Persist
-                let newSchedule = { ...(tournamentInfo.pairing_schedule || {}) };
-                newSchedule[qTargetRound] = qPairings.map((p, i) => ({
-                    ...p,
-                    round: qTargetRound,
-                    table_number: p.table,
-                    player1_id: p.player1.player_id,
-                    player2_id: p.player2?.player_id
-                }));
-
-                onUpdateTournament(prev => {
-                    const updated = {
-                        ...prev,
-                        pairing_schedule: newSchedule,
-                        currentRound: qTargetRound
-                    };
-
-                    supabase.from('tournaments')
-                        .update({ pairing_schedule: newSchedule, current_round: qTargetRound })
-                        .eq('id', tournamentInfo.id)
-                        .then(res => {
-                            if (res.error) toast.error("DB Save Failed");
-                            else toast.success(`Round ${qTargetRound} Pairings Saved`);
-                        });
-
-                    return updated;
-                });
-                break;
 
             case 'scores':
                 if (args.length === 0) {
@@ -2273,49 +1828,6 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     });
                 break;
 
-            case 'delpair': // delpair <round> <table>
-                if (args.length < 2) {
-                    addToHistory('Usage: delpair <round> <table>', 'error');
-                    break;
-                }
-                const dpRound = parseInt(args[0]);
-                const dpTable = parseInt(args[1]);
-                if (isNaN(dpRound) || isNaN(dpTable)) {
-                    addToHistory('Invalid round or table number.', 'error');
-                    break;
-                }
-
-                // Get Schedule
-                const sched = tournamentInfo.pairing_schedule?.[dpRound];
-                if (!sched) {
-                    addToHistory(`No schedule found for Round ${dpRound}.`, 'error');
-                    break;
-                }
-
-                // Check matches
-                const matchIndex = sched.findIndex(m => m.table === dpTable || m.table_number === dpTable);
-                if (matchIndex === -1) {
-                    addToHistory(`No pairing found on Table ${dpTable} in Round ${dpRound}.`, 'error');
-                    break;
-                }
-
-                // Remove
-                const removed = sched[matchIndex];
-                const newSchedDP = [...sched];
-                newSchedDP.splice(matchIndex, 1);
-
-                // Save
-                onUpdateTournament(prev => {
-                    const newS = { ...prev.pairing_schedule, [dpRound]: newSchedDP };
-                    supabase.from('tournaments')
-                        .update({ pairing_schedule: newS })
-                        .eq('id', tournamentInfo.id)
-                        .then();
-                    return { ...prev, pairing_schedule: newS };
-                });
-
-                addToHistory(`Deleted pairing on Table ${dpTable}: ${getPlayerName(removed.player1_id)} vs ${getPlayerName(removed.player2_id)}`, 'success');
-                break;
 
             case 'upr': // unpair round <round>
                 if (args.length < 1) {
@@ -2358,8 +1870,8 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     // If we unpair a FUTURE round, current round stays same.
                     // If we unpair a PAST round (but no results?), we stay same?
                     // Safe bet: If uprRound == prev.current_round, step back.
-                    let newCurrentRound = prev.currentRound;
-                    if (prev.currentRound === uprRound) {
+                    let newCurrentRound = prev.current_round;
+                    if (prev.current_round === uprRound) {
                         newCurrentRound = Math.max(0, uprRound - 1);
                     }
 
@@ -2382,7 +1894,7 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     return {
                         ...prev,
                         pairing_schedule: newSchedule,
-                        currentRound: newCurrentRound
+                        current_round: newCurrentRound
                     };
                 });
 
@@ -2411,39 +1923,6 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
 
                 break;
 
-            case 'rosters':
-                const divisions = tournamentInfo.divisions && tournamentInfo.divisions.length > 0 ? tournamentInfo.divisions : [{ name: 'Open' }];
-                let totalPlayers = 0;
-
-                divisions.forEach(div => {
-                    const divPlayers = players
-                        .filter(p => (p.division || 'Open') === div.name)
-                        .sort((a, b) => (b.rating || 0) - (a.rating || 0)); // Sort by rating descending
-
-                    if (divPlayers.length > 0) {
-                        addToHistory(`Division: ${div.name.toUpperCase()} (${divPlayers.length})`, 'highlight');
-                        // Print table header or simple list
-                        // Use padded strings for alignment
-                        addToHistory(`  ID  | NAME                          | RATING | TEAM`, 'info');
-                        addToHistory(`  --- | ----------------------------- | ------ | ----`, 'info');
-                        divPlayers.forEach(p => {
-                            const teamName = p.team_id ? (tournamentInfo.teams.find(t => t.id === p.team_id)?.name || '-') : '-';
-                            const idStr = String(p.player_id).padEnd(3);
-                            const nameStr = p.name.padEnd(29);
-                            const ratingStr = String(p.rating || 0).padEnd(6);
-                            addToHistory(`  ${idStr} | ${nameStr} | ${ratingStr} | ${teamName}`, 'system');
-                        });
-                        addToHistory(' ', 'system'); // Spacer
-                        totalPlayers += divPlayers.length;
-                    }
-                });
-
-                if (totalPlayers === 0) {
-                    addToHistory('No players found in any division.', 'warning');
-                } else {
-                    addToHistory(`Total Players: ${totalPlayers}`, 'success');
-                }
-                break;
 
             default:
                 addToHistory(`Unknown command: "${command}". Type "help" for a list of commands.`, 'error');
@@ -2463,22 +1942,58 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
         const maxResultRound = results.reduce((max, r) => Math.max(max, r.round || 0), 0);
 
         try {
-            if (command === 'sw') {
-                if (args.length < 3) throw new Error("Usage: sw <target_round> <base_round> <repeats>");
-                targetRound = parseInt(args[0]);
-                baseRound = parseInt(args[1]);
-                repeats = parseInt(args[2]);
+            if (command === 'ns' || command === 'sw' || command === 'ts') {
+                // TSH Signature: ns repeats based-on-round division
+                // Fallback for sw: sw target_round base_round repeats
+                if (command === 'ns' || command === 'ts') {
+                    repeats = args.length > 0 ? parseInt(args[0]) : 0;
+                    baseRound = args.length > 1 ? parseInt(args[1]) : maxResultRound;
+                    targetRound = (tournamentInfo.current_round || 0) + 1;
+                } else {
+                    if (args.length < 3) throw new Error("Usage: sw <target_round> <base_round> <repeats>");
+                    targetRound = parseInt(args[0]);
+                    baseRound = parseInt(args[1]);
+                    repeats = parseInt(args[2]);
+                }
 
-                // Prompt check logic (Simulated here via warning/error for CLI simplicity)
-                if (baseRound < maxResultRound) {
-                    // Ideally we'd await a prompt, but CLI structure here is async.
-                    // For now, let's warn and allow user to bypass or block.
-                    // The user requested: "prompt if there are more recent rounds completed"
+                if (baseRound < maxResultRound && baseRound !== 0) {
                     if (!window.confirm(`WARNING: You are generating pairings based on Round ${baseRound}, but Round ${maxResultRound} has results. Continue?`)) {
                         addToHistory('Operation cancelled by user.', 'warning');
                         return;
                     }
                 }
+
+            } else if (command === 'initfontes') {
+                const numRounds = args.length > 0 ? parseInt(args[0]) : 3;
+                addToHistory(`[SYSTEM] Initializing Fontes Swiss for ${numRounds} rounds...`, 'system');
+
+                const activePool = players.filter(p => !p.withdrawn && p.status !== 'paused');
+                const fontesSchedules = generateInitFontesPairings(activePool, numRounds);
+
+                let newSched = { ...(tournamentInfo.pairing_schedule || {}) };
+                let applyRound = 1;
+
+                Object.keys(fontesSchedules).forEach(rKey => {
+                    const r = parseInt(rKey);
+                    const finalizedPairs = assignStarts(fontesSchedules[r], players, results);
+                    newSched[applyRound] = finalizedPairs.map((p, i) => ({
+                        ...p,
+                        round: applyRound,
+                        table_number: p.table || i + 1,
+                        player1_id: p.player1.player_id,
+                        player2_id: p.player2?.player_id
+                    }));
+                    addToHistory(`Generated Round ${applyRound} (InitFontes)`, 'info');
+                    applyRound++;
+                });
+
+                onUpdateTournament(prev => {
+                    supabase.from('tournaments')
+                        .update({ pairing_schedule: newSched, current_round: 1 })
+                        .eq('id', tournamentInfo.id).then();
+                    return { ...prev, pairing_schedule: newSched, current_round: 1 };
+                });
+                return;
 
             } else if (command === 'koth') {
                 if (args.length < 2) throw new Error("Usage: koth <repeats> <base>");
@@ -2493,10 +2008,20 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                     }
                 }
 
+            } else if (command === 'pq' || command === 'pairquartiles') {
+                targetRound = (tournamentInfo.current_round || 0) + 1;
+                repeats = args.length > 1 ? parseInt(args[1]) : 0;
+                baseRound = args.length > 2 ? parseInt(args[2]) : maxResultRound;
+
+            } else if (command === 'q' || command === 'quartile' || command === 'quart') {
+                targetRound = args.length > 0 ? parseInt(args[0]) : (tournamentInfo.current_round || 0) + 1;
+                baseRound = targetRound - 1; // Standard base for quartile
+
+            } else if (command === 'trr') {
+                targetRound = args.length > 0 ? parseInt(args[0]) : (tournamentInfo.current_round || 0) + 1;
             } else if (command === 'rr') {
-                targetRound = tournamentInfo.currentRound || 1;
+                targetRound = tournamentInfo.current_round || 1;
                 repeats = args.length > 0 ? parseInt(args[0]) : 1;
-                // RR Generation
             }
 
             if (isNaN(targetRound)) throw new Error("Invalid round number.");
@@ -2520,96 +2045,137 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
             const reservedTables = cliSettings.current.reserved_tables || {};
 
             if (command === 'rr') {
-                // Use new RR logic with Repeats & Consecutive Config
                 const rrConsecutive = cliSettings.current.rr_consecutive || 1;
-                // Pass reservedTables if RR logic supports it (will add support)
                 const rrSchedules = generateRoundRobinSchedule(activePool, repeats, rrConsecutive, reservedTables);
-
-                // rrSchedules contains Rounds -> Pairings.
-                // We likely need to apply them to the schedule. 
-                // Wait, generateRoundRobinSchedule returns { 1: [], 2: [] ... } based on relative index 1..N.
-                // We need to map them to targetRound, targetRound+1...
-
                 let applyRound = targetRound;
-
-                // We need to loop through the generated round keys
                 const generatedRoundKeys = Object.keys(rrSchedules).sort((a, b) => a - b);
-
                 let newSched = { ...(tournamentInfo.pairing_schedule || {}) };
                 let maxR = 0;
 
                 generatedRoundKeys.forEach(rKey => {
-                    if (applyRound > totalRounds) return; // Cap
-
+                    if (applyRound > totalRounds) return;
                     const roundPairs = rrSchedules[rKey];
-                    // Assign Starts
                     const finalizedPairs = assignStarts(roundPairs, players, results);
-
-                    // Helper to map
-                    const mappedPairs = finalizedPairs.map((p, i) => ({
+                    newSched[applyRound] = finalizedPairs.map((p, i) => ({
                         ...p,
                         round: applyRound,
                         table_number: typeof p.table === 'number' ? p.table : i + 1,
                         player1_id: p.player1.player_id,
                         player2_id: p.player2?.player_id
                     }));
-
-                    newSched[applyRound] = mappedPairs;
                     addToHistory(`Generated Round ${applyRound} (RR)`, 'info');
                     maxR = applyRound;
                     applyRound++;
                 });
 
-                // Save All
                 onUpdateTournament(prev => {
                     supabase.from('tournaments')
                         .update({ pairing_schedule: newSched, current_round: maxR })
                         .eq('id', tournamentInfo.id).then();
-                    return { ...prev, pairing_schedule: newSched, currentRound: maxR };
+                    return { ...prev, pairing_schedule: newSched, current_round: maxR };
                 });
-                return; // RR handles its own save loop
+                return;
 
-            } else if (command === 'sw') {
-                // Swiss
-                // Calculate Standings up to baseRound
-                // Filter results <= baseRound
-                const baseResults = results.filter(r => r.round <= baseRound);
+            } else if (command === 'ns' || command === 'sw' || command === 'ts') {
+                // Standings Logic
+                let simPlayers;
+                let baseResults = [];
 
-                const simPlayers = activePool.map(p => ({ ...p, wins: 0, ties: 0, spread: 0 }));
-                simPlayers.forEach(p => {
-                    baseResults.forEach(res => {
-                        if (res.player1_id === p.player_id) {
-                            if (res.score1 > res.score2) p.wins++;
-                            else if (res.score1 === res.score2) p.ties++;
-                            p.spread += (res.score1 - res.score2);
-                        } else if (res.player2_id === p.player_id) {
-                            if (res.score2 > res.score1) p.wins++;
-                            else if (res.score2 === res.score1) p.ties++;
-                            p.spread += (res.score2 - res.score1);
+                if (baseRound === 0) {
+                    // Round 0: By Pre-tournament ranking
+                    simPlayers = activePool.map(p => ({ ...p, wins: 0, ties: 0, spread: 0 }));
+                    // Sort by initial seed or rating
+                    simPlayers.sort((a, b) => (a.initial_seed || 999) - (b.initial_seed || 999));
+                } else {
+                    baseResults = results.filter(r => r.round <= baseRound);
+                    const standings = calculateStandings(players, baseResults, [], tournamentInfo);
+                    simPlayers = standings.filter(p => !p.withdrawn && p.status !== 'paused');
+                }
+
+                pairings = generateSwissPairings(simPlayers, previousMatchups, baseResults, targetRound, repeats, reservedTables);
+
+            } else if (command === 'q' || command === 'quartile' || command === 'quart') {
+                pairings = generateQuartilePairings(activePool, targetRound, results, reservedTables);
+
+            } else if (command === 'pq' || command === 'pairquartiles') {
+                const targetQ = args.length > 0 ? parseInt(args[0]) : 4;
+                const divArg = args.length > 3 ? args[3].toLowerCase() : null;
+
+                const pqResults = results.filter(r => r.round <= baseRound);
+                const pqStandings = calculateStandings(players, pqResults, [], tournamentInfo);
+                let pqActive = pqStandings.filter(p => !p.withdrawn && p.status !== 'paused');
+
+                if (divArg) {
+                    pqActive = pqActive.filter(p => (p.division || 'a').toLowerCase() === divArg);
+                    if (pqActive.length === 0) throw new Error(`No active players found in division ${divArg}`);
+                }
+
+                pairings = generateTSHQuartilePairings(pqActive, targetQ, repeats, previousMatchups, results, reservedTables);
+
+            } else if (command === 'trr') {
+                // Team Round Robin
+                const teamMap = new Map();
+                const trrPlayers = players.filter(p => !p.withdrawn && p.status !== 'paused');
+
+                trrPlayers.forEach(p => {
+                    let teamName = 'Unattached';
+                    if (p.team_id && tournamentInfo.teams) {
+                        const t = tournamentInfo.teams.find(tm => tm.id === p.team_id);
+                        if (t) teamName = t.name;
+                    } else {
+                        teamName = (p.club || p.team || 'Unattached').trim();
+                    }
+                    if (!teamMap.has(teamName)) teamMap.set(teamName, []);
+                    teamMap.get(teamName).push(p);
+                });
+
+                const teamsList = Array.from(teamMap.keys()).sort();
+                if (teamsList.length < 2) throw new Error(`Not enough teams found (Found: ${teamsList.length})`);
+
+                const teamObjList = teamsList.map((name, i) => ({ id: i, name }));
+                // Berger rotation via utility on team names as dummy players
+                const teamRRSchedule = generateRoundRobinSchedule(teamObjList.map(t => ({ player_id: t.id, name: t.name })), 1, 1, {});
+                // Calculate cycle index for the specific target round
+                const numTeams = teamObjList.length % 2 === 0 ? teamObjList.length : teamObjList.length + 1;
+                const cycleRounds = numTeams - 1;
+                const rIndex = ((targetRound - 1) % cycleRounds) + 1;
+                const teamRRPairs = teamRRSchedule[rIndex] || teamRRSchedule[1];
+
+                pairings = [];
+                let tableOffset = 1;
+
+                teamRRPairs.forEach(tp => {
+                    const t1Name = tp.player1.name;
+                    const t2Name = tp.player2.name;
+
+                    if (t1Name === 'BYE' || t2Name === 'BYE') {
+                        const realTeam = t1Name === 'BYE' ? t2Name : t1Name;
+                        if (realTeam !== 'BYE') {
+                            teamMap.get(realTeam).forEach(p => {
+                                pairings.push({ table: 'BYE', player1: p, player2: { name: 'BYE', player_id: null, isBye: true } });
+                            });
                         }
-                    });
+                        return;
+                    }
+
+                    const roster1 = [...teamMap.get(t1Name)].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+                    const roster2 = [...teamMap.get(t2Name)].sort((a, b) => (a.rank || 999) - (b.rank || 999));
+                    const maxB = Math.max(roster1.length, roster2.length);
+
+                    for (let b = 0; b < maxB; b++) {
+                        const p1 = roster1[b];
+                        const p2 = roster2[b];
+                        if (p1 && p2) pairings.push({ table: tableOffset++, player1: p1, player2: p2 });
+                        else if (p1) pairings.push({ table: 'BYE', player1: p1, player2: { name: 'BYE', player_id: null, isBye: true } });
+                        else if (p2) pairings.push({ table: 'BYE', player1: p2, player2: { name: 'BYE', player_id: null, isBye: true } });
+                    }
                 });
-
-                const maxCons = cliSettings.current.max_consecutive || 0;
-                pairings = generateSwissPairings(simPlayers, previousMatchups, baseResults, targetRound, maxCons, reservedTables);
-
-            } else if (command === 'koth') {
-                const kothResults = results.filter(r => r.round <= baseRound);
-                const partialStandings = calculateStandings(players, kothResults, [], tournamentInfo);
-                const rankedActive = partialStandings.filter(p => !p.withdrawn && p.status !== 'paused');
-
-                pairings = generateKingOfTheHillPairings(rankedActive, previousMatchups, kothResults, targetRound, reservedTables);
             }
 
-            // Save Single Round (SW/KOTH)
-            // ... (Save logic)
-            // Need to apply table numbers if missing
-            pairings.forEach((p, i) => { if (!p.table) p.table = i + 1; });
-
-            // Assign Starts (redundant if gen function did it, but safe)
+            // Finalize and Save
+            pairings.forEach((p, i) => { if (!p.table || p.table === 0) p.table = i + 1; });
             pairings = assignStarts(pairings, players, results);
 
-            // DB Update
             onUpdateTournament(prev => {
                 const newSched = { ...(prev.pairing_schedule || {}) };
                 newSched[targetRound] = pairings.map(p => ({
@@ -2627,20 +2193,15 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                         else toast.success(`Round ${targetRound} Generated`);
                     });
 
-                return { ...prev, pairing_schedule: newSched, currentRound: targetRound };
+                return { ...prev, pairing_schedule: newSched, current_round: targetRound };
             });
 
             addToHistory(`Round ${targetRound} Pairings Generated.`, 'success');
-
-            // Log Notes
-            pairings.forEach(p => {
-                if (p.note) {
-                    addToHistory(`> Table ${p.table}: ${p.note}`, 'warning');
-                }
-            });
+            pairings.forEach(p => { if (p.note) addToHistory(`> Table ${p.table}: ${p.note}`, 'warning'); });
 
         } catch (e) {
             addToHistory(`Error: ${e.message}`, 'error');
+            console.error(e);
         }
     };
 
@@ -2653,13 +2214,13 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
                 .from('tournaments')
                 .update({
                     pairing_schedule: updatedTournament.pairing_schedule,
-                    current_round: updatedTournament.currentRound
+                    current_round: updatedTournament.current_round
                 })
                 .eq('slug', tournamentInfo.slug || tournamentInfo.url_slug);
 
             if (error) throw error;
 
-            toast.success(`Pairings Generated & Saved for Round ${updatedTournament.currentRound}`);
+            toast.success(`Pairings Generated & Saved for Round ${updatedTournament.current_round}`);
         } catch (err) {
             console.error(err);
             toast.error('Failed to save pairings to database.');
@@ -2669,62 +2230,25 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
     // Helper to update player stats (stats command)
     const updatePlayerStats = async () => {
         try {
-            // Calculate stats from 'results'
-            const newStats = {};
-            players.forEach(p => {
-                newStats[p.player_id || p.id] = { wins: 0, spread: 0, losses: 0, ties: 0 };
-            });
-
-            results.forEach(r => {
-                if (newStats[r.player1_id]) {
-                    const s = newStats[r.player1_id];
-                    s.spread += (r.score1 - r.score2);
-                    if (r.score1 > r.score2) s.wins++;
-                    else if (r.score1 < r.score2) s.losses++;
-                    else s.ties++;
-                }
-                if (newStats[r.player2_id]) {
-                    const s = newStats[r.player2_id];
-                    s.spread += (r.score2 - r.score1);
-                    if (r.score2 > r.score1) s.wins++;
-                    else if (r.score2 < r.score1) s.losses++;
-                    else s.ties++;
-                }
-            });
-
-            // Batch update via Supabase (requires loop or rpc - doing loop for simplicity/prototype)
-            // Ideally we create a backend function, but for now:
-            // We can upsert if we map to correct table structure 'tournament_players'
-            // Table 'tournament_players' has columns: wins, losses, spread?
-            // Let's assume yes based on request.
-
-            // Optimization: Prepare array
-            const updates = Object.keys(newStats).map(pid => ({
-                player_id: pid,
-                tournament_id: tournamentInfo.id,
-                wins: newStats[pid].wins,
-                losses: newStats[pid].losses,
-                spread: newStats[pid].spread
-                // Assuming 'ties' handled or ignored for now
-            }));
-
-            // We can't batch update easily without UPSERT on primary key. PK is likely id of tournament_players row.
-            // But we have player_id and tournament_id.
-            // We'll iterate for safety in this CLI context.
+            const standings = calculateStandings(players, results, [], tournamentInfo);
 
             let count = 0;
-            for (const u of updates) {
+            for (const s of standings) {
                 const { error } = await supabase
                     .from('tournament_players')
-                    .update({ wins: u.wins, losses: u.losses, spread: u.spread })
-                    .eq('tournament_id', u.tournament_id)
-                    .eq('player_id', u.player_id); // Assuming this composite key works or we find the row.
+                    .update({
+                        wins: s.wins,
+                        losses: s.losses,
+                        spread: s.spread,
+                        solkoff: s.solkoff // Include solkoff in DB update
+                    })
+                    .eq('tournament_id', tournamentInfo.id)
+                    .eq('player_id', s.player_id);
                 if (!error) count++;
             }
 
-            addToHistory(`Updated stats for ${count} players in database.`, 'success');
+            addToHistory(`Updated stats (including Solkoff) for ${count} players in database.`, 'success');
             toast.success("Player Stats Updated");
-
         } catch (err) {
             console.error(err);
             addToHistory(`Error updating stats: ${err.message}`, 'error');
@@ -2765,16 +2289,20 @@ const ResultsEntryCLI = ({ tournamentInfo, players, matches, results, teams, onR
         // This is a simple regex, might need more robustness for names with spaces if user types full name?
         // User said: "Toyeme 400 Harold 300"
 
-        // Let's try to split by spaces and flexible parsing
-        const parts = trimmed.split(/\s+/);
-        if (parts.length !== 4) {
+        // Regex: ^(.+)\s+(\d+)\s+(.+)\s+(\d+)$
+        // Handles "Anne Marie 400 John Doe 300"
+        const scoreRegex = /^(.+?)\s+(\d+)\s+(.+?)\s+(\d+)$/;
+        const regexMatch = trimmed.match(scoreRegex);
+
+        if (!regexMatch) {
             addToHistory('Invalid format. Expected: Name1 Score1 Name2 Score2', 'error');
             return;
         }
 
-        const [n1, s1, n2, s2] = parts;
-        const score1 = parseInt(s1);
-        const score2 = parseInt(s2);
+        const n1 = regexMatch[1].trim();
+        const score1 = parseInt(regexMatch[2]);
+        const n2 = regexMatch[3].trim();
+        const score2 = parseInt(regexMatch[4]);
 
         if (isNaN(score1) || isNaN(score2)) {
             addToHistory('Scores must be numbers.', 'error');

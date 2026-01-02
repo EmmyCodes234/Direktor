@@ -43,7 +43,7 @@ const generateTouContent = (tournamentInfo, divisionLabel, divPlayers, divResult
 
         // Round Data
         // Iterate 1..currentRound (or max round found in results)
-        const maxRound = Math.max(0, ...divResults.map(r => r.round), tournamentInfo.currentRound || 0);
+        const maxRound = Math.max(0, ...divResults.map(r => r.round), tournamentInfo.current_round || 0);
 
         for (let r = 1; r <= maxRound; r++) {
             // Find specific game for this round

@@ -1,13 +1,13 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { 
-  fetchTournamentBySlug, 
+import {
+  fetchTournamentBySlug,
   updateTournament,
-  deleteTournament 
+  deleteTournament
 } from '../store/slices/tournamentsSlice';
 import { fetchTournamentPlayers } from '../store/slices/playersSlice';
-import { 
-  fetchTournamentResults, 
+import {
+  fetchTournamentResults,
   fetchPendingResults,
   submitResult,
   updateResult,
@@ -28,7 +28,7 @@ export const useTournament = (tournamentSlug) => {
   // Fetch tournament data
   const fetchTournamentData = useCallback(async () => {
     if (!tournamentSlug) return;
-    
+
     try {
       await dispatch(fetchTournamentBySlug(tournamentSlug)).unwrap();
     } catch (error) {
@@ -39,7 +39,7 @@ export const useTournament = (tournamentSlug) => {
   // Fetch players
   const fetchPlayers = useCallback(async () => {
     if (!tournament?.id) return;
-    
+
     try {
       await dispatch(fetchTournamentPlayers(tournament.id)).unwrap();
     } catch (error) {
@@ -50,7 +50,7 @@ export const useTournament = (tournamentSlug) => {
   // Fetch results
   const fetchResults = useCallback(async () => {
     if (!tournament?.id) return;
-    
+
     try {
       await Promise.all([
         dispatch(fetchTournamentResults(tournament.id)).unwrap(),
@@ -71,10 +71,10 @@ export const useTournament = (tournamentSlug) => {
   const tournamentState = useMemo(() => {
     if (!tournament) return 'NO_TOURNAMENT';
     if (tournament.status === 'completed') return 'TOURNAMENT_COMPLETE';
-    
-    const currentRound = tournament.currentRound || 1;
+
+    const currentRound = tournament.current_round || 1;
     const pairingsForCurrentRound = tournament.pairing_schedule?.[currentRound];
-    
+
     if (pairingsForCurrentRound || tournament.type === 'best_of_league') {
       const resultsForCurrentRound = results.filter((r) => r.round === currentRound);
       const expectedResults = (pairingsForCurrentRound || []).filter(p => p.player2?.name !== 'BYE').length;
@@ -89,14 +89,14 @@ export const useTournament = (tournamentSlug) => {
         return 'ROUND_IN_PROGRESS';
       }
     }
-    
+
     return (players || []).length >= 2 ? 'ROSTER_READY' : 'EMPTY_ROSTER';
   }, [tournament, players, results]);
 
   // Actions
   const updateTournamentData = useCallback(async (updates) => {
     if (!tournament?.id) return;
-    
+
     try {
       await dispatch(updateTournament({ id: tournament.id, updates })).unwrap();
       toast.success('Tournament updated successfully');
@@ -107,7 +107,7 @@ export const useTournament = (tournamentSlug) => {
 
   const deleteTournamentData = useCallback(async () => {
     if (!tournament?.id || !user?.id) return;
-    
+
     try {
       await dispatch(deleteTournament({ id: tournament.id, userId: user.id })).unwrap();
       toast.success('Tournament deleted successfully');
@@ -120,7 +120,7 @@ export const useTournament = (tournamentSlug) => {
 
   const submitTournamentResult = useCallback(async (resultData) => {
     if (!tournament?.id) return;
-    
+
     try {
       await dispatch(submitResult({ ...resultData, tournament_id: tournament.id })).unwrap();
       toast.success('Result submitted successfully');
